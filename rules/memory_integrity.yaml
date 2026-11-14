@@ -43,7 +43,7 @@
 - id: SATSUMA-RAM-107
   name: Bellek imzası veya sezgisel bulgu inceleme gerektiriyor
   severity: high
-  classification: indicator
+  classification: suspicious
   confidence: medium
   category: memory
   base_match:
