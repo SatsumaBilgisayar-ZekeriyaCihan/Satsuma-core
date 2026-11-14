@@ -10566,6 +10566,135 @@
     },
     {
       "schema_version": 1,
+      "rule_id": "SATSUMA-RAM-106",
+      "name": "Süreç belleğinde yeniden doğrulanmış yerel imza bulgusu",
+      "detection_sha256": "d693bb1202cb3d44226e11a4929666fadb58c30c6233bd098f96df9cc9ff1244",
+      "source": "memory",
+      "match": {
+        "source": "memory",
+        "action": "ram_signature_match_v2"
+      },
+      "current_actions": [
+        "record",
+        "evidence",
+        "correlation_request"
+      ],
+      "current_automatic_eligibility": {
+        "enforcement_eligible": true,
+        "automatic_allowed": true,
+        "conditional_on_existing_policy": true,
+        "requires_real_target_checks": true
+      },
+      "logging": {
+        "enabled": true,
+        "required_actions": [
+          "record",
+          "evidence"
+        ],
+        "existing_actions_preserved": true
+      },
+      "proposed_response": {
+        "requested_action": "process_kill_evaluation",
+        "additional_network_or_file_action": "not proposed without independently verified target evidence",
+        "minimum_sources": 2,
+        "freshness_seconds": 60,
+        "identity": "same PID + kernel starttime jiffies + executable",
+        "requirements": [
+          "operator-controlled action policy",
+          "fresh original target identity",
+          "protected process/target exemptions",
+          "pause/replay guards",
+          "pre-action identity revalidation"
+        ],
+        "required_source_families": [
+          "process",
+          "audit",
+          "memory"
+        ],
+        "selection_basis": "Detection match does not by itself prove attack intent; propose independent same-target evidence, not severity/name-derived execution.",
+        "applied": false,
+        "review_state": "per_rule_operator_review_required"
+      },
+      "false_positive_risks": [
+        "Ham bellek imzaları laboratuvarda doğrulanmalıdır; mevcut yetki, istisna ve yeniden doğrulama kontrolleri zorunludur."
+      ],
+      "capability_gaps": [
+        "Live Fedora identity/evidence availability has not been measured.",
+        "ACCESS_DENIED/partial/JIT/memfd observations are not clean results or automatic stop authority."
+      ],
+      "rollback": {
+        "process": "Termination is irreversible; restart/recovery must be planned before authorization.",
+        "network": "Existing authenticated unblock workflow; not executed here.",
+        "file": "Existing quarantine rollback workflow; protected OS paths remain exempt.",
+        "policy": "Restore only this rule’s prior requirement with authenticated operator approval."
+      }
+    },
+    {
+      "schema_version": 1,
+      "rule_id": "SATSUMA-RAM-107",
+      "name": "Bellek imzası veya sezgisel bulgu inceleme gerektiriyor",
+      "detection_sha256": "24af730f5209afae2584de821514acd1f537e1f42763c5b520bbedcf96591a87",
+      "source": "memory",
+      "match": {
+        "source": "memory",
+        "action": "ram_review_v2"
+      },
+      "current_actions": [
+        "record",
+        "evidence"
+      ],
+      "current_automatic_eligibility": {
+        "enforcement_eligible": false,
+        "automatic_allowed": false,
+        "conditional_on_existing_policy": true,
+        "requires_real_target_checks": true
+      },
+      "logging": {
+        "enabled": true,
+        "required_actions": [
+          "record",
+          "evidence"
+        ],
+        "existing_actions_preserved": true
+      },
+      "proposed_response": {
+        "requested_action": "process_kill_evaluation",
+        "additional_network_or_file_action": "not proposed without independently verified target evidence",
+        "minimum_sources": 2,
+        "freshness_seconds": 60,
+        "identity": "same PID + kernel starttime jiffies + executable",
+        "requirements": [
+          "operator-controlled action policy",
+          "fresh original target identity",
+          "protected process/target exemptions",
+          "pause/replay guards",
+          "pre-action identity revalidation"
+        ],
+        "required_source_families": [
+          "process",
+          "audit",
+          "memory"
+        ],
+        "selection_basis": "Detection match does not by itself prove attack intent; propose independent same-target evidence, not severity/name-derived execution.",
+        "applied": false,
+        "review_state": "per_rule_operator_review_required"
+      },
+      "false_positive_risks": [
+        "Sezgisel uyarı veya yeniden üretilemeyen eşleşme otomatik müdahale gerekçesi değildir."
+      ],
+      "capability_gaps": [
+        "Live Fedora identity/evidence availability has not been measured.",
+        "ACCESS_DENIED/partial/JIT/memfd observations are not clean results or automatic stop authority."
+      ],
+      "rollback": {
+        "process": "Termination is irreversible; restart/recovery must be planned before authorization.",
+        "network": "Existing authenticated unblock workflow; not executed here.",
+        "file": "Existing quarantine rollback workflow; protected OS paths remain exempt.",
+        "policy": "Restore only this rule’s prior requirement with authenticated operator approval."
+      }
+    },
+    {
+      "schema_version": 1,
       "rule_id": "SATSUMA-NET-201",
       "name": "Yeni dinleme portu göstergesi",
       "detection_sha256": "20cff3f5669081d2b7aa96df449f4b73c12c47186cc480739b3052808a96d08a",
