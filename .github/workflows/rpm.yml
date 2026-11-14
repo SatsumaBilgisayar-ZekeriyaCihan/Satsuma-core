@@ -23,7 +23,7 @@ jobs:
           dnf -y install git tar gzip rpm-build bash systemd-rpm-macros
           python3 python3-pip python3-pytest python3-pyyaml python3-pydantic
           python3-psutil python3-jsonschema python3-cryptography
-          python3-pyqt6 python3-qt5
+          python3-pyqt6 python3-qt5 openssl
       - uses: actions/checkout@v4
       - name: tests
         env:
