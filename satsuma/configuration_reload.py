@@ -18,7 +18,9 @@ def apply_features(store, config):
     update('auto_action_policy',{'network_enabled':config.get('auto_action_network_enabled',True),
                                 'early_guard_required':False})
     dns=store.get('dns_policy',{}) or {}
-    from .dnsmasq_control import OPENDNS
+    from .dnsmasq_control import OPENDNS, is_cloudflare
+    if is_cloudflare(dns.get('upstream')):
+        dns['upstream']=OPENDNS[0];dns['upstream_source']='opendns_replaced_cloudflare'
     if config.get('dns_filter_enabled',True) and not dns.get('upstream'):
         dns['upstream']=OPENDNS[0];dns['upstream_source']='opendns_default'
     elif dns.get('upstream') and not dns.get('upstream_source'):

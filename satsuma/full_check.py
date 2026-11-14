@@ -71,6 +71,9 @@ def _usable_upstream(value):
         address = ipaddress.ip_address(str(value))
     except ValueError:
         return None
+    from .dnsmasq_control import is_cloudflare
+    if is_cloudflare(address):
+        return None
     return None if address.is_loopback or address.is_unspecified or address.is_multicast else str(address)
 
 

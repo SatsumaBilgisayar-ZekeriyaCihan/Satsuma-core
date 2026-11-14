@@ -130,12 +130,12 @@ def test_lan_toggle_only_changes_owned_table_and_preserves_dns(tmp_path):
 @pytest.mark.parametrize('name', ['bad/name.com', 'evil.com/#', 'evil.com\nserver=attacker', 'bad..com', '*', 'example.com;other'])
 def test_dnsmasq_config_rejects_injection(name):
     with pytest.raises(ValueError):
-        render({'upstream': '1.1.1.1'}, [name], [])
+        render({'upstream': '9.9.9.9'}, [name], [])
 
 
 def test_dnsmasq_keeps_unblocked_names_on_upstream_and_allows_exceptions():
-    config = render({'upstream': '1.1.1.1'}, ['bad.example', 'safe.bad.example'], ['safe.bad.example'])
-    assert config == 'address=/bad.example/#\nlocal=/bad.example/\nserver=/example.com/1.1.1.1\nserver=/safe.bad.example/1.1.1.1\n'  # probe name always forwarded
+    config = render({'upstream': '9.9.9.9'}, ['bad.example', 'safe.bad.example'], ['safe.bad.example'])
+    assert config == 'address=/bad.example/#\nlocal=/bad.example/\nserver=/example.com/9.9.9.9\nserver=/safe.bad.example/9.9.9.9\n'  # probe name always forwarded
     assert HAGEZI_URL.endswith('/wildcard/ultimate-onlydomains.txt')
     assert parse('# metadata\nBAD.EXAMPLE\nbad.example\ninternal.local\n') == ['bad.example']
 

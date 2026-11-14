@@ -39,15 +39,37 @@ SERVICE = 'satsuma-core-dns.service'
 # 2.2.15: the default upstream (user decision 2026-10-26). When the upstream
 # is one of them, dnsmasq is given both, so one being down does not stop DNS.
 OPENDNS = ('208.67.222.222', '208.67.220.220')
+# Cloudflare's public resolvers are never Satsuma's upstream: redirection to
+# fake sites through Cloudflare was reported (owner, 2026-11-14). A Cloudflare
+# address is replaced by OpenDNS, never rejected, so the filter stays on.
+# Cloudflare'in genel çözümleyicileri asla üst sunucu olmaz: Cloudflare
+# üzerinden sahte sitelere yönlendirme bildirildi. Cloudflare adresi
+# reddedilmez, OpenDNS ile değiştirilir; filtre açık kalır.
+CLOUDFLARE_DNS = frozenset(ipaddress.ip_address(a) for a in (
+    '1.1.1.1', '1.0.0.1', '1.1.1.2', '1.0.0.2', '1.1.1.3', '1.0.0.3',
+    '2606:4700:4700::1111', '2606:4700:4700::1001', '2606:4700:4700::1112',
+    '2606:4700:4700::1002', '2606:4700:4700::1113', '2606:4700:4700::1003'))
+
+
+def is_cloudflare(address):
+    try:
+        return ipaddress.ip_address(str(address)) in CLOUDFLARE_DNS
+    except ValueError:
+        return False
+
+
+def safe_upstream(address):
+    """The upstream to use: a Cloudflare resolver becomes OpenDNS."""
+    return OPENDNS[0] if is_cloudflare(address) else address
 
 
 def upstream_servers(upstream):
-    first = str(ipaddress.ip_address(upstream))
+    first = str(ipaddress.ip_address(safe_upstream(upstream)))
     return [first] + [server for server in OPENDNS if first in OPENDNS and server != first]
 
 
 def render(policy, blocked, allowed):
-    resolver = ipaddress.ip_address(policy['upstream'])
+    resolver = ipaddress.ip_address(safe_upstream(policy['upstream']))
     if resolver.is_loopback or resolver.is_multicast or resolver.is_unspecified:
         raise ValueError('A real non-loopback upstream DNS server is required')
     from .domain_lists import domain

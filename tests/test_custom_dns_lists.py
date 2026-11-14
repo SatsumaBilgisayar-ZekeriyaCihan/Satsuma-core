@@ -28,13 +28,13 @@ def test_private_dns_answer_is_rejected_before_connection(monkeypatch):
 
 
 def test_success_reaches_dns_rules_and_error_preserves_previous_list():
-    store=Store();store.set('dns_policy',{'enabled':True,'upstream':'1.1.1.1'});rendered=[]
+    store=Store();store.set('dns_policy',{'enabled':True,'upstream':'9.9.9.9'});rendered=[]
     def refresh():
         rendered.append(render(store.get('dns_policy'),c.blocked_domains(store),['safe.bad.example']))
         return {'status':'configured'}
     result=c.change(store,'https://lists.example/hosts','update',refresh,fetcher=lambda url:b'0.0.0.0 bad.example\n')
     assert result['active'] and 'address=/bad.example/#' in rendered[-1]
-    assert 'server=/safe.bad.example/1.1.1.1' in rendered[-1]
+    assert 'server=/safe.bad.example/9.9.9.9' in rendered[-1]
     old=store.get('custom_dns_sources')
     with pytest.raises(ValueError):c.change(store,'https://lists.example/hosts','update',refresh,fetcher=lambda url:b'<html>error</html>')
     assert store.get('custom_dns_sources')==old

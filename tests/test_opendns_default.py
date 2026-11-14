@@ -29,7 +29,7 @@ def test_a_new_installation_starts_with_opendns():
 def test_dnsmasq_gets_both_opendns_servers_and_only_the_chosen_one_otherwise():
     assert upstream_servers('208.67.220.220') == ['208.67.220.220', '208.67.222.222']
     assert upstream_servers('208.67.222.222') == list(OPENDNS)
-    assert upstream_servers('1.1.1.1') == ['1.1.1.1']
+    assert upstream_servers('9.9.9.9') == ['9.9.9.9']
     with pytest.raises(ValueError):
         upstream_servers('not-an-address')
 

@@ -335,6 +335,9 @@ class OperatorController:
                 resolver = ipaddress.ip_address(params.get('upstream', policy.get('upstream', '')))
                 if resolver.is_loopback or resolver.is_unspecified or resolver.is_multicast:
                     raise ValueError('DNS upstream gerçek DNS sunucusu olmalı; loopback olamaz')
+                from .dnsmasq_control import is_cloudflare
+                if is_cloudflare(resolver):
+                    raise ValueError('Cloudflare DNS sunucusu kullanılamaz; OpenDNS ya da başka bir sunucu girin')
                 policy = {**policy, 'enabled': True, 'upstream': str(resolver)}
                 if 'upstream' in params:
                     policy['upstream_source'] = 'operator'
