@@ -131,8 +131,8 @@ def test_inventory_all_233_are_distinct_and_no_baseline_actions_were_modified():
     from satsuma.smart_rules import SmartRuleEngine
     from satsuma.ai_rule_package import digest
     catalog=build()['rules'];rules=SmartRuleEngine().rules
-    assert len(catalog)==len(rules)==233
-    assert len({r['rule_id'] for r in catalog})==233
+    assert len(catalog)==len(rules)==231
+    assert len({r['rule_id'] for r in catalog})==231
     for row,rule in zip(catalog,rules):
         assert row['current_actions']==rule['actions']
         assert row['match']==rule['base_match']

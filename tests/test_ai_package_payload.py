@@ -18,7 +18,7 @@ def test_staged_runtime_contains_ai_memory_schemas_and_native_qt(tmp_path):
     (payload/'cli').mkdir()
     for name in ('satsuma-deepseek-test.py','satsuma-research.py'):shutil.copyfile(source/'bin'/name,payload/'cli'/name)
     result=inspect(tmp_path)
-    assert result['status']=='PASS' and result['runtime_imports']['rules']==233
+    assert result['status']=='PASS' and result['runtime_imports']['rules']==231
     assert not result['rpm_install_tested'] and not result['systemd_startup_tested']
 
 

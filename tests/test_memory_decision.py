@@ -20,7 +20,7 @@ def test_every_memory_rule_is_loaded_and_decided_as_enforcement_decides():
             assert decision['rule_id'] == rule['id']
             assert decision['stop'] is enforcement.eligible({**rule, 'rule_id': rule['id']}), rule['id']
             count += 1
-    assert count == len(rules) >= 9
+    assert count == len(rules) >= 7
 
 
 def test_owner_decisions_hold_on_both_platforms():

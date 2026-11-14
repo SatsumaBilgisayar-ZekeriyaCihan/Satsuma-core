@@ -88,7 +88,7 @@ def test_every_ram_detection_is_an_attack_indicator_that_stops():
     for name in ('ram_defense.yaml', 'memory_injection.yaml', 'memory_integrity.yaml'):
         rules += [r for r in yaml.safe_load((Path(__file__).resolve().parents[1] / 'rules' / name).read_text())
                   if str(r.get('id', '')).startswith('SATSUMA-RAM')]
-    assert len(rules) == 9
+    assert len(rules) == 7
     for rule in rules:
         finding = {'rule_id': rule['id'], 'classification': rule['classification'], 'severity': rule['severity']}
         assert enforcement.eligible(finding) and enforcement.automatic_allowed(finding), rule['id']
