@@ -18,12 +18,21 @@ jobs:
     steps:
       - name: Install build tools
         run: |
-          dnf install -y rpm-build tar gzip coreutils findutils openssl \
+          dnf install -y rpm-build tar gzip coreutils findutils openssl git \
             python3 python3-pytest python3-pyyaml python3-pydantic python3-psutil \
             python3-jsonschema python3-cryptography python3-pyqt6 python3-qt5
 
       - name: Checkout source
         uses: actions/checkout@v4
+
+      - name: Normalize file modes
+        run: |
+          # The container checkout leaves files group-writable (664); Satsuma
+          # treats such files as untrusted. Git itself only stores 644/755.
+          # Konteyner indirmesi dosyaları grup yazılabilir (664) bırakır; Satsuma
+          # böyle dosyaları güvenilmez sayar. Git yalnız 644/755 saklar.
+          chmod -R g-w,o-w "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Run tests
         env:
