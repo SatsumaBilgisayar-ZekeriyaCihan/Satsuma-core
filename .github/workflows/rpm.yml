@@ -1,5 +1,5 @@
-# Builds the satsuma-core RPM on Fedora 44. Tests are not run here.
-# satsuma-core RPM'ini Fedora 44 üzerinde derler. Burada test çalışmaz.
+# Runs the tests, then builds the satsuma-core RPM on Fedora 44. No passing tests, no RPM.
+# Önce testler, sonra satsuma-core RPM'i Fedora 44 üzerinde. Test geçmezse RPM üretilmez.
 name: Satsuma Core RPM Build
 
 on:
@@ -18,10 +18,18 @@ jobs:
     steps:
       - name: Install build tools
         run: |
-          dnf install -y rpm-build tar gzip coreutils findutils
+          dnf install -y rpm-build tar gzip coreutils findutils openssl \
+            python3 python3-pytest python3-pyyaml python3-pydantic python3-psutil \
+            python3-jsonschema python3-cryptography python3-pyqt6 python3-qt5
 
       - name: Checkout source
         uses: actions/checkout@v4
+
+      - name: Run tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          python3 -m pytest -q -p no:cacheprovider -rf tests
 
       - name: Build RPM
         run: |
