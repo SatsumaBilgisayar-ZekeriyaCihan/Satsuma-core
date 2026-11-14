@@ -77,10 +77,12 @@ def test_all_auto_restarting_services_have_bounded_retry_and_config_exit():
         # Restart=no never restarts itself; a timer-driven oneshot like the
         # security scan needs no start limit (see that unit).
         restarting=[l for l in text.splitlines() if l.startswith('Restart=') and l!='Restart=no']
-        if path.name in ('satsuma-kernel-guard.service','satsuma-exec-guard.service','satsuma-ram-clamd.service'):
+        if path.name in ('satsuma-kernel-guard.service','satsuma-exec-guard.service','satsuma-ram-clamd.service',
+                         'satsuma-clamonacc.service','satsuma-onaccess-listener.service'):
             # The deliberate exceptions: a guard that gives up after three
             # crashes protects nothing, so it restarts at once and never stops trying.
             # 2.2.37: the RAM scanner's ClamAV too (owner: attackers keep blocking the RAM module).
+            # 2.2.37: on-access ClamAV scanning never gives up either (owner's decision 2026-11-14).
             assert restarting==['Restart=always'] and 'StartLimitIntervalSec=0' in text,path
             continue
         if restarting:

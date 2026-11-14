@@ -5,13 +5,14 @@ Requires=clamd@scan.service
 After=clamd@scan.service
 ConditionPathExists=/etc/clamd.d/scan.conf
 
+StartLimitIntervalSec=0
 [Service]
 Type=simple
 User=root
 Environment=PATH=/usr/sbin:/usr/bin
 ExecStartPre=/usr/bin/python3 -I -B /opt/satsuma-core/installer/onaccess_setup.py verify
 ExecStart=/usr/bin/clamonacc --foreground --verbose --config-file=/etc/clamd.d/scan.conf --fdpass
-Restart=on-failure
+Restart=always
 RestartSec=5s
 UMask=0077
 LimitCORE=0
