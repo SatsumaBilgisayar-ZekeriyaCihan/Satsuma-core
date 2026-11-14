@@ -1,0 +1,41 @@
+# Tests first, then the RPM, on Fedora 44. No passing tests, no package.
+# Önce testler, sonra RPM; Fedora 44 üzerinde. Test geçmezse paket üretilmez.
+name: rpm
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rpm
+  cancel-in-progress: false
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-24.04
+    container: fedora:44
+    timeout-minutes: 60
+    steps:
+      - run: >-
+          dnf -y install git tar gzip rpm-build bash systemd-rpm-macros
+          python3 python3-pip python3-pytest python3-pyyaml python3-pydantic
+          python3-psutil python3-jsonschema python3-cryptography
+          python3-pyqt6 python3-qt5
+      - uses: actions/checkout@v4
+      - name: tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python3 -m pytest -q -p no:cacheprovider tests
+      - name: rpmbuild
+        run: |
+          export SATSUMA_RPM_BUILD_ROOT="$RUNNER_TEMP/rpmbuild"
+          bash packaging/build.sh
+          sha256sum "$SATSUMA_RPM_BUILD_ROOT"/RPMS/*/*.rpm
+          mkdir -p out && cp "$SATSUMA_RPM_BUILD_ROOT"/RPMS/*/*.rpm out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: satsuma-core-rpm
+          path: out/*.rpm
