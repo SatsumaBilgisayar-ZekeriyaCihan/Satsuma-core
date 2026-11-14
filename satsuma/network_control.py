@@ -191,33 +191,6 @@ def validate_layout(data, previous=False, ports=None):
     return True
 
 
-def validate_legacy_layout(data):
-    """Recognize only the previous owned DNS-exempt block table for migration."""
-    if not _owned(data):
-        return False
-    entries = data.get('nftables', [])
-    sets = {e['set']['name']: e['set'].get('type') for e in entries if 'set' in e}
-    chains = {e['chain']['name']: e['chain'] for e in entries if 'chain' in e}
-    if sets != {'blocked_ips': 'ipv4_addr', 'blocked_ips_v6': 'ipv6_addr'} or set(chains) != {'input', 'output'}:
-        return False
-    for name, direction in (('input', 'saddr'), ('output', 'daddr')):
-        chain = chains[name]
-        if chain.get('hook') != name or chain.get('prio') != -210 or chain.get('policy') != 'accept':
-            return False
-        allowed = []
-        required = []
-        for proto, setname in (('ip', 'blocked_ips'), ('ip6', 'blocked_ips_v6')):
-            required.append([match({'payload': {'protocol': proto, 'field': direction}}, '@'+setname), {'counter': {}}, {'drop': None}])
-        allowed.extend(required)
-        for proto, ports in (('udp', 53), ('udp', 853), ('tcp', {'set': [53, 853]})):
-            for field in ('sport', 'dport'):
-                allowed.append([match({'payload': {'protocol': proto, 'field': field}}, ports), {'accept': None}])
-        actual = [_expressions(e['rule']) for e in entries if 'rule' in e and e['rule'].get('chain') == name]
-        if any(expr not in allowed for expr in actual) or any(expr not in actual for expr in required):
-            return False
-    return True
-
-
 def setup(runner=subprocess.run, ruleset_path=RULESET):
     def call(args, **kwargs):
         return runner(['nft', *args], capture_output=True, text=True, timeout=15, **kwargs)
