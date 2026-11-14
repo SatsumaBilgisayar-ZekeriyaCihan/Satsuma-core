@@ -52,8 +52,18 @@ def test_stored_cloudflare_upstream_moves_to_opendns_on_reload():
         def set(self, key, value):
             self.values[key] = value
     store = Store()
-    apply_features(store, {})
+    # Only the DNS policy is under test; the firewall and app-control steps
+    # that follow it call nft and write root storage, so they are stubbed.
+    # Yalnız DNS politikası sınanır; ardından gelen güvenlik duvarı ve
+    # uygulama denetimi adımları nft çağırır, bu yüzden taklit edilir.
+    from unittest.mock import patch, MagicMock
+    with patch('satsuma.dnsmasq_control.refresh'), \
+         patch('satsuma.network_modes.NetworkModes', MagicMock()), \
+         patch('satsuma.protected_storage.RootDataStore', MagicMock()), \
+         patch('satsuma.app_firewall.policy', return_value={}):
+        apply_features(store, {})
     assert store.values['dns_policy']['upstream'] == OPENDNS[0]
+    assert store.values['dns_policy']['upstream_source'] == 'opendns_replaced_cloudflare'
 
 
 def test_full_check_does_not_accept_cloudflare():
