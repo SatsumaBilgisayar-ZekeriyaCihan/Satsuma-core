@@ -3,6 +3,8 @@ Description=Satsuma isolated rootless deep evidence engine
 Requires=satsuma-image.service
 After=satsuma-image.service
 Before=satsuma-teams.service
+StartLimitIntervalSec=300
+StartLimitBurst=3
 [Service]
 Type=simple
 User=satsuma-engine
@@ -10,12 +12,13 @@ Group=satsuma-core
 WorkingDirectory=/opt/satsuma-core
 ExecStart=/usr/bin/python3 -I -B /opt/satsuma-core/run_deep_engine.py
 Environment=PYTHONDONTWRITEBYTECODE=1
-Environment=PATH=/usr/bin:/usr/sbin
+Environment=PATH=/usr/sbin:/usr/bin
 RuntimeDirectory=satsuma-deep
 RuntimeDirectoryMode=0770
 UMask=0077
 Restart=on-failure
 RestartSec=5
+RestartPreventExitStatus=78
 NoNewPrivileges=true
 CapabilityBoundingSet=
 AmbientCapabilities=
