@@ -136,7 +136,6 @@ class OperatorController:
         elif method == 'process_approval_decide':
             from .process_approval import decide
             from .auto_process import respond as respond_process
-            from .response import ResponseWorker
             from . import enforcement
             def guarded_process(finding, request_id):
                 if self.store.get('interactive_process_test_mode', False) is not True:
