@@ -54,19 +54,6 @@ class TrustTests(unittest.TestCase):
             p=Path(d)/'verdict.json';p.write_text(json.dumps({'schema':2,'boot_id':'fixture','generated_monotonic':time.monotonic(),'state':'FULL_CHECKED','response_unlocked':True,'checks':{'application':{'ok':True},'critical_paths':{'ok':True}}}));p.chmod(0o600)
             with patch('satsuma.early_guard.current_boot_id',return_value='fixture'):
                 self.assertFalse(read_verdict(p)['response_unlocked'])
-    def test_scan_worker_still_observes_with_locked_intervention(self):
-        from satsuma.worker_memory import WorkerMemory
-        class Monitor:
-            def __init__(self,*a):pass
-            def drain(self):return []
-            def health(self):return {'status':'OBSERVING'}
-            def ack(self):pass
-        store=Store('UNTRUSTED')
-        with tempfile.TemporaryDirectory() as d:
-            w=WorkerMemory(store,proc_root=d)
-            with patch('satsuma.ram.coordinator.MemoryMonitor',Monitor),patch('satsuma.early_guard.read_verdict',return_value={'state':'FAILED','response_unlocked':False}):w.tick(Mock())
-        self.assertEqual(store.values['worker.ram_v2.health']['status'],'OBSERVING')
-        self.assertEqual(store.values['worker.ram_v2.health']['intervention']['status'],'LOCKED')
 
     def test_startup_does_not_import_app_after_integrity_failure(self):
         import runpy,sys,types

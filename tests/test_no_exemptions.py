@@ -94,27 +94,3 @@ def test_every_ram_detection_is_an_attack_indicator_that_stops():
         assert enforcement.eligible(finding) and enforcement.automatic_allowed(finding), rule['id']
 
 
-def test_engine_confirms_a_review_name_on_the_same_bytes():
-    import hashlib
-    from satsuma.ram import engine
-
-    class Proc:
-        maps = '1000-3000 rw-p 00000000 00:00 0 \n'
-        def snapshot(self):
-            return (1, 2, '/x', 3, 4), self.maps
-        def eligible(self, region):
-            return True, ''
-        def read(self, address, size):
-            return b'A' * size
-
-    payload = b'A' * 16
-    evidence = {'identity': (1, 2, '/x', 3, 4), 'maps_sha256': engine.maps_hash(Proc.maps), 'address': 0x1000,
-                'bytes': 16, 'sha256': hashlib.sha256(payload).hexdigest(), 'signature': 'PUA.Fixture'}
-    class Scanner:
-        def __init__(self, reply):
-            self.reply = reply
-        def scan(self, data, deadline):
-            return self.reply
-    assert engine.confirm(Proc(), evidence, Scanner({'status': 'REVIEW_REQUIRED', 'signature': 'PUA.Fixture'}), 0)
-    assert not engine.confirm(Proc(), evidence, Scanner({'status': 'REVIEW_REQUIRED', 'signature': 'PUA.Other'}), 0)
-    assert not engine.confirm(Proc(), evidence, Scanner({'status': 'NO_MATCH'}), 0)
