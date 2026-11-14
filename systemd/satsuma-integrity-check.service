@@ -1,0 +1,21 @@
+[Unit]
+Requires=satsuma-image.service
+After=satsuma-image.service
+Description=Satsuma automatic application manifest verification
+After=local-fs.target
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/integrity_monitor.py
+RuntimeDirectory=satsuma-boot satsuma-python-cache
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/run/satsuma-boot /var/lib/satsuma-core
+NoNewPrivileges=yes
+TimeoutStartSec=120

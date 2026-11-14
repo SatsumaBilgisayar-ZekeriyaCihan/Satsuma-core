@@ -1,0 +1,12 @@
+[Unit]
+Description=Watch Satsuma policy and configuration changes
+Requires=satsuma-image.service
+After=satsuma-image.service
+
+[Path]
+PathChanged=/etc/satsuma-core/policy.json
+PathChanged=/etc/satsuma-core/config.json
+Unit=satsuma-configuration.service
+
+[Install]
+WantedBy=multi-user.target

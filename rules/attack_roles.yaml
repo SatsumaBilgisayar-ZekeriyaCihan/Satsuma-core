@@ -1,0 +1,303 @@
+# Satsuma Core — Saldırı Rol Haritası (attack_roles)
+#
+# Bu dosya KURAL DEĞİL, bilgi tabanıdır. smart_rules motoru bunu yüklemez
+# (root bir liste değil, bir mapping). investigation.py bu dosyayı okur.
+#
+# Amaç: Bir bulgu tetiklendiğinde, o saldırı türünde "rol oynayan süreçleri"
+# tanımlamak. Böylece investigation motoru süreç ağacında hangi düğümlerin
+# kritik olduğunu bilir ve kullanıcıyı doğru süreçlerle uyarır.
+#
+# Şema:
+#   <attack_type>:
+#     mitre: <teknik>
+#     description: <kısa açıklama>
+#     roles:
+#       - process: <süreç adı veya desen>
+#         role: <rol>
+#         critical: <bool>   # bu süreç öldürülmeli mi / izlenmeli mi
+#     indicators: [<komut göstergeleri>]
+#     kill_chain: [<sıralı süreç rolleri>]
+
+reverse_shell:
+  mitre: T1059.004
+  description: Ters shell — saldırgana uzaktan kabuk erişimi
+  roles:
+    - process: bash
+      role: tetikleyici kabuk
+      critical: true
+    - process: sh
+      role: tetikleyici kabuk
+      critical: true
+    - process: nc
+      role: bağlantı kurucu
+      critical: true
+    - process: ncat
+      role: bağlantı kurucu
+      critical: true
+    - process: socat
+      role: bağlantı kurucu
+      critical: true
+    - process: python3
+      role: yükleyici
+      critical: true
+    - process: perl
+      role: yükleyici
+      critical: true
+  indicators:
+    - /dev/tcp/
+    - /dev/udp/
+    - 0>&1
+    - bash -i
+    - nc -e
+  kill_chain:
+    - tetikleyici kabuk
+    - bağlantı kurucu
+
+fileless_execution:
+  mitre: T1620
+  description: Bellek-içi yürütme — diske yazmadan çalıştırma
+  roles:
+    - process: memfd_create
+      role: bellek nesnesi
+      critical: true
+    - process: /proc/self/fd
+      role: yürütme yolu
+      critical: true
+    - process: python3
+      role: yükleyici
+      critical: true
+  indicators:
+    - memfd_create
+    - /memfd:
+    - /proc/self/fd/
+  kill_chain:
+    - yükleyici
+    - bellek nesnesi
+
+privilege_escalation:
+  mitre: T1548
+  description: Yetki yükseltme — root/kernel erişimi
+  roles:
+    - process: sudo
+      role: yetki aracısı
+      critical: false
+    - process: su
+      role: yetki aracısı
+      critical: false
+    - process: pkexec
+      role: yetki aracısı
+      critical: true
+    - process: unshare
+      role: namespace kaçışı
+      critical: true
+    - process: nsenter
+      role: namespace kaçışı
+      critical: true
+  indicators:
+    - sudo -l
+    - pkexec
+    - unshare
+    - nsenter
+    - CVE-
+  kill_chain:
+    - yetki aracısı
+    - namespace kaçışı
+
+container_escape:
+  mitre: T1611
+  description: Container kaçışı — host'a erişim
+  roles:
+    - process: docker
+      role: container yöneticisi
+      critical: true
+    - process: nsenter
+      role: namespace kaçışı
+      critical: true
+    - process: chroot
+      role: kök değiştirme
+      critical: true
+    - process: mount
+      role: host mount
+      critical: true
+  indicators:
+    - /var/run/docker.sock
+    - --privileged
+    - nsenter -t 1
+    - chroot /host
+  kill_chain:
+    - container yöneticisi
+    - namespace kaçışı
+
+credential_access:
+  mitre: T1552
+  description: Kimlik bilgisi hırsızlığı
+  roles:
+    - process: cat
+      role: okuma
+      critical: false
+    - process: cp
+      role: kopyalama
+      critical: false
+    - process: scp
+      role: dışa aktarma
+      critical: true
+    - process: tar
+      role: paketleme
+      critical: false
+    - process: grep
+      role: arama
+      critical: false
+  indicators:
+    - .ssh/id_rsa
+    - .bash_history
+    - /etc/shadow
+    - Login Data
+    - keyring
+  kill_chain:
+    - okuma
+    - dışa aktarma
+
+persistence:
+  mitre: T1543
+  description: Kalıcılık — yeniden başlatmada tekrar çalışma
+  roles:
+    - process: systemctl
+      role: servis yöneticisi
+      critical: true
+    - process: crontab
+      role: zamanlayıcı
+      critical: true
+    - process: at
+      role: zamanlayıcı
+      critical: true
+    - process: tee
+      role: dosya yazıcı
+      critical: false
+  indicators:
+    - .service
+    - .timer
+    - /etc/cron
+    - .bashrc
+    - .profile
+  kill_chain:
+    - dosya yazıcı
+    - servis yöneticisi
+
+defense_evasion:
+  mitre: T1562
+  description: Savunma atlatma — güvenlik aracı devre dışı
+  roles:
+    - process: systemctl
+      role: servis kontrolü
+      critical: true
+    - process: setenforce
+      role: SELinux kontrolü
+      critical: true
+    - process: aa-complain
+      role: AppArmor kontrolü
+      critical: true
+    - process: truncate
+      role: log temizleme
+      critical: true
+    - process: rm
+      role: log temizleme
+      critical: true
+  indicators:
+    - systemctl stop
+    - setenforce 0
+    - aa-complain
+    - /var/log/
+    - history -c
+  kill_chain:
+    - servis kontrolü
+    - log temizleme
+
+cryptomining:
+  mitre: T1496
+  description: Kripto madencilik — kaynak sömürüsü
+  roles:
+    - process: xmrig
+      role: miner
+      critical: true
+    - process: minerd
+      role: miner
+      critical: true
+    - process: cpuminer
+      role: miner
+      critical: true
+    - process: ethminer
+      role: miner
+      critical: true
+  indicators:
+    - stratum+tcp://
+    - xmrig
+    - --donate-level
+  kill_chain:
+    - miner
+
+ransomware:
+  mitre: T1486
+  description: Fidye yazılımı — toplu şifreleme
+  roles:
+    - process: openssl
+      role: şifreleyici
+      critical: true
+    - process: gpg
+      role: şifreleyici
+      critical: true
+    - process: find
+      role: dosya tarayıcı
+      critical: false
+    - process: vssadmin
+      role: yedek silici
+      critical: true
+  indicators:
+    - openssl enc
+    - .locked
+    - .enc
+    - vssadmin delete
+    - btrfs subvolume delete
+  kill_chain:
+    - dosya tarayıcı
+    - şifreleyici
+
+cloud_metadata:
+  mitre: T1552.005
+  description: Bulut metadata erişimi — kimlik bilgisi toplama
+  roles:
+    - process: curl
+      role: istek gönderici
+      critical: true
+    - process: wget
+      role: istek gönderici
+      critical: true
+  indicators:
+    - 169.254.169.254
+    - metadata.google.internal
+    - /latest/meta-data/
+  kill_chain:
+    - istek gönderici
+
+lolbin:
+  mitre: T1218
+  description: Living-off-the-Land — meşru araç kötüye kullanımı
+  roles:
+    - process: curl
+      role: indirici
+      critical: true
+    - process: wget
+      role: indirici
+      critical: true
+    - process: bash
+      role: yürütücü
+      critical: true
+    - process: base64
+      role: kod çözücü
+      critical: false
+  indicators:
+    - "| sh"
+    - "| bash"
+    - base64 -d
+  kill_chain:
+    - indirici
+    - yürütücü

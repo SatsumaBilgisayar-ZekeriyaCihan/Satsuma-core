@@ -1,0 +1,11 @@
+[Unit]
+Description=Check Satsuma core functions every ten minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+AccuracySec=1s
+Unit=satsuma-self-health.service
+
+[Install]
+WantedBy=timers.target

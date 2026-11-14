@@ -1,0 +1,85 @@
+schema: satsuma/definitions-v1
+kind: mitre_tactics
+source: MITRE ATT&CK Enterprise (github.com/mitre/cti)
+attack_version: veri tarihi 2026-10-13
+generated_at: '2026-11-04'
+count: 15
+license: ATT&CK® MITRE Corporation; çoğaltma ve dağıtım MITRE kullanım koşullarına göre serbesttir, atıf gerekir (attack.mitre.org/resources/legal-and-branding/terms-of-use/).
+note: 'Tanım/zenginleştirme verisidir, tespit kuralı değildir: rules/ klasörüne konmaz.'
+tactics:
+- id: TA0001
+  name: Initial Access
+  shortname: initial-access
+  description: The adversary is trying to get into your network.
+  url: https://attack.mitre.org/tactics/TA0001
+- id: TA0002
+  name: Execution
+  shortname: execution
+  description: The adversary is trying to run malicious code or instructions on a system.
+  url: https://attack.mitre.org/tactics/TA0002
+- id: TA0003
+  name: Persistence
+  shortname: persistence
+  description: The adversary is trying to maintain their foothold.
+  url: https://attack.mitre.org/tactics/TA0003
+- id: TA0004
+  name: Privilege Escalation
+  shortname: privilege-escalation
+  description: The adversary is trying to gain higher-level permissions.
+  url: https://attack.mitre.org/tactics/TA0004
+- id: TA0005
+  name: Stealth
+  shortname: stealth
+  description: The adversary is trying to hide and conceal their actions, appearing as normal behavior.
+  url: https://attack.mitre.org/tactics/TA0005
+- id: TA0006
+  name: Credential Access
+  shortname: credential-access
+  description: The adversary is trying to steal account names and passwords.
+  url: https://attack.mitre.org/tactics/TA0006
+- id: TA0007
+  name: Discovery
+  shortname: discovery
+  description: The adversary is trying to figure out your environment.
+  url: https://attack.mitre.org/tactics/TA0007
+- id: TA0008
+  name: Lateral Movement
+  shortname: lateral-movement
+  description: The adversary is trying to move through your environment.
+  url: https://attack.mitre.org/tactics/TA0008
+- id: TA0009
+  name: Collection
+  shortname: collection
+  description: The adversary is trying to gather data of interest to their goal.
+  url: https://attack.mitre.org/tactics/TA0009
+- id: TA0010
+  name: Exfiltration
+  shortname: exfiltration
+  description: The adversary is trying to steal data.
+  url: https://attack.mitre.org/tactics/TA0010
+- id: TA0011
+  name: Command and Control
+  shortname: command-and-control
+  description: The adversary is trying to communicate with compromised systems to control them.
+  url: https://attack.mitre.org/tactics/TA0011
+- id: TA0040
+  name: Impact
+  shortname: impact
+  description: The adversary is trying to manipulate, interrupt, or destroy your systems and data.
+  url: https://attack.mitre.org/tactics/TA0040
+- id: TA0042
+  name: Resource Development
+  shortname: resource-development
+  description: The adversary is trying to establish resources they can use to support operations.
+  url: https://attack.mitre.org/tactics/TA0042
+- id: TA0043
+  name: Reconnaissance
+  shortname: reconnaissance
+  description: The adversary is trying to gather information they can use to plan future operations.
+  url: https://attack.mitre.org/tactics/TA0043
+- id: TA0112
+  name: Defense Impairment
+  shortname: defense-impairment
+  description: The adversary is trying to break security mechanisms, pipelines, and tooling so defenders can’t see or trust
+    what’s happening.
+  url: https://attack.mitre.org/tactics/TA0112

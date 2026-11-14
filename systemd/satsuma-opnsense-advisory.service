@@ -1,0 +1,32 @@
+[Unit]
+StartLimitIntervalSec=300
+StartLimitBurst=3
+Requires=satsuma-image.service
+After=satsuma-image.service
+Description=Satsuma OPNsense advisory-only syslog importer
+After=local-fs.target
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+RestartPreventExitStatus=78
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/satsuma-core
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/opnsense_advisory.py --watch
+Restart=on-failure
+RestartSec=10
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateDevices=true
+PrivateNetwork=true
+ReadWritePaths=/var/lib/satsuma-core
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

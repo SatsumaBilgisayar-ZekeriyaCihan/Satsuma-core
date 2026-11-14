@@ -1,0 +1,43 @@
+- id: SATSUMA-RAM-008
+  name: Herkesin yazabildiği klasörden belleğe eşlenmiş çalıştırılabilir kod
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: memory
+  base_match:
+    source: memory
+    action: writable_dir_code_mapping
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - memory.action
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - /tmp, /var/tmp, /dev/shm ya da /run/user altından çalıştırılan geliştirme
+    derlemeleri ve kendini oraya açan yükleyiciler; paketle kurulmuş kod bu
+    klasörlerden çalışmaz.
+- id: SATSUMA-RAM-009
+  name: Süreç başka bir süreç tarafından ptrace ile izleniyor
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: memory
+  base_match:
+    source: memory
+    action: process_traced
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - memory.action
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Kullanıcının bilerek çalıştırdığı gdb, strace, ltrace ya da hata ayıklayıcılı
+    geliştirme ortamı; izleyen sürecin kimliği olayda kaydedilir.

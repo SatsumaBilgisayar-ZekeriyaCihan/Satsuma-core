@@ -1,0 +1,172 @@
+- id: SATSUMA-PRIV-001
+  name: Etkileşimli root shell isteği
+  mitre:
+    tactic: Privilege Escalation
+    technique: T1548.003
+  severity: medium
+  category: privilege_escalation
+  base_match:
+    source: sys_proc
+    action: new_process
+    cmd_contains:
+    - sudo su
+    - sudo -i
+    - sudo -s
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+  dedup_group: root_shell_admin
+- id: SATSUMA-PRIV-002
+  name: Sudoedit exploit
+  mitre:
+    tactic: Privilege Escalation
+    technique: T1548.003
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - sudoedit -s
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: sudoedit_suspicious
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-003
+  name: Şüpheli pkexec kullanımı
+  mitre:
+    tactic: Privilege Escalation
+    technique: T1548.003
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - pkexec --user
+    - pkexec /tmp/
+    - pkexec /dev/shm/
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+  dedup_group: pkexec_suspicious
+- id: SATSUMA-PRIV-004
+  name: SUID binary keşfi
+  mitre:
+    tactic: Privilege Escalation
+    technique: T1548.001
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - find / -perm -4000
+    - find / -perm /4000
+    - find / -perm -2000
+    - find / -perm -u=s
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+  dedup_group: suid_discovery
+- id: SATSUMA-PRIV-005
+  name: Kernel exploit
+  mitre:
+    tactic: Privilege Escalation
+    technique: T1068
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - dirtypipe
+    - dirty_pipe
+    - cve-2022-0847
+    - cve-2024-1086
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-006
+  name: Dirty Pipe komut adı göstergesi (dosya etkisi doğrulanmadı)
+  mitre:
+    tactic: Privilege Escalation
+    technique: T1068
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - dirtypipe
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.file_path
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-007
+  name: Sudo chroot exploit
+  mitre:
+    tactic: Privilege Escalation
+    technique: T1548.003
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - sudo -R
+    - sudo --chroot
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: sudo_chroot
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-008
+  name: Capabilities exploit
+  mitre:
+    tactic: Privilege Escalation
+    technique: T1548
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - getcap -r
+    - setcap
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+  dedup_group: capability_tools

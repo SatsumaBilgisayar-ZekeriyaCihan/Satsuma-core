@@ -1,0 +1,12 @@
+#!/bin/bash
+# Desktop notifier (2.2.33): runs in the user's session, only reads the reader socket.
+# Masaüstü bildiricisi: kullanıcının oturumunda çalışır, yalnızca okuyucu soketini okur.
+[ "$(id -u)" -eq 0 ] && exit 0
+case " $(id -nG) " in *" satsuma-reader "*) ;; *) exit 0 ;; esac
+cd /opt/satsuma-core || exit 0
+keep=()
+for name in HOME USER LOGNAME LANG DISPLAY WAYLAND_DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS; do
+ [[ -v $name ]] && keep+=("$name=${!name}")
+done
+exec /usr/bin/env -i "${keep[@]}" PATH=/usr/bin:/bin \
+ /usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -E -s -B -m satsuma.user_notify

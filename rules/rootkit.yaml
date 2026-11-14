@@ -1,0 +1,75 @@
+- id: SATSUMA-ROOT-001
+  name: Kernel modül yönetimi
+  mitre:
+    tactic: Rootkit
+    technique: T1014
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - insmod
+    - modprobe
+    - rmmod
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+  dedup_group: kernel_module_admin
+- id: SATSUMA-ROOT-002
+  name: LD_PRELOAD kullanım göstergesi
+  mitre:
+    tactic: Rootkit
+    technique: T1574.006
+  severity: medium
+  base_match:
+    source: sys_proc
+    env_contains:
+    - LD_PRELOAD
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+  dedup_group: ld_preload_env
+- id: SATSUMA-ROOT-003
+  name: /dev altında dosyaya yazma göstergesi
+  mitre:
+    tactic: Rootkit
+    technique: T1014
+  severity: low
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /dev/*
+    operation: write
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-ROOT-004
+  name: Rootkit tarama aracı çalıştırıldı
+  mitre:
+    tactic: Rootkit
+    technique: T1014
+  severity: low
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - unhide
+    - rkhunter --check
+    - chkrootkit
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+  dedup_group: rootkit_scanner

@@ -1,0 +1,23 @@
+[Unit]
+Description=Satsuma ClamAV real-time on-access file prevention
+Documentation=man:clamonacc(8)
+Requires=clamd@scan.service
+After=clamd@scan.service
+ConditionPathExists=/etc/clamd.d/scan.conf
+
+[Service]
+Type=simple
+User=root
+Environment=PATH=/usr/sbin:/usr/bin
+ExecStartPre=/usr/bin/python3 -I -B /opt/satsuma-core/installer/onaccess_setup.py verify
+ExecStart=/usr/bin/clamonacc --foreground --verbose --config-file=/etc/clamd.d/scan.conf --fdpass
+Restart=on-failure
+RestartSec=5s
+UMask=0077
+LimitCORE=0
+NoNewPrivileges=yes
+RestrictAddressFamilies=AF_UNIX
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_DAC_READ_SEARCH
+
+[Install]
+WantedBy=multi-user.target

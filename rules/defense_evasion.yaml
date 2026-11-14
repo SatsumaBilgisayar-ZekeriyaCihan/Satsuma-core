@@ -1,0 +1,486 @@
+- id: SATSUMA-EVAS-001
+  name: Log silme
+  mitre:
+    tactic: Defense Evasion
+    technique: T1070.002
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - rm -rf /var/log
+    - rm /var/log
+    - '> /var/log'
+    - history -c
+    - shred /var/log
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: log_erasure
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-002
+  name: Auditd durdurma
+  mitre:
+    tactic: Defense Evasion
+    technique: T1562.001
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - systemctl stop auditd
+    - auditctl -e 0
+    - service auditd stop
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: audit_disable
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-003
+  name: SELinux devre disi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1562.001
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - setenforce 0
+    - setenforce Permissive
+    - echo 0 > /selinux/enforce
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-004
+  name: AppArmor devre disi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1562.001
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - aa-complain
+    - aa-disable
+    - apparmor_parser -R
+    - apparmor_parser --remove
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-005
+  name: Firewall kurali silme
+  mitre:
+    tactic: Defense Evasion
+    technique: T1562.004
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - iptables -F
+    - iptables --flush
+    - nft flush ruleset
+    - ufw disable
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: firewall_disable
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-006
+  name: Firewall panic modu/varsayılan zone değişikliği — faaliyet göstergesi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1562.004
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - firewall-cmd --panic-off
+    - firewall-cmd --set-default-zone=trusted
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-007
+  name: Zaman degistirme — faaliyet göstergesi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1070.006
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - timedatectl set-time
+    - date -s
+    - date --set
+    - hwclock --set
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-008
+  name: Dosya zaman damgasi — faaliyet göstergesi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1070.006
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - touch -t
+    - touch -d
+    - touch -r
+    - touch --reference
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-009
+  name: Immutable bayrak kaldırma göstergesi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1222
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - chattr -i
+    - chattr -R -i
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  dedup_group: immutable_remove
+- id: SATSUMA-EVAS-010
+  name: LD_PRELOAD kullanım göstergesi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1574.006
+  severity: medium
+  base_match:
+    source: sys_proc
+    env_contains:
+    - LD_PRELOAD
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  dedup_group: ld_preload_env
+- id: SATSUMA-EVAS-011
+  name: LD_LIBRARY_PATH — faaliyet göstergesi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1574.007
+  severity: medium
+  base_match:
+    source: sys_proc
+    env_contains:
+    - LD_LIBRARY_PATH
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.env
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-012
+  name: Rootkit tarama aracı çalıştırıldı — faaliyet göstergesi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1014
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - rkhunter
+    - chkrootkit
+    - unhide
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  dedup_group: rootkit_scanner
+- id: SATSUMA-EVAS-013
+  name: SELinux policy yukleme — faaliyet göstergesi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1562.001
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - semodule -i
+    - semodule -r
+    - semodule --install
+    - semodule --remove
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-014
+  name: Kernel module kaldirma — faaliyet göstergesi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1562.001
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - rmmod
+    - modprobe -r
+    - modprobe --remove
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-015
+  name: Sysctl degistirme — faaliyet göstergesi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1562.001
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_regex_cs:
+    - ^(?:sysctl\b.*\s-w\b|echo\s+\S+\s*>\s*/proc/sys/)
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-016
+  name: Kernel taint — faaliyet göstergesi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1014
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - echo 1 > /proc/sys/kernel/tainted
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-017
+  name: History temizleme — faaliyet göstergesi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1070.003
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_regex_cs:
+    - ^(?:history\s+-c(?:\s|$)|shred\s+(?:\S+\s+)*\S*/\.bash_history(?:\s|$)|.*>\s*(?:~/|/home/[^/]+/|/root/)\.bash_history(?:\s|$))
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-018
+  name: Utmp/Wtmp temizleme
+  mitre:
+    tactic: Defense Evasion
+    technique: T1070.005
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - rm /var/log/wtmp
+    - rm /var/log/btmp
+    - truncate -s 0 /var/log/wtmp
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-019
+  name: Process gizleme — faaliyet göstergesi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1014
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - mount -o bind /dev/null /proc/
+    - mount --bind /dev/null /proc/
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EVAS-020
+  name: Dosya silme (shred) — faaliyet göstergesi
+  mitre:
+    tactic: Defense Evasion
+    technique: T1070.004
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - shred -u
+    - shred -z
+    - shred --remove
+    - wipe -f
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.

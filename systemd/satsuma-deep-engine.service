@@ -1,0 +1,35 @@
+[Unit]
+Description=Satsuma isolated rootless deep evidence engine
+Requires=satsuma-image.service
+After=satsuma-image.service
+Before=satsuma-teams.service
+[Service]
+Type=simple
+User=satsuma-engine
+Group=satsuma-core
+WorkingDirectory=/opt/satsuma-core
+ExecStart=/usr/bin/python3 -I -B /opt/satsuma-core/run_deep_engine.py
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PATH=/usr/bin:/usr/sbin
+RuntimeDirectory=satsuma-deep
+RuntimeDirectoryMode=0770
+UMask=0077
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+LimitCORE=0
+[Install]
+WantedBy=multi-user.target

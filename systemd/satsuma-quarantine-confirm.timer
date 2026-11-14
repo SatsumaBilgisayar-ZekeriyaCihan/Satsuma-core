@@ -1,0 +1,9 @@
+[Unit]
+Description=Satsuma: confirm quarantined programs 5 minutes after boot
+
+[Timer]
+OnBootSec=5min
+Unit=satsuma-quarantine-confirm.service
+
+[Install]
+WantedBy=timers.target

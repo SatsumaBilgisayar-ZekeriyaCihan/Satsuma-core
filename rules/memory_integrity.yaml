@@ -1,0 +1,20 @@
+- id: SATSUMA-RAM-005
+  name: RAM içindeki executable kodu bağlı dosyadan farklı
+  severity: high
+  classification: suspicious
+  confidence: high
+  category: memory
+  base_match:
+    source: memory
+    action: executable_code_mismatch
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - memory.action
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Debugger yazılım kesme noktaları ve yetkili canlı kod yamaları; kod farkı tek başına zararlı yazılım kanıtı değildir.

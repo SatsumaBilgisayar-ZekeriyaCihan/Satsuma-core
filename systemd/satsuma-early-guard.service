@@ -1,0 +1,32 @@
+[Unit]
+Requires=satsuma-image.service
+Requires=satsuma-memory-hardening.service
+After=satsuma-memory-hardening.service
+After=satsuma-image.service
+Description=Satsuma early boot guard with authenticated application inventory
+DefaultDependencies=no
+After=local-fs.target
+Before=network-pre.target satsuma-core.service satsuma-teams.service
+Wants=local-fs.target
+RequiresMountsFor=/opt/satsuma-core /var/lib/satsuma-core /etc/satsuma-core
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+Type=oneshot
+RemainAfterExit=yes
+User=root
+WorkingDirectory=/opt/satsuma-core
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/boot_setup.py --guard
+RuntimeDirectory=satsuma-boot satsuma-python-cache
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/run/satsuma-boot
+TimeoutStartSec=120
+
+[Install]
+WantedBy=sysinit.target

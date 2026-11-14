@@ -1,0 +1,46 @@
+[Unit]
+Description=Satsuma exec guard: the kernel asks before a program runs; build tools are refused
+# Owner's decision 2026-11-11: compilers, assemblers, linkers and packers do not
+# run unless the package manager runs (satsuma.exec_guard, satsuma.build_tools).
+# The kernel waits for this guard's answer before every execution, so the
+# watchdog restarts it when it stops answering; when its fanotify descriptor
+# closes the kernel allows the pending executions, so the machine never freezes.
+# No private /tmp or hidden /home: the guard must mark the real filesystems.
+DefaultDependencies=no
+StartLimitIntervalSec=0
+Requires=satsuma-image.service
+After=satsuma-image.service local-fs.target
+RequiresMountsFor=/opt/satsuma-core /var/lib/satsuma-core
+
+[Service]
+Environment=PATH=/usr/sbin:/usr/bin
+Environment=PYTHONDONTWRITEBYTECODE=1
+Type=notify
+NotifyAccess=main
+WatchdogSec=10
+User=root
+WorkingDirectory=/opt/satsuma-core
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -E -s -B -m satsuma.exec_guard --loop
+Restart=always
+RestartSec=1
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+StateDirectory=satsuma-core/exec-guard
+StateDirectoryMode=0700
+# fanotify permission marks need CAP_SYS_ADMIN; reading /proc/<pid>/exe needs CAP_SYS_PTRACE.
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_SYS_PTRACE CAP_DAC_READ_SEARCH
+RestrictAddressFamilies=AF_UNIX
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictNamespaces=yes
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=sysinit.target

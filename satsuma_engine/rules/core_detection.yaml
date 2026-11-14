@@ -1,0 +1,233 @@
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-001
+  title: Reverse shell (bash)
+  severity: critical
+  classification: likely
+  confidence: high
+  category: execution
+  match:
+    field: event.cmd
+    regex: (?:/dev/tcp/|/dev/udp/|bash\s+-i.*0>&1)
+  mitre:
+  - tactic: execution
+    technique: T1059.004
+  actions:
+  - create_ticket
+  dedup_group: reverse-shell
+  dedup:
+    key:
+    - event.cmd
+    window_seconds: 3600
+- schema: satsuma/v1
+  id: SATSUMA-CRED-001
+  title: /etc/shadow okuma
+  severity: critical
+  classification: likely
+  confidence: high
+  category: credential-access
+  match:
+    field: event.file_path
+    contains: /etc/shadow
+  mitre:
+  - tactic: credential-access
+    technique: T1003.008
+  actions:
+  - create_ticket
+  - ask_user
+- schema: satsuma/v1
+  id: SATSUMA-CRED-002
+  title: SSH/private key erişimi
+  severity: high
+  classification: likely
+  confidence: high
+  category: credential-access
+  match:
+    field: event.file_path
+    regex: (?:id_rsa|id_ed25519|\.pem$|\.key$)
+  mitre:
+  - tactic: credential-access
+    technique: T1552.004
+  actions:
+  - create_ticket
+  - ask_user
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-002
+  title: Python ters shell göstergesi
+  severity: critical
+  classification: likely
+  confidence: high
+  category: execution
+  match:
+    field: event.cmd
+    contains_any:
+    - python -c
+    - python3 -c
+    - socket.connect
+  mitre:
+  - tactic: execution
+    technique: T1059.006
+  actions:
+  - create_ticket
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-003
+  title: Socat shell tüneli
+  severity: high
+  classification: likely
+  confidence: high
+  category: execution
+  match:
+    field: event.cmd
+    regex: '\bsocat\b.*(?:EXEC|SYSTEM):'
+  mitre:
+  - tactic: command-and-control
+    technique: T1090
+  actions:
+  - create_ticket
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-004
+  title: Netcat ters shell
+  severity: high
+  classification: likely
+  confidence: high
+  category: execution
+  match:
+    field: event.cmd
+    contains_any:
+    - nc -e
+    - ncat -e
+  mitre:
+  - tactic: execution
+    technique: T1059
+  actions:
+  - create_ticket
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-001
+  title: Etkileşimsiz sudo denemesi
+  severity: high
+  classification: likely
+  confidence: high
+  category: privilege-escalation
+  match:
+    field: event.cmd
+    contains_any:
+    - sudo -n
+    - sudo -S
+    - sudo --non-interactive
+  mitre:
+  - tactic: privilege-escalation
+    technique: T1548.003
+  actions:
+  - create_ticket
+- schema: satsuma/v1
+  id: SATSUMA-PERSIST-001
+  title: Cron yapılandırmasına yazma
+  severity: high
+  classification: likely
+  confidence: high
+  category: persistence
+  match:
+    field: event.file_path
+    regex: ^/etc/(?:cron\.|cron\.d/|crontab)
+  mitre:
+  - tactic: persistence
+    technique: T1053.003
+  actions:
+  - create_ticket
+- schema: satsuma/v1
+  id: SATSUMA-PERSIST-002
+  title: Şüpheli systemd servisini etkinleştirme
+  severity: medium
+  classification: suspicious
+  confidence: medium
+  category: persistence
+  match:
+    field: event.cmd
+    regex: systemctl\s+(?:enable|start)\s+.*\.service
+  mitre:
+  - tactic: persistence
+    technique: T1543.002
+  actions:
+  - create_ticket
+- schema: satsuma/v1
+  id: SATSUMA-DEF-001
+  title: Güvenlik duvarı kurallarını temizleme
+  severity: high
+  classification: likely
+  confidence: high
+  category: defense-evasion
+  match:
+    field: event.cmd
+    contains_any:
+    - nft flush ruleset
+    - iptables -F
+  mitre:
+  - tactic: defense-evasion
+    technique: T1562.004
+  actions:
+  - create_ticket
+- schema: satsuma/v1
+  id: SATSUMA-IMPACT-001
+  title: Yıkıcı dosya silme komutu
+  severity: critical
+  classification: likely
+  confidence: high
+  category: impact
+  match:
+    field: event.cmd
+    regex: (?:rm\s+-rf\s+/(?:tmp|var|home)|shred\s+-u\s+)
+  mitre:
+  - tactic: impact
+    technique: T1485
+  actions:
+  - create_ticket
+- schema: satsuma/v1
+  id: SATSUMA-CRYPTO-001
+  title: Kripto madenciliği süreci
+  severity: high
+  classification: likely
+  confidence: high
+  category: impact
+  match:
+    field: event.cmd
+    contains_any:
+    - xmrig
+    - minerd
+    - cpuminer
+  mitre:
+  - tactic: impact
+    technique: T1496
+  actions:
+  - create_ticket
+- schema: satsuma/v1
+  id: SATSUMA-DEF-002
+  title: Setuid izinini değiştirme
+  severity: high
+  classification: likely
+  confidence: high
+  category: defense-evasion
+  match:
+    field: event.cmd
+    regex: chmod\s+(?:[ugo]\+s|[ugo]*s)\s+
+  mitre:
+  - tactic: defense-evasion
+    technique: T1222.002
+  actions:
+  - create_ticket
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-001
+  title: Komut satırından veri gönderme
+  severity: medium
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  match:
+    field: event.cmd
+    contains_any:
+    - curl --data
+    - 'curl -d '
+    - nc -w
+  mitre:
+  - tactic: exfiltration
+    technique: T1041
+  actions:
+  - create_ticket

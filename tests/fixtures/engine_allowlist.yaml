@@ -1,0 +1,12 @@
+schema: satsuma/v1
+version: 1
+defaults:
+  created_by: tests
+  max_suppressed: 50
+suppressions:
+  - id: SUP-ENGINE-TEST-SHADOW
+    reason: Test fixture validates suppression behavior.
+    ticket: TEST-001
+    rule_ids: [SATSUMA-CRED-001]
+    hosts: [lab]
+    severity_at_most: critical

@@ -1,0 +1,262 @@
+- id: SATSUMA-COLL-001
+  name: Toplu dosya kopyalama
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - tar -czf /tmp
+    - zip -r /tmp
+    - cp -r /etc /tmp
+    - cp -r /home /tmp
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-002
+  name: Ekran goruntusu
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - import -window
+    - scrot
+    - gnome-screenshot
+    - xfce4-screenshooter
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-003
+  name: Klavye kaydi
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - logkeys
+    - xinput test
+    - keylogger
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-004
+  name: Pano erisimi
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - xclip -o
+    - xsel -o
+    - wl-paste
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-005
+  name: E-posta toplama
+  severity: high
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - '*/.thunderbird/*/ImapMail/*'
+    - '*/.local/share/evolution/mail/*'
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-006
+  name: Tarayici gecmisi
+  severity: high
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - '*/.mozilla/firefox/*/places.sqlite'
+    - '*/.config/opera/*/History'
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-007
+  name: Tarayici cerezleri
+  severity: high
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - '*/.mozilla/firefox/*/cookies.sqlite'
+    - '*/.config/opera/*/Cookies'
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-008
+  name: SSH bilgileri
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - ~/.ssh/known_hosts
+    - ~/.ssh/config
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-009
+  name: Veritabani dosyalari
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - tar -czf ... *.db
+    - zip ... *.sqlite
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-010
+  name: Kaynak kod toplama
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - tar -czf ... *.py
+    - tar -czf ... *.js
+    - tar -czf ... *.go
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-011
+  name: Ev dizini arsiv
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - tar -czf /tmp/home
+    - tar -czf /tmp/root
+    - tar -czf /tmp/user
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-012
+  name: Tum disk arsiv
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - dd if=/dev/sd
+    - dd if=/dev/nvme
+    - tar -czf /tmp/ -C /
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-013
+  name: Sistem loglari
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - cp /var/log/syslog
+    - cp /var/log/auth.log
+    - cp /var/log/messages
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-014
+  name: Veritabani dump
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - mysqldump
+    - pg_dump
+    - sqlite3 .dump
+    - mongodump
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-015
+  name: Parola dosyalari
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /etc/passwd
+    - /etc/shadow
+    - /etc/gshadow
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-016
+  name: SSH private key
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - ~/.ssh/id_rsa
+    - ~/.ssh/id_ed25519
+    - ~/.ssh/id_ecdsa
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-017
+  name: GPG key
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - ~/.gnupg/secring.gpg
+    - ~/.gnupg/private-keys-v1.d/*
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-018
+  name: Kubernetes config
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - ~/.kube/config
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-019
+  name: AWS credentials
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - ~/.aws/credentials
+    - ~/.aws/config
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-COLL-020
+  name: Docker config
+  severity: high
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - ~/.docker/config.json
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low

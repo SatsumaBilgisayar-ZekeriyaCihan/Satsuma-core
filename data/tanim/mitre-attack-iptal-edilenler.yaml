@@ -1,0 +1,765 @@
+schema: satsuma/definitions-v1
+kind: mitre_revoked_techniques
+source: MITRE ATT&CK Enterprise (github.com/mitre/cti), revoked-by ilişkileri
+generated_at: '2026-11-04'
+count: 149
+note: Eski teknik numarasını yenisine çevirmek için. Tanım verisidir, tespit kuralı değildir.
+revoked:
+- old_id: T1002
+  old_name: Data Compressed
+  new_id: T1560
+  new_name: Archive Collected Data
+  new_url: https://attack.mitre.org/techniques/T1560
+- old_id: T1004
+  old_name: Winlogon Helper DLL
+  new_id: T1547.004
+  new_name: Winlogon Helper DLL
+  new_url: https://attack.mitre.org/techniques/T1547/004
+- old_id: T1009
+  old_name: Binary Padding
+  new_id: T1027.001
+  new_name: Binary Padding
+  new_url: https://attack.mitre.org/techniques/T1027/001
+- old_id: T1013
+  old_name: Port Monitors
+  new_id: T1547.010
+  new_name: Port Monitors
+  new_url: https://attack.mitre.org/techniques/T1547/010
+- old_id: T1015
+  old_name: Accessibility Features
+  new_id: T1546.008
+  new_name: Accessibility Features
+  new_url: https://attack.mitre.org/techniques/T1546/008
+- old_id: T1017
+  old_name: Application Deployment Software
+  new_id: T1072
+  new_name: Software Deployment Tools
+  new_url: https://attack.mitre.org/techniques/T1072
+- old_id: T1019
+  old_name: System Firmware
+  new_id: T1542.001
+  new_name: System Firmware
+  new_url: https://attack.mitre.org/techniques/T1542/001
+- old_id: T1022
+  old_name: Data Encrypted
+  new_id: T1560
+  new_name: Archive Collected Data
+  new_url: https://attack.mitre.org/techniques/T1560
+- old_id: T1023
+  old_name: Shortcut Modification
+  new_id: T1547.009
+  new_name: Shortcut Modification
+  new_url: https://attack.mitre.org/techniques/T1547/009
+- old_id: T1024
+  old_name: Custom Cryptographic Protocol
+  new_id: T1573
+  new_name: Encrypted Channel
+  new_url: https://attack.mitre.org/techniques/T1573
+- old_id: T1028
+  old_name: Windows Remote Management
+  new_id: T1021.006
+  new_name: Windows Remote Management
+  new_url: https://attack.mitre.org/techniques/T1021/006
+- old_id: T1031
+  old_name: Modify Existing Service
+  new_id: T1543.003
+  new_name: Windows Service
+  new_url: https://attack.mitre.org/techniques/T1543/003
+- old_id: T1032
+  old_name: Standard Cryptographic Protocol
+  new_id: T1573
+  new_name: Encrypted Channel
+  new_url: https://attack.mitre.org/techniques/T1573
+- old_id: T1035
+  old_name: Service Execution
+  new_id: T1569.002
+  new_name: Service Execution
+  new_url: https://attack.mitre.org/techniques/T1569/002
+- old_id: T1038
+  old_name: DLL Search Order Hijacking
+  new_id: T1574.001
+  new_name: DLL
+  new_url: https://attack.mitre.org/techniques/T1574/001
+- old_id: T1042
+  old_name: Change Default File Association
+  new_id: T1546.001
+  new_name: Change Default File Association
+  new_url: https://attack.mitre.org/techniques/T1546/001
+- old_id: T1044
+  old_name: File System Permissions Weakness
+  new_id: T1574.010
+  new_name: Services File Permissions Weakness
+  new_url: https://attack.mitre.org/techniques/T1574/010
+- old_id: T1045
+  old_name: Software Packing
+  new_id: T1027.002
+  new_name: Software Packing
+  new_url: https://attack.mitre.org/techniques/T1027/002
+- old_id: T1050
+  old_name: New Service
+  new_id: T1543.003
+  new_name: Windows Service
+  new_url: https://attack.mitre.org/techniques/T1543/003
+- old_id: T1053.001
+  old_name: At (Linux)
+  new_id: T1053.002
+  new_name: At
+  new_url: https://attack.mitre.org/techniques/T1053/002
+- old_id: T1054
+  old_name: Indicator Blocking
+  new_id: T1685
+  new_name: Disable or Modify Tools
+  new_url: https://attack.mitre.org/techniques/T1685
+- old_id: T1058
+  old_name: Service Registry Permissions Weakness
+  new_id: T1574.011
+  new_name: Services Registry Permissions Weakness
+  new_url: https://attack.mitre.org/techniques/T1574/011
+- old_id: T1060
+  old_name: Registry Run Keys / Startup Folder
+  new_id: T1547.001
+  new_name: Registry Run Keys / Startup Folder
+  new_url: https://attack.mitre.org/techniques/T1547/001
+- old_id: T1063
+  old_name: Security Software Discovery
+  new_id: T1518.001
+  new_name: Security Software Discovery
+  new_url: https://attack.mitre.org/techniques/T1518/001
+- old_id: T1065
+  old_name: Uncommonly Used Port
+  new_id: T1571
+  new_name: Non-Standard Port
+  new_url: https://attack.mitre.org/techniques/T1571
+- old_id: T1066
+  old_name: Indicator Removal from Tools
+  new_id: T1027.005
+  new_name: Indicator Removal from Tools
+  new_url: https://attack.mitre.org/techniques/T1027/005
+- old_id: T1067
+  old_name: Bootkit
+  new_id: T1542.003
+  new_name: Bootkit
+  new_url: https://attack.mitre.org/techniques/T1542/003
+- old_id: T1070.001
+  old_name: Clear Windows Event Logs
+  new_id: T1685.005
+  new_name: Clear Windows Event Logs
+  new_url: https://attack.mitre.org/techniques/T1685/005
+- old_id: T1070.002
+  old_name: Clear Linux or Mac System Logs
+  new_id: T1685.006
+  new_name: Clear Linux or Mac System Logs
+  new_url: https://attack.mitre.org/techniques/T1685/006
+- old_id: T1073
+  old_name: DLL Side-Loading
+  new_id: T1574.002
+  new_name: DLL Side-Loading
+  new_url: https://attack.mitre.org/techniques/T1574/002
+- old_id: T1075
+  old_name: Pass the Hash
+  new_id: T1550.002
+  new_name: Pass the Hash
+  new_url: https://attack.mitre.org/techniques/T1550/002
+- old_id: T1076
+  old_name: Remote Desktop Protocol
+  new_id: T1021.001
+  new_name: Remote Desktop Protocol
+  new_url: https://attack.mitre.org/techniques/T1021/001
+- old_id: T1077
+  old_name: Windows Admin Shares
+  new_id: T1021.002
+  new_name: SMB/Windows Admin Shares
+  new_url: https://attack.mitre.org/techniques/T1021/002
+- old_id: T1079
+  old_name: Multilayer Encryption
+  new_id: T1573
+  new_name: Encrypted Channel
+  new_url: https://attack.mitre.org/techniques/T1573
+- old_id: T1081
+  old_name: Credentials in Files
+  new_id: T1552.001
+  new_name: Credentials In Files
+  new_url: https://attack.mitre.org/techniques/T1552/001
+- old_id: T1084
+  old_name: Windows Management Instrumentation Event Subscription
+  new_id: T1546.003
+  new_name: Windows Management Instrumentation Event Subscription
+  new_url: https://attack.mitre.org/techniques/T1546/003
+- old_id: T1085
+  old_name: Rundll32
+  new_id: T1218.011
+  new_name: Rundll32
+  new_url: https://attack.mitre.org/techniques/T1218/011
+- old_id: T1086
+  old_name: PowerShell
+  new_id: T1059.001
+  new_name: PowerShell
+  new_url: https://attack.mitre.org/techniques/T1059/001
+- old_id: T1088
+  old_name: Bypass User Account Control
+  new_id: T1548.002
+  new_name: Bypass User Account Control
+  new_url: https://attack.mitre.org/techniques/T1548/002
+- old_id: T1089
+  old_name: Disabling Security Tools
+  new_id: T1685
+  new_name: Disable or Modify Tools
+  new_url: https://attack.mitre.org/techniques/T1685
+- old_id: T1093
+  old_name: Process Hollowing
+  new_id: T1055.012
+  new_name: Process Hollowing
+  new_url: https://attack.mitre.org/techniques/T1055/012
+- old_id: T1094
+  old_name: Custom Command and Control Protocol
+  new_id: T1095
+  new_name: Non-Application Layer Protocol
+  new_url: https://attack.mitre.org/techniques/T1095
+- old_id: T1096
+  old_name: NTFS File Attributes
+  new_id: T1564.004
+  new_name: NTFS File Attributes
+  new_url: https://attack.mitre.org/techniques/T1564/004
+- old_id: T1097
+  old_name: Pass the Ticket
+  new_id: T1550.003
+  new_name: Pass the Ticket
+  new_url: https://attack.mitre.org/techniques/T1550/003
+- old_id: T1099
+  old_name: Timestomp
+  new_id: T1070.006
+  new_name: Timestomp
+  new_url: https://attack.mitre.org/techniques/T1070/006
+- old_id: T1100
+  old_name: Web Shell
+  new_id: T1505.003
+  new_name: Web Shell
+  new_url: https://attack.mitre.org/techniques/T1505/003
+- old_id: T1101
+  old_name: Security Support Provider
+  new_id: T1547.005
+  new_name: Security Support Provider
+  new_url: https://attack.mitre.org/techniques/T1547/005
+- old_id: T1103
+  old_name: AppInit DLLs
+  new_id: T1546.010
+  new_name: AppInit DLLs
+  new_url: https://attack.mitre.org/techniques/T1546/010
+- old_id: T1107
+  old_name: File Deletion
+  new_id: T1070.004
+  new_name: File Deletion
+  new_url: https://attack.mitre.org/techniques/T1070/004
+- old_id: T1109
+  old_name: Component Firmware
+  new_id: T1542.002
+  new_name: Component Firmware
+  new_url: https://attack.mitre.org/techniques/T1542/002
+- old_id: T1116
+  old_name: Code Signing
+  new_id: T1553.002
+  new_name: Code Signing
+  new_url: https://attack.mitre.org/techniques/T1553/002
+- old_id: T1117
+  old_name: Regsvr32
+  new_id: T1218.010
+  new_name: Regsvr32
+  new_url: https://attack.mitre.org/techniques/T1218/010
+- old_id: T1118
+  old_name: InstallUtil
+  new_id: T1218.004
+  new_name: InstallUtil
+  new_url: https://attack.mitre.org/techniques/T1218/004
+- old_id: T1121
+  old_name: Regsvcs/Regasm
+  new_id: T1218.009
+  new_name: Regsvcs/Regasm
+  new_url: https://attack.mitre.org/techniques/T1218/009
+- old_id: T1122
+  old_name: Component Object Model Hijacking
+  new_id: T1546.015
+  new_name: Component Object Model Hijacking
+  new_url: https://attack.mitre.org/techniques/T1546/015
+- old_id: T1126
+  old_name: Network Share Connection Removal
+  new_id: T1070.005
+  new_name: Network Share Connection Removal
+  new_url: https://attack.mitre.org/techniques/T1070/005
+- old_id: T1128
+  old_name: Netsh Helper DLL
+  new_id: T1546.007
+  new_name: Netsh Helper DLL
+  new_url: https://attack.mitre.org/techniques/T1546/007
+- old_id: T1130
+  old_name: Install Root Certificate
+  new_id: T1553.004
+  new_name: Install Root Certificate
+  new_url: https://attack.mitre.org/techniques/T1553/004
+- old_id: T1131
+  old_name: Authentication Package
+  new_id: T1547.002
+  new_name: Authentication Package
+  new_url: https://attack.mitre.org/techniques/T1547/002
+- old_id: T1138
+  old_name: Application Shimming
+  new_id: T1546.011
+  new_name: Application Shimming
+  new_url: https://attack.mitre.org/techniques/T1546/011
+- old_id: T1139
+  old_name: Bash History
+  new_id: T1552.003
+  new_name: Shell History
+  new_url: https://attack.mitre.org/techniques/T1552/003
+- old_id: T1141
+  old_name: Input Prompt
+  new_id: T1056.002
+  new_name: GUI Input Capture
+  new_url: https://attack.mitre.org/techniques/T1056/002
+- old_id: T1142
+  old_name: Keychain
+  new_id: T1555.001
+  new_name: Keychain
+  new_url: https://attack.mitre.org/techniques/T1555/001
+- old_id: T1143
+  old_name: Hidden Window
+  new_id: T1564.003
+  new_name: Hidden Window
+  new_url: https://attack.mitre.org/techniques/T1564/003
+- old_id: T1144
+  old_name: Gatekeeper Bypass
+  new_id: T1553.001
+  new_name: Gatekeeper Bypass
+  new_url: https://attack.mitre.org/techniques/T1553/001
+- old_id: T1145
+  old_name: Private Keys
+  new_id: T1552.004
+  new_name: Private Keys
+  new_url: https://attack.mitre.org/techniques/T1552/004
+- old_id: T1146
+  old_name: Clear Command History
+  new_id: T1070.003
+  new_name: Clear Command History
+  new_url: https://attack.mitre.org/techniques/T1070/003
+- old_id: T1147
+  old_name: Hidden Users
+  new_id: T1564.002
+  new_name: Hidden Users
+  new_url: https://attack.mitre.org/techniques/T1564/002
+- old_id: T1148
+  old_name: HISTCONTROL
+  new_id: T1690
+  new_name: Prevent Command History Logging
+  new_url: https://attack.mitre.org/techniques/T1690
+- old_id: T1150
+  old_name: Plist Modification
+  new_id: T1547.011
+  new_name: Plist Modification
+  new_url: https://attack.mitre.org/techniques/T1547/011
+- old_id: T1151
+  old_name: Space after Filename
+  new_id: T1036.006
+  new_name: Space after Filename
+  new_url: https://attack.mitre.org/techniques/T1036/006
+- old_id: T1152
+  old_name: Launchctl
+  new_id: T1569.001
+  new_name: Launchctl
+  new_url: https://attack.mitre.org/techniques/T1569/001
+- old_id: T1154
+  old_name: Trap
+  new_id: T1546.005
+  new_name: Trap
+  new_url: https://attack.mitre.org/techniques/T1546/005
+- old_id: T1155
+  old_name: AppleScript
+  new_id: T1059.002
+  new_name: AppleScript
+  new_url: https://attack.mitre.org/techniques/T1059/002
+- old_id: T1156
+  old_name: Malicious Shell Modification
+  new_id: T1546.004
+  new_name: Unix Shell Configuration Modification
+  new_url: https://attack.mitre.org/techniques/T1546/004
+- old_id: T1157
+  old_name: Dylib Hijacking
+  new_id: T1574.004
+  new_name: Dylib Hijacking
+  new_url: https://attack.mitre.org/techniques/T1574/004
+- old_id: T1158
+  old_name: Hidden Files and Directories
+  new_id: T1564.001
+  new_name: Hidden Files and Directories
+  new_url: https://attack.mitre.org/techniques/T1564/001
+- old_id: T1159
+  old_name: Launch Agent
+  new_id: T1543.001
+  new_name: Launch Agent
+  new_url: https://attack.mitre.org/techniques/T1543/001
+- old_id: T1160
+  old_name: Launch Daemon
+  new_id: T1543.004
+  new_name: Launch Daemon
+  new_url: https://attack.mitre.org/techniques/T1543/004
+- old_id: T1161
+  old_name: LC_LOAD_DYLIB Addition
+  new_id: T1546.006
+  new_name: LC_LOAD_DYLIB Addition
+  new_url: https://attack.mitre.org/techniques/T1546/006
+- old_id: T1162
+  old_name: Login Item
+  new_id: T1547.011
+  new_name: Plist Modification
+  new_url: https://attack.mitre.org/techniques/T1547/011
+- old_id: T1163
+  old_name: Rc.common
+  new_id: T1037.004
+  new_name: RC Scripts
+  new_url: https://attack.mitre.org/techniques/T1037/004
+- old_id: T1164
+  old_name: Re-opened Applications
+  new_id: T1547.007
+  new_name: Re-opened Applications
+  new_url: https://attack.mitre.org/techniques/T1547/007
+- old_id: T1165
+  old_name: Startup Items
+  new_id: T1037.005
+  new_name: Startup Items
+  new_url: https://attack.mitre.org/techniques/T1037/005
+- old_id: T1166
+  old_name: Setuid and Setgid
+  new_id: T1548.001
+  new_name: Setuid and Setgid
+  new_url: https://attack.mitre.org/techniques/T1548/001
+- old_id: T1167
+  old_name: Securityd Memory
+  new_id: T1555.002
+  new_name: Securityd Memory
+  new_url: https://attack.mitre.org/techniques/T1555/002
+- old_id: T1168
+  old_name: Local Job Scheduling
+  new_id: T1053
+  new_name: Scheduled Task/Job
+  new_url: https://attack.mitre.org/techniques/T1053
+- old_id: T1169
+  old_name: Sudo
+  new_id: T1548.003
+  new_name: Sudo and Sudo Caching
+  new_url: https://attack.mitre.org/techniques/T1548/003
+- old_id: T1170
+  old_name: Mshta
+  new_id: T1218.005
+  new_name: Mshta
+  new_url: https://attack.mitre.org/techniques/T1218/005
+- old_id: T1171
+  old_name: LLMNR/NBT-NS Poisoning and Relay
+  new_id: T1557.001
+  new_name: Name Resolution Poisoning and SMB Relay
+  new_url: https://attack.mitre.org/techniques/T1557/001
+- old_id: T1172
+  old_name: Domain Fronting
+  new_id: T1090.004
+  new_name: Domain Fronting
+  new_url: https://attack.mitre.org/techniques/T1090/004
+- old_id: T1173
+  old_name: Dynamic Data Exchange
+  new_id: T1559.002
+  new_name: Dynamic Data Exchange
+  new_url: https://attack.mitre.org/techniques/T1559/002
+- old_id: T1174
+  old_name: Password Filter DLL
+  new_id: T1556.002
+  new_name: Password Filter DLL
+  new_url: https://attack.mitre.org/techniques/T1556/002
+- old_id: T1177
+  old_name: LSASS Driver
+  new_id: T1547.008
+  new_name: LSASS Driver
+  new_url: https://attack.mitre.org/techniques/T1547/008
+- old_id: T1178
+  old_name: SID-History Injection
+  new_id: T1134.005
+  new_name: SID-History Injection
+  new_url: https://attack.mitre.org/techniques/T1134/005
+- old_id: T1179
+  old_name: Hooking
+  new_id: T1056.004
+  new_name: Credential API Hooking
+  new_url: https://attack.mitre.org/techniques/T1056/004
+- old_id: T1180
+  old_name: Screensaver
+  new_id: T1546.002
+  new_name: Screensaver
+  new_url: https://attack.mitre.org/techniques/T1546/002
+- old_id: T1181
+  old_name: Extra Window Memory Injection
+  new_id: T1055.011
+  new_name: Extra Window Memory Injection
+  new_url: https://attack.mitre.org/techniques/T1055/011
+- old_id: T1182
+  old_name: AppCert DLLs
+  new_id: T1546.009
+  new_name: AppCert DLLs
+  new_url: https://attack.mitre.org/techniques/T1546/009
+- old_id: T1183
+  old_name: Image File Execution Options Injection
+  new_id: T1546.012
+  new_name: Image File Execution Options Injection
+  new_url: https://attack.mitre.org/techniques/T1546/012
+- old_id: T1184
+  old_name: SSH Hijacking
+  new_id: T1563.001
+  new_name: SSH Hijacking
+  new_url: https://attack.mitre.org/techniques/T1563/001
+- old_id: T1186
+  old_name: Process Doppelgänging
+  new_id: T1055.013
+  new_name: Process Doppelgänging
+  new_url: https://attack.mitre.org/techniques/T1055/013
+- old_id: T1188
+  old_name: Multi-hop Proxy
+  new_id: T1090.003
+  new_name: Multi-hop Proxy
+  new_url: https://attack.mitre.org/techniques/T1090/003
+- old_id: T1191
+  old_name: CMSTP
+  new_id: T1218.003
+  new_name: CMSTP
+  new_url: https://attack.mitre.org/techniques/T1218/003
+- old_id: T1192
+  old_name: Spearphishing Link
+  new_id: T1566.002
+  new_name: Spearphishing Link
+  new_url: https://attack.mitre.org/techniques/T1566/002
+- old_id: T1193
+  old_name: Spearphishing Attachment
+  new_id: T1566.001
+  new_name: Spearphishing Attachment
+  new_url: https://attack.mitre.org/techniques/T1566/001
+- old_id: T1194
+  old_name: Spearphishing via Service
+  new_id: T1566.003
+  new_name: Spearphishing via Service
+  new_url: https://attack.mitre.org/techniques/T1566/003
+- old_id: T1196
+  old_name: Control Panel Items
+  new_id: T1218.002
+  new_name: Control Panel
+  new_url: https://attack.mitre.org/techniques/T1218/002
+- old_id: T1198
+  old_name: SIP and Trust Provider Hijacking
+  new_id: T1553.003
+  new_name: SIP and Trust Provider Hijacking
+  new_url: https://attack.mitre.org/techniques/T1553/003
+- old_id: T1206
+  old_name: Sudo Caching
+  new_id: T1548.003
+  new_name: Sudo and Sudo Caching
+  new_url: https://attack.mitre.org/techniques/T1548/003
+- old_id: T1208
+  old_name: Kerberoasting
+  new_id: T1558.003
+  new_name: Kerberoasting
+  new_url: https://attack.mitre.org/techniques/T1558/003
+- old_id: T1209
+  old_name: Time Providers
+  new_id: T1547.003
+  new_name: Time Providers
+  new_url: https://attack.mitre.org/techniques/T1547/003
+- old_id: T1214
+  old_name: Credentials in Registry
+  new_id: T1552.002
+  new_name: Credentials in Registry
+  new_url: https://attack.mitre.org/techniques/T1552/002
+- old_id: T1215
+  old_name: Kernel Modules and Extensions
+  new_id: T1547.006
+  new_name: Kernel Modules and Extensions
+  new_url: https://attack.mitre.org/techniques/T1547/006
+- old_id: T1223
+  old_name: Compiled HTML File
+  new_id: T1218.001
+  new_name: Compiled HTML File
+  new_url: https://attack.mitre.org/techniques/T1218/001
+- old_id: T1483
+  old_name: Domain Generation Algorithms
+  new_id: T1568.002
+  new_name: Domain Generation Algorithms
+  new_url: https://attack.mitre.org/techniques/T1568/002
+- old_id: T1487
+  old_name: Disk Structure Wipe
+  new_id: T1561.002
+  new_name: Disk Structure Wipe
+  new_url: https://attack.mitre.org/techniques/T1561/002
+- old_id: T1488
+  old_name: Disk Content Wipe
+  new_id: T1561.001
+  new_name: Disk Content Wipe
+  new_url: https://attack.mitre.org/techniques/T1561/001
+- old_id: T1492
+  old_name: Stored Data Manipulation
+  new_id: T1565.001
+  new_name: Stored Data Manipulation
+  new_url: https://attack.mitre.org/techniques/T1565/001
+- old_id: T1493
+  old_name: Transmitted Data Manipulation
+  new_id: T1565.002
+  new_name: Transmitted Data Manipulation
+  new_url: https://attack.mitre.org/techniques/T1565/002
+- old_id: T1494
+  old_name: Runtime Data Manipulation
+  new_id: T1565.003
+  new_name: Runtime Data Manipulation
+  new_url: https://attack.mitre.org/techniques/T1565/003
+- old_id: T1500
+  old_name: Compile After Delivery
+  new_id: T1027.004
+  new_name: Compile After Delivery
+  new_url: https://attack.mitre.org/techniques/T1027/004
+- old_id: T1501
+  old_name: Systemd Service
+  new_id: T1543.002
+  new_name: Systemd Service
+  new_url: https://attack.mitre.org/techniques/T1543/002
+- old_id: T1502
+  old_name: Parent PID Spoofing
+  new_id: T1134.004
+  new_name: Parent PID Spoofing
+  new_url: https://attack.mitre.org/techniques/T1134/004
+- old_id: T1503
+  old_name: Credentials from Web Browsers
+  new_id: T1555.003
+  new_name: Credentials from Web Browsers
+  new_url: https://attack.mitre.org/techniques/T1555/003
+- old_id: T1504
+  old_name: PowerShell Profile
+  new_id: T1546.013
+  new_name: PowerShell Profile
+  new_url: https://attack.mitre.org/techniques/T1546/013
+- old_id: T1506
+  old_name: Web Session Cookie
+  new_id: T1550.004
+  new_name: Web Session Cookie
+  new_url: https://attack.mitre.org/techniques/T1550/004
+- old_id: T1514
+  old_name: Elevated Execution with Prompt
+  new_id: T1548.004
+  new_name: Elevated Execution with Prompt
+  new_url: https://attack.mitre.org/techniques/T1548/004
+- old_id: T1519
+  old_name: Emond
+  new_id: T1546.014
+  new_name: Emond
+  new_url: https://attack.mitre.org/techniques/T1546/014
+- old_id: T1522
+  old_name: Cloud Instance Metadata API
+  new_id: T1552.005
+  new_name: Cloud Instance Metadata API
+  new_url: https://attack.mitre.org/techniques/T1552/005
+- old_id: T1527
+  old_name: Application Access Token
+  new_id: T1550.001
+  new_name: Application Access Token
+  new_url: https://attack.mitre.org/techniques/T1550/001
+- old_id: T1536
+  old_name: Revert Cloud Instance
+  new_id: T1578.004
+  new_name: Revert Cloud Instance
+  new_url: https://attack.mitre.org/techniques/T1578/004
+- old_id: T1547.011
+  old_name: Plist Modification
+  new_id: T1647
+  new_name: Plist File Modification
+  new_url: https://attack.mitre.org/techniques/T1647
+- old_id: T1562
+  old_name: Impair Defenses
+  new_id: T1685
+  new_name: Disable or Modify Tools
+  new_url: https://attack.mitre.org/techniques/T1685
+- old_id: T1562.001
+  old_name: Disable or Modify Tools
+  new_id: T1685
+  new_name: Disable or Modify Tools
+  new_url: https://attack.mitre.org/techniques/T1685
+- old_id: T1562.002
+  old_name: Disable Windows Event Logging
+  new_id: T1685.001
+  new_name: Disable or Modify Windows Event Log
+  new_url: https://attack.mitre.org/techniques/T1685/001
+- old_id: T1562.003
+  old_name: Impair Command History Logging
+  new_id: T1690
+  new_name: Prevent Command History Logging
+  new_url: https://attack.mitre.org/techniques/T1690
+- old_id: T1562.004
+  old_name: Disable or Modify System Firewall
+  new_id: T1686
+  new_name: Disable or Modify System Firewall
+  new_url: https://attack.mitre.org/techniques/T1686
+- old_id: T1562.006
+  old_name: Indicator Blocking
+  new_id: T1685
+  new_name: Disable or Modify Tools
+  new_url: https://attack.mitre.org/techniques/T1685
+- old_id: T1562.007
+  old_name: Disable or Modify Cloud Firewall
+  new_id: T1686.001
+  new_name: Cloud Firewall
+  new_url: https://attack.mitre.org/techniques/T1686/001
+- old_id: T1562.008
+  old_name: Disable or Modify Cloud Logs
+  new_id: T1685.002
+  new_name: Disable or Modify Cloud Log
+  new_url: https://attack.mitre.org/techniques/T1685/002
+- old_id: T1562.009
+  old_name: Safe Mode Boot
+  new_id: T1688
+  new_name: Safe Mode Boot
+  new_url: https://attack.mitre.org/techniques/T1688
+- old_id: T1562.010
+  old_name: Downgrade Attack
+  new_id: T1689
+  new_name: Downgrade Attack
+  new_url: https://attack.mitre.org/techniques/T1689
+- old_id: T1562.011
+  old_name: Spoof Security Alerting
+  new_id: T1685.003
+  new_name: Modify or Spoof Tool UI
+  new_url: https://attack.mitre.org/techniques/T1685/003
+- old_id: T1562.012
+  old_name: Disable or Modify Linux Audit System
+  new_id: T1685.004
+  new_name: Disable or Modify Linux Audit System Log
+  new_url: https://attack.mitre.org/techniques/T1685/004
+- old_id: T1562.013
+  old_name: Disable or Modify Network Device Firewall
+  new_id: T1686.002
+  new_name: Network Device Firewall
+  new_url: https://attack.mitre.org/techniques/T1686/002
+- old_id: T1574.002
+  old_name: DLL Side-Loading
+  new_id: T1574.001
+  new_name: DLL
+  new_url: https://attack.mitre.org/techniques/T1574/001
+- old_id: T1656
+  old_name: Impersonation
+  new_id: T1684.001
+  new_name: Impersonation
+  new_url: https://attack.mitre.org/techniques/T1684/001
+- old_id: T1672
+  old_name: Email Spoofing
+  new_id: T1684.002
+  new_name: Email Spoofing
+  new_url: https://attack.mitre.org/techniques/T1684/002
+deprecated_without_replacement:
+- T1026
+- T1034
+- T1043
+- T1051
+- T1053.004
+- T1061
+- T1062
+- T1064
+- T1108
+- T1149
+- T1153
+- T1175

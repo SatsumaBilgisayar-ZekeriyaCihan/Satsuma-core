@@ -1,0 +1,31 @@
+[Unit]
+StartLimitIntervalSec=300
+StartLimitBurst=3
+Requires=satsuma-image.service
+After=satsuma-image.service satsuma-network.service
+Before=satsuma-core.service satsuma-teams.service satsuma-operator.service
+Description=Satsuma privd: the one service that blocks addresses and stops processes
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+Environment=SATSUMA_PRIVD_SERVER=1
+RestartPreventExitStatus=78
+Type=simple
+User=root
+Group=satsuma-priv
+SupplementaryGroups=satsuma-core
+RuntimeDirectory=satsuma-privd
+RuntimeDirectoryMode=0750
+WorkingDirectory=/opt/satsuma-core
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -E -s -B -m satsuma.privd
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=yes
+ProtectHome=read-only
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

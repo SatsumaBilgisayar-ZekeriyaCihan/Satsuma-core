@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://satsuma.local/schemas/suppression.schema.json",
+  "title": "Satsuma Suppression / Allowlist (satsuma/v1)",
+  "description": "Tekilleştirme sonrası bulguları bastıran, süreli ve denetlenebilir allowlist sözleşmesi.",
+  "type": "object",
+  "required": ["schema", "suppressions"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "satsuma/v1" },
+    "version": { "type": "integer", "minimum": 1, "default": 1 },
+    "defaults": { "type": "object", "additionalProperties": false, "properties": { "duration_seconds": { "type": ["integer", "null"], "minimum": 1 }, "max_suppressed": { "type": ["integer", "null"], "minimum": 1 }, "created_by": { "type": "string" } } },
+    "suppressions": { "type": "array", "items": { "type": "object", "required": ["id", "reason"], "additionalProperties": false, "properties": { "id": { "type": "string", "minLength": 2, "maxLength": 64, "pattern": "^[A-Za-z0-9_.-]+$" }, "reason": { "type": "string", "minLength": 3, "maxLength": 500 }, "enabled": { "type": "boolean", "default": true }, "created_by": { "type": "string", "maxLength": 120 }, "ticket": { "type": "string", "maxLength": 64 }, "expires_at": { "type": ["string", "null"] }, "expires_in_seconds": { "type": ["integer", "null"], "minimum": 1 }, "rule_ids": { "type": "array", "items": { "type": "string" }, "maxItems": 64 }, "finding_ids": { "type": "array", "items": { "type": "string" }, "maxItems": 256 }, "hosts": { "type": "array", "items": { "type": "string" }, "maxItems": 64 }, "categories": { "type": "array", "items": { "type": "string" }, "maxItems": 32 }, "entity_kinds": { "type": "array", "items": { "type": "string" }, "maxItems": 16 }, "severity_at_most": { "enum": ["info", "low", "medium", "high", "critical"] }, "match": { "$ref": "#/$defs/logic" }, "max_suppressed": { "type": ["integer", "null"], "minimum": 1 }, "extensions": { "type": "object" } } } }
+  },
+  "$defs": {
+    "selector": { "oneOf": [ { "type": ["string", "number", "boolean"] }, { "type": "array", "minItems": 1, "items": { "type": ["string", "number", "boolean"] } } ] },
+    "condition": { "type": "object", "required": ["field"], "additionalProperties": false, "properties": { "field": { "type": "string", "minLength": 1 }, "equals": { "$ref": "#/$defs/selector" }, "not_equals": { "$ref": "#/$defs/selector" }, "in": { "$ref": "#/$defs/selector" }, "not_in": { "$ref": "#/$defs/selector" }, "contains": { "type": "string" }, "contains_any": { "type": "array", "minItems": 1, "items": { "type": "string" } }, "regex": { "type": "string", "maxLength": 512 }, "not_regex": { "type": "string", "maxLength": 512 }, "exists": { "type": "boolean" }, "ignore_case": { "type": "boolean", "default": false } }, "anyOf": [ { "required": ["equals"] }, { "required": ["not_equals"] }, { "required": ["in"] }, { "required": ["not_in"] }, { "required": ["contains"] }, { "required": ["contains_any"] }, { "required": ["regex"] }, { "required": ["not_regex"] }, { "required": ["exists"] } ] },
+    "logic": { "oneOf": [ { "$ref": "#/$defs/condition" }, { "type": "object", "minProperties": 1, "additionalProperties": false, "properties": { "all": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/logic" } }, "any": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/logic" } }, "none": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/logic" } }, "not": { "$ref": "#/$defs/logic" } } } ] }
+  }
+}

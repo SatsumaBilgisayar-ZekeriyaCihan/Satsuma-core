@@ -1,0 +1,32 @@
+#!/bin/bash
+# Audit G2: the admin password is typed into this GUI, so it starts with only
+# the display and session variables it needs. PYTHON*, LD_PRELOAD,
+# LD_LIBRARY_PATH, QT_PLUGIN_PATH and the like never reach it.
+# Denetim G2: yönetici parolası bu arayüze yazılır; arayüz yalnızca ihtiyaç
+# duyduğu ekran ve oturum değişkenleriyle başlar.
+if [ "$(id -u)" -eq 0 ]; then
+ echo 'Paneli masaüstü kullanıcısı olarak satsuma-dashboard ile açın; sudo kullanmayın. Yönetici işlemleri panelde kimlik doğrular.' >&2
+ exit 1
+fi
+# Enrollment is automatic for the active local desktop at install time. If
+# installation had no desktop session, request system authorization on launch.
+case " $(id -nG) " in
+ *" satsuma-reader "*) ;;
+ *)
+  case " $(id -nG "$(id -un)") " in
+   *" satsuma-reader "*) ;;
+   *) /usr/bin/pkexec /usr/bin/satsuma-enroll-desktop --user "$(id -un)" || exit 1 ;;
+  esac
+  # Refresh supplementary group access without logging out the user's desktop.
+  exec /usr/bin/sg satsuma-reader -c 'exec /usr/bin/satsuma-dashboard'
+ ;;
+esac
+cd /opt/satsuma-core || exit 1
+keep=()
+for name in HOME USER LOGNAME LANG LC_ALL LC_MESSAGES DISPLAY XAUTHORITY WAYLAND_DISPLAY \
+            XDG_RUNTIME_DIR XDG_SESSION_TYPE XDG_CURRENT_DESKTOP DBUS_SESSION_BUS_ADDRESS \
+            QT_SCALE_FACTOR QT_SCREEN_SCALE_FACTORS QT_AUTO_SCREEN_SCALE_FACTOR; do
+ [[ -v $name ]] && keep+=("$name=${!name}")
+done
+exec /usr/bin/env -i "${keep[@]}" PATH=/usr/bin:/bin \
+ /usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -E -s -B -m satsuma.dashboard_qt "$@"

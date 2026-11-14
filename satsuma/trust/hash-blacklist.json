@@ -1,0 +1,407 @@
+{
+ "description": "SHA-256 blacklist. Files with these digests are detected by every ClamAV scan (installed as satsuma-blacklist.hsb) and go through Satsuma's quarantine flow. / SHA-256 kara listesi: bu özetlere sahip dosyalar her ClamAV taramasında yakalanır ve Satsuma'nın karantina akışına girer.",
+ "groups": [
+  {
+   "name": "WebConsole",
+   "reason": "Unused web console and its HTTP bridge from the 2.1.6 tree, removed from the tree and from git history at the user's request; only these digests remain. / 2.1.6 ağacından gelen, kullanılmayan web konsolu ve HTTP köprüsü; kullanıcının isteğiyle ağaçtan ve git geçmişinden silindi; yalnızca bu özetler kaldı.",
+   "entries": [
+    {
+     "sha256": "05806dee1f8a0e940a6a381230b9f1375e14f805a54bcf884cfcaf6f838c2c22",
+     "size": 68900,
+     "path": "optional_components/web-bridge/dashboard_api.py"
+    },
+    {
+     "sha256": "e6d89c747553c4b4eaf7495db25d284fc8a18fa8ea728bcc94d7f155bd036269",
+     "size": 32941,
+     "path": "optional_components/web-bridge/satsuma_web_bridge.py"
+    },
+    {
+     "sha256": "2356f671787f8816869ecde6c9bdd1ea9ec0e97645e33411d9a1b67a2326f1de",
+     "size": 6715,
+     "path": "optional_components/web-console/DESIGN.md"
+    },
+    {
+     "sha256": "b1fa09c955fd7d6dc009bb98a21a8e09e194fe85c06ae1810d06a37f86897518",
+     "size": 1949,
+     "path": "optional_components/web-console/app/frontend/index.html"
+    },
+    {
+     "sha256": "91398da55d830ac2f91436ac989abc8e5ce9945072eb25d199c1b17a664a8246",
+     "size": 331091,
+     "path": "optional_components/web-console/app/frontend/package-lock.json"
+    },
+    {
+     "sha256": "0a1ca8de9d9ef399fa68397bcaeae392de9d20639cb4b102af062752d2ce62d1",
+     "size": 3150,
+     "path": "optional_components/web-console/app/frontend/package.json"
+    },
+    {
+     "sha256": "4294c3aa1c6d5111658a5682aaa6cfb8edc6fc9fba996e3b405322d24934c660",
+     "size": 5454,
+     "path": "optional_components/web-console/app/frontend/plugins/react-hmr-guard.test.ts"
+    },
+    {
+     "sha256": "83ae24ac5443e224507a0be33958443b55df7612351588158d09993e1dfb748f",
+     "size": 5375,
+     "path": "optional_components/web-console/app/frontend/plugins/react-hmr-guard.ts"
+    },
+    {
+     "sha256": "5acbb30f51cc28b106acf1c9d5bc4b93d6a478b138769829a4b7187a56cc5d04",
+     "size": 428,
+     "path": "optional_components/web-console/app/frontend/prerender/blog-routes.js"
+    },
+    {
+     "sha256": "9a1f5bc792124fbe76e721de1524cef3b88ac99f05e2aeed102147d505a39867",
+     "size": 1003,
+     "path": "optional_components/web-console/app/frontend/prerender/blog-sitemap.js"
+    },
+    {
+     "sha256": "b2dc8cf28b21ec126608b5ed336dd4e7e68d2a8e1528354f2ce451b7955c3639",
+     "size": 3956,
+     "path": "optional_components/web-console/app/frontend/prerender/blog.js"
+    },
+    {
+     "sha256": "57771c5fc27fd08e187a2ef2a48c12e2ae76b093f06f3506f03bde9f51edd3ab",
+     "size": 1067,
+     "path": "optional_components/web-console/app/frontend/prerender/utils.js"
+    },
+    {
+     "sha256": "9b5b1246503cdbf18c78849187feebfe37d6bb6ff5c87f365674746cf26aff68",
+     "size": 1385,
+     "path": "optional_components/web-console/app/frontend/src/App.tsx"
+    },
+    {
+     "sha256": "906362c708b1c23cb30b13fcfc69b2acec55bf5c6614c4fb9c032e717e4448d8",
+     "size": 548,
+     "path": "optional_components/web-console/app/frontend/src/blog-routes.tsx"
+    },
+    {
+     "sha256": "c973c90fba10fa0bc16a6332389f0595e26c530d85b2dfa96ff11de6d2afbee3",
+     "size": 1425,
+     "path": "optional_components/web-console/app/frontend/src/components/console/AppShell.tsx"
+    },
+    {
+     "sha256": "5c921723d40a219de29c1bfdfcf7b8cf5b7f96e1433ca24fad4d3483646b2838",
+     "size": 1773,
+     "path": "optional_components/web-console/app/frontend/src/components/console/ConnectionBanner.tsx"
+    },
+    {
+     "sha256": "bcbbaab6069fb1c3ded5c0242cd1d8d9115e5c0aa50d5ac225a794e1b31ddcb3",
+     "size": 5886,
+     "path": "optional_components/web-console/app/frontend/src/components/console/DataTable.tsx"
+    },
+    {
+     "sha256": "897dc15f78c0405b3e1677eaf8ea6466c743029e4e9abb35074c059b1ddf94b9",
+     "size": 2626,
+     "path": "optional_components/web-console/app/frontend/src/components/console/EmptyOrError.tsx"
+    },
+    {
+     "sha256": "22d39b0056fd94e3b0f9cd90a84a7daf621cf7ed664176a2754d4f1aacf5608f",
+     "size": 3355,
+     "path": "optional_components/web-console/app/frontend/src/components/console/Layout.tsx"
+    },
+    {
+     "sha256": "4796a22443c529603a385499e740956046f89d80600504b355f176ce62a0f954",
+     "size": 1588,
+     "path": "optional_components/web-console/app/frontend/src/components/console/RequireAdmin.tsx"
+    },
+    {
+     "sha256": "ff1c11b4ac4b0af24898532b4092303f2b3e4bf55db1775a2e22937d7ec0bac2",
+     "size": 7528,
+     "path": "optional_components/web-console/app/frontend/src/components/console/Shell.tsx"
+    },
+    {
+     "sha256": "cd936a7125e917da35dd733a1aa7cc67d653d4c38e5b7fb59216704e6b5320c4",
+     "size": 2972,
+     "path": "optional_components/web-console/app/frontend/src/components/console/StatusPill.tsx"
+    },
+    {
+     "sha256": "354ef7f51c4370250e1fcd878b4e86e80c465ee3a1bfde2dd66dcae5d601c6f8",
+     "size": 1134,
+     "path": "optional_components/web-console/app/frontend/src/components/ui/badge.tsx"
+    },
+    {
+     "sha256": "c6c1cd06ec9e9823a8babce7aad16643bc54c306c3d9f53d5097fdd67e95ce4b",
+     "size": 1888,
+     "path": "optional_components/web-console/app/frontend/src/components/ui/button.tsx"
+    },
+    {
+     "sha256": "07827f7d9469a14cf358e3c5277bbda649785d902c645da25b4018fa925afa30",
+     "size": 1905,
+     "path": "optional_components/web-console/app/frontend/src/components/ui/card.tsx"
+    },
+    {
+     "sha256": "8fa4b91caa2880ad0d9e5dd1a9007b3400a6885f808fb4c1c1e28bb4b2389502",
+     "size": 797,
+     "path": "optional_components/web-console/app/frontend/src/components/ui/input.tsx"
+    },
+    {
+     "sha256": "576cfd0a0739b4c542d198f11b761999d58e901e4455adf72eaa10b6e8a4d8bc",
+     "size": 718,
+     "path": "optional_components/web-console/app/frontend/src/components/ui/label.tsx"
+    },
+    {
+     "sha256": "37eea4e565d12fc13cab0e514ab55600330a35b6d60f18b10365acc8ca807c14",
+     "size": 5637,
+     "path": "optional_components/web-console/app/frontend/src/components/ui/select.tsx"
+    },
+    {
+     "sha256": "8d30df1c89c73d89532d29b5d263265098e900f489322a4eee94b5a276000b59",
+     "size": 901,
+     "path": "optional_components/web-console/app/frontend/src/components/ui/sonner.tsx"
+    },
+    {
+     "sha256": "47a3a7a7db016330c9ada2e9837ce0777055f5680c70c5bc957b4ca3e6ed4fb2",
+     "size": 1154,
+     "path": "optional_components/web-console/app/frontend/src/components/ui/tooltip.tsx"
+    },
+    {
+     "sha256": "920cde745849522161837f9e08a854165db44884eae36a40db2f5dbd6cc32946",
+     "size": 2316,
+     "path": "optional_components/web-console/app/frontend/src/console-routes.tsx"
+    },
+    {
+     "sha256": "6ab062505928bfcc1c02ad2edb8c98d6e92a1f2c2355bdf722f421f1e08a3575",
+     "size": 1086,
+     "path": "optional_components/web-console/app/frontend/src/hooks/useKeyboardShortcuts.ts"
+    },
+    {
+     "sha256": "2f182766fcaecc7e7c3a239510794ee06bc9f12418c056992892bdb82372b025",
+     "size": 3450,
+     "path": "optional_components/web-console/app/frontend/src/hooks/useSatsuma.ts"
+    },
+    {
+     "sha256": "97af62c8258f1141d091d7779c99c66ef48aa021fcf7894600cb03fd81865ab5",
+     "size": 1751,
+     "path": "optional_components/web-console/app/frontend/src/index.css"
+    },
+    {
+     "sha256": "c8e280d90fb47e93aa0efa962f8f5f5f10c7f26ed4400aae2df3225d8d2db054",
+     "size": 115,
+     "path": "optional_components/web-console/app/frontend/src/lib/api.ts"
+    },
+    {
+     "sha256": "d7839249958d3ff796489d07213d5357515cd7f522484d6161a99be3003c5bcb",
+     "size": 8734,
+     "path": "optional_components/web-console/app/frontend/src/lib/blog.ts"
+    },
+    {
+     "sha256": "87908a0cd9dfca34f0560554b11ae1ebb8e3deed7278819cac749f7481324d69",
+     "size": 2761,
+     "path": "optional_components/web-console/app/frontend/src/lib/config.ts"
+    },
+    {
+     "sha256": "889b99d01589fcd8771a17341e0b09a3d297c593ddba5983f7cd4687595dbef8",
+     "size": 1220,
+     "path": "optional_components/web-console/app/frontend/src/lib/format.ts"
+    },
+    {
+     "sha256": "2a48b2516164fbacfa05d19278910b5b03a84b21fea3b61be0aaaccb18a05786",
+     "size": 7461,
+     "path": "optional_components/web-console/app/frontend/src/lib/satsuma/auth-context.tsx"
+    },
+    {
+     "sha256": "0c0aa9f1a8fa7ace57dc9efa1bb7fd9e19fb2e028d93320d4053dac1aace2363",
+     "size": 5048,
+     "path": "optional_components/web-console/app/frontend/src/lib/satsuma/client.ts"
+    },
+    {
+     "sha256": "4437fb89b552d0ad495a6255b038128fc89019cbe3b4e94fcceeba58dbafc119",
+     "size": 2831,
+     "path": "optional_components/web-console/app/frontend/src/lib/satsuma/datastate.ts"
+    },
+    {
+     "sha256": "dadfbdaffbf0dcdab5dbf5cdaf6cea9c8e141cf83c55f18d037922883b338d32",
+     "size": 15479,
+     "path": "optional_components/web-console/app/frontend/src/lib/satsuma/demo-data.ts"
+    },
+    {
+     "sha256": "4e63cb32dd84221ca0a42cc4e756330ebdb131526969b414803b7986f9b26c78",
+     "size": 3490,
+     "path": "optional_components/web-console/app/frontend/src/lib/satsuma/modules.ts"
+    },
+    {
+     "sha256": "81c72e46f1f281708042fd8a883a3b103b709453dfbc0e899456781d31e19220",
+     "size": 15936,
+     "path": "optional_components/web-console/app/frontend/src/lib/satsuma/screens.ts"
+    },
+    {
+     "sha256": "6d91c5e698a7d78b213c334b9d55b8bf976a7258b89161ba64fa42128b90b3a1",
+     "size": 14721,
+     "path": "optional_components/web-console/app/frontend/src/lib/satsuma/types.ts"
+    },
+    {
+     "sha256": "9304a861c8673bee09e0f12de31773abbde503b02e59dfd74763ddec2e37cf05",
+     "size": 169,
+     "path": "optional_components/web-console/app/frontend/src/lib/utils.ts"
+    },
+    {
+     "sha256": "9ece10b432c4de4ce1ac20fca92602b1f75b1db45c175949c4d9f0219537966b",
+     "size": 952,
+     "path": "optional_components/web-console/app/frontend/src/main.tsx"
+    },
+    {
+     "sha256": "a245ef1ac1563022adfd2adde26fa34518191901b0c3e90fa46aa4d0a840b920",
+     "size": 494,
+     "path": "optional_components/web-console/app/frontend/src/pages/AuthCallback.tsx"
+    },
+    {
+     "sha256": "7b61d49c64b21337f162e3b20a481efcdeeccc8de6b810342a3a8d4f3b2833cd",
+     "size": 2566,
+     "path": "optional_components/web-console/app/frontend/src/pages/AuthError.tsx"
+    },
+    {
+     "sha256": "15d7ac10ccd7b44e92c462a4a9950ad86d60326c0a05e0250cb03e61f50b5960",
+     "size": 181,
+     "path": "optional_components/web-console/app/frontend/src/pages/Index.tsx"
+    },
+    {
+     "sha256": "cfe2558843777a9a360584e73451c134ba5d936a4d1511322f752a27eb2e56ce",
+     "size": 3081,
+     "path": "optional_components/web-console/app/frontend/src/pages/blog/BlogIndexPage.tsx"
+    },
+    {
+     "sha256": "5d2ef9049f8d685c58a6bd6c8eedbf0fc8ca2e58beae8a694fddece35e244b70",
+     "size": 5138,
+     "path": "optional_components/web-console/app/frontend/src/pages/blog/BlogPostPage.tsx"
+    },
+    {
+     "sha256": "12c274028d132ee7361d34daf3d1baef70c16c3d1f7fdddff8cf1839503d3ac7",
+     "size": 4677,
+     "path": "optional_components/web-console/app/frontend/src/pages/console/AdminPage.tsx"
+    },
+    {
+     "sha256": "62114ddce76e06ef57d9723ca958991b13214a371d499307c2ba66835b374c88",
+     "size": 8235,
+     "path": "optional_components/web-console/app/frontend/src/pages/console/AuditPage.tsx"
+    },
+    {
+     "sha256": "fb599b0d2796aa6bb5342f4d97ce37b784437487e89fef17be9ae3c0da99aa2d",
+     "size": 5622,
+     "path": "optional_components/web-console/app/frontend/src/pages/console/EnginePage.tsx"
+    },
+    {
+     "sha256": "a3464b3aeb42acc6c48458a272e75b72ec859a3045606dc3ab8759cecf1eb7de",
+     "size": 5398,
+     "path": "optional_components/web-console/app/frontend/src/pages/console/EventsPage.tsx"
+    },
+    {
+     "sha256": "b4d7321d11b42b26de7fcd3b9b2d1dfb3ea7798cfb9e6c2f0512985b18cc4941",
+     "size": 12813,
+     "path": "optional_components/web-console/app/frontend/src/pages/console/FindingsPage.tsx"
+    },
+    {
+     "sha256": "cdd98d2ac17f7231176211c3e90f15667799d327551115d16f3a0ccb4e0ee447",
+     "size": 5133,
+     "path": "optional_components/web-console/app/frontend/src/pages/console/LeaksPage.tsx"
+    },
+    {
+     "sha256": "0b0fc49e1fe94782ee6ee7f53090e36aa96977e2df3fe4f2711d39740ca11bfe",
+     "size": 5568,
+     "path": "optional_components/web-console/app/frontend/src/pages/console/LoginPage.tsx"
+    },
+    {
+     "sha256": "ef3f5bdcbc3b5f97af38aad3f7c8f795478ae4811be25b4cd30d135b214baf60",
+     "size": 8786,
+     "path": "optional_components/web-console/app/frontend/src/pages/console/OverviewPage.tsx"
+    },
+    {
+     "sha256": "a848d7a91c82111877470103572b8d6e310d4eaaf66357cdb7c9bae3c6328f9a",
+     "size": 15572,
+     "path": "optional_components/web-console/app/frontend/src/pages/console/RulesPage.tsx"
+    },
+    {
+     "sha256": "595dbbbff78221d96bfb099b0e730fe2916b74dcfe15c6fa7e147a139909a368",
+     "size": 2924,
+     "path": "optional_components/web-console/app/frontend/src/pages/console/SimpleScreenPage.tsx"
+    },
+    {
+     "sha256": "79568a8f3c6497b2660d4d25d8f5a49453399de6eb79589ec31e07dc6afcb5d6",
+     "size": 2879,
+     "path": "optional_components/web-console/app/frontend/src/pages/console/TelemetryPage.tsx"
+    },
+    {
+     "sha256": "f893f9a2d9df5cbfdcb778c560a0447cf2bde4f21cf28200e091c22cce42468b",
+     "size": 8793,
+     "path": "optional_components/web-console/app/frontend/src/pages/console/TicketsPage.tsx"
+    },
+    {
+     "sha256": "05caade5b92a3b8a1f77847ca2645f2431e1bd3c4c64237a95213b71ba033b09",
+     "size": 2941,
+     "path": "optional_components/web-console/app/frontend/tailwind.config.ts"
+    },
+    {
+     "sha256": "8b130cfd2f2b95a8dce9f9fbd893e326225f5efce9436c307e720d5c197100f0",
+     "size": 723,
+     "path": "optional_components/web-console/app/frontend/tsconfig.app.json"
+    },
+    {
+     "sha256": "1914430cf76f7e28628f4a14b7b09e256f5ac5263e816c63691b08cf083994a8",
+     "size": 381,
+     "path": "optional_components/web-console/app/frontend/tsconfig.json"
+    },
+    {
+     "sha256": "a96b9ba5e40d95b92adf56431fdf9cbe25b5c2557621f0666615bff6889dfc50",
+     "size": 481,
+     "path": "optional_components/web-console/app/frontend/tsconfig.node.json"
+    },
+    {
+     "sha256": "4e0a69442d4412c54c539dd87e406d4a5c04bd971299a8e6791bcb1540e90fd1",
+     "size": 4625,
+     "path": "optional_components/web-console/app/frontend/vite.config.ts"
+    },
+    {
+     "sha256": "22898874f88252b6f6ec5242ef3a086275c321390ac9fe2029a7d4334aff9d14",
+     "size": 168212,
+     "path": "optional_components/web-console/docs/reference/events-preview.png"
+    },
+    {
+     "sha256": "593dc34c42e7fb7f850ffe059a01de497db07bf5b85ba14fb8eaa5ac3dfcf521",
+     "size": 204481,
+     "path": "optional_components/web-console/docs/reference/findings-preview.png"
+    },
+    {
+     "sha256": "19c2e741bd5af24f66cc197c6c5d42fbd96faeb27c69bdd5d4b77e1342f417c7",
+     "size": 219135,
+     "path": "optional_components/web-console/docs/reference/leaks-preview.png"
+    },
+    {
+     "sha256": "cf860c6c6a91021d0dd38e8d188892371b403d324e1c9e404407810fec3f587c",
+     "size": 201241,
+     "path": "optional_components/web-console/docs/reference/overview-preview.png"
+    },
+    {
+     "sha256": "75059f8fdb08cda1a81487d93f353e5bb986066e6efb65a57554173bf7aaa45f",
+     "size": 177181,
+     "path": "optional_components/web-console/docs/reference/services-preview.png"
+    },
+    {
+     "sha256": "acac62e3cdfc8db39d8783abb05dde3ca65b0cd7b963001b25652dfb24fb6dce",
+     "size": 156953,
+     "path": "optional_components/web-console/docs/reference/telemetry-preview.png"
+    },
+    {
+     "sha256": "8e1aa15f45856b047138db0f37bb9ba0baa2f59a940341fe58ec16f9e75411b4",
+     "size": 195339,
+     "path": "optional_components/web-console/docs/reference/tickets-preview.png"
+    },
+    {
+     "sha256": "fa5884280c834d6a14dbd530057e036e7f3d9ddb229622b3cee1b99879db419b",
+     "size": 1370321,
+     "path": "satsuma-web-console-current.zip"
+    }
+   ]
+  },
+  {
+   "name": "ManifestKey",
+   "reason": "The integrity (HMAC) key that was live on 2026-11-04, blacklisted at the owner's request because its origin could not be established (the pre-2.2 product's key could have been copied into it). Its digest is listed, not the key. Rotate the key before this list is installed, or ClamAV reports the live key. / 2026-11-04'te canlı olan bütünlük (HMAC) anahtarı; kaynağı belirlenemediği için (2.2 öncesi ürünün anahtarı ona kopyalanmış olabilir) sahibinin isteğiyle kara listeye alındı. Anahtarın kendisi değil özeti listelenir. Bu liste kurulmadan önce anahtar yenilenmeli; yoksa ClamAV canlı anahtarı bildirir.",
+   "entries": [
+    {
+     "sha256": "b19430a6ec25be32e4ca036d185416c6432a550d664fdd5c911ed030d05c551f",
+     "size": 32,
+     "path": "/etc/satsuma-core/trust/manifest.key"
+    }
+   ]
+  }
+ ]
+}

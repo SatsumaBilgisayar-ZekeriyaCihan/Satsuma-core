@@ -1,0 +1,121 @@
+- id: SATSUMA-DEV-001
+  name: Fiziksel bellek veya I/O aygıt erişimi gözlendi
+  severity: high
+  classification: indicator
+  confidence: low
+  category: device_access
+  mitre:
+    technique: T1014
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /dev/mem
+    - /dev/kmem
+    - /dev/port
+    operation:
+    - read
+    - write
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  - audit.operation
+  false_positives:
+  - Yetkili yedekleme, aygıt yönetimi, masaüstü giriş veya bakım işlemleri; erişim
+    tek başına saldırı değildir.
+  references:
+  - https://man7.org/linux/man-pages/man4/mem.4.html
+- id: SATSUMA-DEV-002
+  name: Girdi aygıtına erişim gözlendi
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: device_access
+  mitre:
+    technique: T1056.001
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /dev/input/event*
+    - /dev/uinput
+    operation:
+    - read
+    - write
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  - audit.operation
+  false_positives:
+  - Yetkili yedekleme, aygıt yönetimi, masaüstü giriş veya bakım işlemleri; erişim
+    tek başına saldırı değildir.
+  references:
+  - https://attack.mitre.org/techniques/T1056/001/
+- id: SATSUMA-DEV-003
+  name: Ham disk aygıtına yazma gözlendi
+  severity: high
+  classification: indicator
+  confidence: low
+  category: device_access
+  mitre:
+    technique: T1561.001
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /dev/sd[a-z]*
+    - /dev/nvme*n*
+    - /dev/mmcblk*
+    - /dev/vd[a-z]*
+    operation:
+    - write
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  - audit.operation
+  false_positives:
+  - Yetkili yedekleme, aygıt yönetimi, masaüstü giriş veya bakım işlemleri; erişim
+    tek başına saldırı değildir.
+  references:
+  - https://attack.mitre.org/techniques/T1561/001/
+- id: SATSUMA-DEV-004
+  name: Hassas aygıtta herkese açık erişim izni
+  severity: high
+  classification: indicator
+  confidence: low
+  category: device_permissions
+  base_match:
+    source: device_inventory
+    action: sensitive_device_world_access
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - device_inventory.lstat
+  false_positives:
+  - Yetkili laboratuvar veya özel aygıt politikası; erişim izni tek başına istismar
+    kanıtı değildir.
+  references:
+  - https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html

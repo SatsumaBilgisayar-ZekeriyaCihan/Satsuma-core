@@ -1,0 +1,25 @@
+[Unit]
+Description=Satsuma verified ClamAV on-access journal consumer (candidate)
+Requires=satsuma-image.service satsuma-clamonacc.service
+After=satsuma-image.service satsuma-clamonacc.service
+ConditionPathExists=/usr/bin/journalctl
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/satsuma-core
+Environment=PATH=/usr/sbin:/usr/bin
+ExecStart=/usr/bin/python3 -I -B /opt/satsuma-core/installer/onaccess_listener_entry.py
+Restart=on-failure
+RestartSec=10s
+UMask=0077
+LimitCORE=0
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/satsuma-core
+RestrictAddressFamilies=AF_UNIX
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH
+
+[Install]
+WantedBy=multi-user.target

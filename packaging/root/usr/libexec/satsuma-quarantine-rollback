@@ -1,0 +1,60 @@
+#!/bin/sh
+# Satsuma 2.2.15: put back a program taken into quarantine when the boot
+# after it did not complete. Plain sh and coreutils only, so it runs early,
+# before Satsuma's image is mounted.
+#
+#   boot     early in every boot: an entry seen by an earlier, unfinished
+#            boot is restored; otherwise the entry is marked as seen.
+#   confirm  some minutes after a boot reached a running state: entries
+#            marked as seen are confirmed (the file stays in quarantine).
+#
+# Satsuma 2.2.15: karantinaya alınan program, sonraki açılış tamamlanmazsa
+# yerine konur. Yalnızca sh ve coreutils kullanır; Satsuma imajı
+# bağlanmadan, açılışın başında çalışır.
+set -u
+# The variables exist for the test suite only; systemd never sets them.
+PENDING=${SATSUMA_QUARANTINE_PENDING:-/var/lib/satsuma-core/quarantine-pending}
+DONE=${SATSUMA_QUARANTINE_DONE:-/var/lib/satsuma-core/quarantine-rolled-back}
+mode=${1:-boot}
+[ -d "$PENDING" ] || exit 0
+
+if [ "$mode" = confirm ]; then
+  state=${SATSUMA_SYSTEM_STATE:-$(systemctl is-system-running 2>/dev/null || true)}
+  case $state in
+    running|degraded) ;;
+    *) echo "satsuma-quarantine: system is '$state'; nothing confirmed"; exit 0 ;;
+  esac
+fi
+
+for entry in "$PENDING"/*; do
+  [ -d "$entry" ] || continue
+  id=${entry##*/}
+  if [ "$mode" = confirm ]; then
+    if [ -e "$entry/boot_started" ]; then
+      rm -f -- "$entry"/original "$entry"/stored "$entry"/mode "$entry"/owner "$entry"/boot_started
+      rmdir -- "$entry" && echo "satsuma-quarantine: $id confirmed by a completed boot"
+    fi
+    continue
+  fi
+  if [ ! -e "$entry/boot_started" ]; then
+    : > "$entry/boot_started"
+    continue
+  fi
+  original=$(cat "$entry/original")
+  stored=$(cat "$entry/stored")
+  if [ -e "$original" ] || [ -L "$original" ]; then
+    echo "satsuma-quarantine: $original exists again; $id left in quarantine"
+    continue
+  fi
+  if mv -f -- "$stored" "$original"; then
+    chown "$(cat "$entry/owner")" -- "$original"
+    chmod "$(cat "$entry/mode")" -- "$original"
+    if command -v restorecon >/dev/null 2>&1; then restorecon -F -- "$original" || true; fi
+    mkdir -p -m 0700 "$DONE"
+    mv -- "$entry" "$DONE/$id"
+    echo "satsuma-quarantine: boot did not complete after quarantine; $original restored"
+  else
+    echo "satsuma-quarantine: could not restore $original from $stored"
+  fi
+done
+exit 0

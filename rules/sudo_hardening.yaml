@@ -1,0 +1,83 @@
+- id: SATSUMA-SUDO-HARD-001
+  name: Sudoers dosyasına yazma (içerik doğrulanmadı)
+  severity: high
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /etc/sudoers
+    - /etc/sudoers.d/*
+    operation: write
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: sudoers_nopasswd_write
+  mitre:
+    tactic: Privilege Escalation
+    technique: T1548.003
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - audit.file_path
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Yetkili sistem yöneticisinin planlı sudoers değişikliği.
+  schema_version: 1
+- id: SATSUMA-SUDO-HARD-002
+  name: Etkileşimsiz veya stdin kullanan sudo göstergesi
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - sudo -n
+    - sudo -S
+    - sudo --non-interactive
+    - sudo --stdin
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: noninteractive_sudo_autoblock
+  mitre:
+    tactic: Privilege Escalation
+    technique: T1548.003
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Otomasyon scriptleri (cron, CI) meşru olarak sudo -n kullanabilir.
+  schema_version: 1
+- id: SATSUMA-SUDO-HARD-003
+  name: Sudoers dosyası okunması (keşif)
+  severity: medium
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /etc/sudoers
+    - /etc/sudoers.d/*
+    operation: read
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  dedup_group: sudoers_read_recon
+  mitre:
+    tactic: Discovery
+    technique: T1087
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - audit.file_path
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Yetkili yönetici sudoers içeriğini inceliyor.
+  schema_version: 1

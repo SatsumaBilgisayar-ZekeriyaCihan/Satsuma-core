@@ -1,0 +1,26 @@
+[Unit]
+Description=Satsuma temporary-file ClamAV scan and automatic quarantine
+Requires=satsuma-image.service
+After=satsuma-image.service clamd@scan.service
+Wants=clamd@scan.service
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+Type=oneshot
+User=root
+WorkingDirectory=/opt/satsuma-core
+ExecStart=/usr/bin/python3 -I -B /opt/satsuma-core/main.py --temporary-scan
+TimeoutStartSec=3min
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=no
+PrivateDevices=no
+ReadWritePaths=/var/lib/satsuma-core /tmp /var/tmp /dev/shm
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE CAP_FOWNER CAP_CHOWN
+RestrictAddressFamilies=AF_UNIX
+Nice=10
+IOSchedulingClass=idle
+LimitCORE=0

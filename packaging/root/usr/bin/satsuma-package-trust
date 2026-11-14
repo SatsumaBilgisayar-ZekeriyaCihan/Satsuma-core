@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/package_trust_cli.py "$@"

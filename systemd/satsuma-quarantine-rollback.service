@@ -1,0 +1,17 @@
+[Unit]
+Description=Satsuma: restore a quarantined program if the previous boot did not complete
+DefaultDependencies=no
+After=local-fs.target
+Before=sysinit.target satsuma-image.service
+RequiresMountsFor=/var/lib/satsuma-core /usr
+ConditionDirectoryNotEmpty=/var/lib/satsuma-core/quarantine-pending
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/satsuma-quarantine-rollback boot
+
+[Install]
+WantedBy=sysinit.target

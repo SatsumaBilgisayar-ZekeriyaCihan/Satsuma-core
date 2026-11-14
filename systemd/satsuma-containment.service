@@ -1,0 +1,23 @@
+[Unit]
+StartLimitIntervalSec=300
+StartLimitBurst=3
+Requires=satsuma-image.service
+After=satsuma-image.service
+Description=Satsuma remote-server and network-share containment
+After=local-fs.target
+Before=satsuma-core.service
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+RestartPreventExitStatus=78
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/remote_containment.py --watch
+ExecStartPost=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/remote_containment.py --check
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=yes
+ProtectHome=read-only
+PrivateTmp=yes
+[Install]
+WantedBy=multi-user.target

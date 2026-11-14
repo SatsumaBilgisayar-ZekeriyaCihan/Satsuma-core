@@ -1,0 +1,11 @@
+[Unit]
+Description=Satsuma man-in-the-middle watch every minute
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=5s
+Unit=satsuma-mitm-watch.service
+
+[Install]
+WantedBy=timers.target

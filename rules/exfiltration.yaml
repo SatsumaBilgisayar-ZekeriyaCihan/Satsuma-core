@@ -1,0 +1,438 @@
+# Regex patterns are written as ^(?>.*?A).*B instead of A.*B (audit K1):
+# the engine matches them on single-line text, so only the first A is tried
+# and matching stays linear on any command line. Same matches, no stall.
+# Düzenli ifadeler A.*B yerine ^(?>.*?A).*B biçiminde yazılır (denetim K1):
+# motor tek satıra indirilmiş metinde eşler, yalnızca ilk A denenir ve
+# eşleme her komut satırında doğrusal kalır. Eşleşmeler aynı, kilitlenme yok.
+- id: SATSUMA-EXFIL-001
+  name: DNS exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - dig +short
+    - nslookup -type=TXT
+    - host -t TXT
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-002
+  name: HTTP POST exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - curl -X POST -d @
+    - curl --data-binary @
+    - wget --post-file
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-003
+  name: FTP exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - ftp -u
+    - ftp -p
+    - lftp -e
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-004
+  name: SCP exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - scp /etc
+    - scp /home
+    - scp /root
+    - scp /var
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-005
+  name: Rsync exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - rsync -av /etc
+    - rsync -av /home
+    - rsync -av /root
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-006
+  name: Netcat exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - nc -w
+    - ncat -w
+    - < /etc
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-007
+  name: ICMP exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - ping -p
+    - hping3 -E
+    - icmpsh
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-008
+  name: Base64 exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - base64 /etc
+    - base64 /home
+    - base64 /root
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-009
+  name: Arşivleme ve aktarım komut zinciri göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_regex_cs:
+    - ^(?>.*?\btar\b).+\|\s*(?:curl|nc|wget)\b
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-010
+  name: SSH tunnel exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - ssh -R
+    - ssh -L
+    - ssh -D
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-011
+  name: Socat exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - socat - TCP
+    - socat FILE
+    - socat OPEN
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-012
+  name: Tor exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - torsocks
+    - torify
+    - proxychains
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-013
+  name: WebDAV exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - cadaver
+    - davfs2
+    - mount -t davfs
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-014
+  name: SMB/CIFS aktarım göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - smbclient
+    - mount -t cifs
+    - smbmap
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  dedup_group: smb_activity
+- id: SATSUMA-EXFIL-015
+  name: NFS exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - mount -t nfs
+    - showmount -e
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-016
+  name: Git exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - git clone
+    - git push
+    - git remote add
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-017
+  name: Docker exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - docker save
+    - docker export
+    - docker cp
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-018
+  name: Kubernetes exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - kubectl cp
+    - kubectl exec
+    - kubectl get secret
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-019
+  name: Email exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - sendmail
+    - mail -s
+    - mutt -s
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXFIL-020
+  name: Pastebin exfiltration — faaliyet göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - pastebinit
+    - curl pastebin.com
+    - curl hastebin.com
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.

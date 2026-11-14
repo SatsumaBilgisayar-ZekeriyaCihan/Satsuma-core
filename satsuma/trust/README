@@ -1,0 +1,4 @@
+Pinned Fedora signing keys for satsuma/signed_verify.py, added only after
+their fingerprints are checked against fedoraproject.org/security.
+satsuma/signed_verify.py için sabitlenmiş Fedora imza anahtarları; parmak
+izleri fedoraproject.org/security ile doğrulandıktan sonra eklenir.

@@ -1,0 +1,5 @@
+#!/bin/bash
+# Satsuma kurulum sihirbazı: araçlar, kullanıcı ve parola, modem, OTX, çekirdek profili, tam kontrol.
+set -euo pipefail
+if [[ $EUID != 0 ]]; then echo 'Kullanım: sudo satsuma-kur'; exit 2; fi
+exec /usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/kurulum.py

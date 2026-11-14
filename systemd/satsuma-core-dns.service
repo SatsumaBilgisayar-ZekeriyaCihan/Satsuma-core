@@ -1,0 +1,30 @@
+[Unit]
+StartLimitIntervalSec=300
+StartLimitBurst=3
+Requires=satsuma-image.service
+After=satsuma-image.service
+Description=Satsuma dnsmasq domain filter
+After=network.target
+ConditionPathExists=/etc/satsuma-core/dns/dnsmasq.conf
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+RestartPreventExitStatus=78
+Type=simple
+User=satsuma-dns
+Group=satsuma-dns
+ExecStartPre=+/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/dns_preflight.py
+ExecStart=/usr/sbin/dnsmasq --keep-in-foreground --conf-file=/etc/satsuma-core/dns/dnsmasq.conf --pid-file=
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

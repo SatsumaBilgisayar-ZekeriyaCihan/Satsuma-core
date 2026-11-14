@@ -1,0 +1,14 @@
+{
+  "malware": {
+    "source": "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/tif.mini-onlydomains.txt",
+    "count": 211791,
+    "sha256": "cb8733978b6c38ed830a4a46750449564cfc2da7d1bf86a2ff9369c08d0cf2b4",
+    "updated_at": 1792722321.1776707
+  },
+  "ransomware": {
+    "source": "https://raw.githubusercontent.com/blocklistproject/Lists/master/alt-version/ransomware-nl.txt",
+    "count": 1904,
+    "sha256": "6de3fb46da3bba95f8d7eb4149ea7ceeeb06891b7b7035fe74fc24e716aa2a48",
+    "updated_at": 1792722321.2019467
+  }
+}

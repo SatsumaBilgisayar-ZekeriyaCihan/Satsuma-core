@@ -1,0 +1,235 @@
+- id: SATSUMA-BPF-CLI-001
+  name: BPF utility invocation
+  classification: indicator
+  severity: low
+  confidence: low
+  dedup_group: bpf_cli
+  base_match:
+    source: sys_proc
+    cmd_regex_cs: ^(?:/\S*/)?(?:bpftool|bpftrace)(?:\s|$)
+  actions:
+  - record
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: UNKNOWN/UNVERIFIED
+  false_positives:
+  - Authorized administration, development, observability or CNI maintenance. No path/name-only
+    allowlist.
+  schema_version: 1
+- id: SATSUMA-BPF-CLI-002
+  name: BPF program load/attach attempt
+  classification: suspicious
+  severity: high
+  confidence: medium
+  dedup_group: bpf_cli
+  base_match:
+    source: sys_proc
+    cmd_regex_cs: ^(?:/\S*/)?bpftool\s+(?:-[\w-]+\s+)*(?:prog\s+(?:loadall|load|attach)|struct_ops\s+register|iter\s+pin)(?:\s|$)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - bpf_inventory
+  - bpffs_inventory
+  - correlation_request
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: UNKNOWN/UNVERIFIED
+  false_positives:
+  - Authorized administration, development, observability or CNI maintenance. No path/name-only
+    allowlist.
+  schema_version: 1
+- id: SATSUMA-BPF-CLI-003
+  name: BPF map creation/update or object pin attempt
+  classification: suspicious
+  severity: high
+  confidence: medium
+  dedup_group: bpf_cli
+  base_match:
+    source: sys_proc
+    cmd_regex_cs: ^(?:/\S*/)?bpftool\s+(?:-[\w-]+\s+)*(?:map\s+(?:create|update|pin)|prog\s+pin|link\s+pin)(?:\s|$)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - bpf_inventory
+  - bpffs_inventory
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: UNKNOWN/UNVERIFIED
+  false_positives:
+  - Authorized administration, development, observability or CNI maintenance. No path/name-only
+    allowlist.
+  schema_version: 1
+- id: SATSUMA-BPF-CLI-004
+  name: BPF detach or map delete attempt
+  classification: suspicious
+  severity: high
+  confidence: medium
+  dedup_group: bpf_cli
+  base_match:
+    source: sys_proc
+    cmd_regex_cs: ^(?:/\S*/)?bpftool\s+(?:-[\w-]+\s+)*(?:prog\s+detach|map\s+delete|link\s+detach|cgroup\s+detach|net\s+detach)(?:\s|$)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: DEFENSE_TAMPERING
+  false_positives:
+  - Authorized administration, development, observability or CNI maintenance. No path/name-only
+    allowlist.
+  schema_version: 1
+- id: SATSUMA-BPF-CLI-005
+  name: bpftrace sensitive hook expression
+  classification: suspicious
+  severity: high
+  confidence: medium
+  dedup_group: bpf_cli
+  base_match:
+    source: sys_proc
+    cmd_regex_cs: ^(?:/\S*/)?bpftrace\s+(?!-l(?:\s|$))[^\n]*(?:kprobe|kretprobe|tracepoint|uprobe|uretprobe):[^\n]*(?:getdents(?:64)?|pam_get_authtok|pam_get_user|execve)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Authorized administration, development, observability or CNI maintenance. No path/name-only
+    allowlist.
+  schema_version: 1
+- id: SATSUMA-BPF-CLI-006
+  name: TC BPF filter change attempt
+  classification: suspicious
+  severity: high
+  confidence: medium
+  dedup_group: SATSUMA-BPF-CLI-006
+  base_match:
+    source: sys_proc
+    cmd_regex_cs: ^(?:/\S*/)?tc\s+(?:-[\w-]+\s+)*filter\s+(?:add|replace|change)\s+[^\n]*\bbpf(?:\s|$)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - network_inventory
+  - bpf_inventory
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: UNKNOWN/UNVERIFIED
+  false_positives:
+  - Authorized administration, development, observability or CNI maintenance. No path/name-only
+    allowlist.
+  schema_version: 1
+- id: SATSUMA-BPF-CLI-007
+  name: XDP attachment/removal attempt
+  classification: suspicious
+  severity: high
+  confidence: medium
+  dedup_group: SATSUMA-BPF-CLI-007
+  base_match:
+    source: sys_proc
+    cmd_regex_cs: ^(?:/\S*/)?ip\s+(?:-[\w-]+\s+)*link\s+set\s+[^\n]*\bxdp(?:drv|generic|offload)?\s+(?:obj|object|pinned|off)(?:\s|$)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - network_inventory
+  - bpf_inventory
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: UNKNOWN/UNVERIFIED
+  false_positives:
+  - Authorized administration, development, observability or CNI maintenance. No path/name-only
+    allowlist.
+  schema_version: 1
+- id: SATSUMA-LINUX-CLI-001
+  name: Explicit LD_PRELOAD command-line indicator
+  classification: indicator
+  severity: medium
+  confidence: low
+  dedup_group: ld_preload_env
+  base_match:
+    source: sys_proc
+    cmd_regex_cs: ^(?:/\S*/)?env\s+(?:-\S+\s+)*LD_PRELOAD=\S+
+  actions:
+  - record
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: UNKNOWN/UNVERIFIED
+  false_positives:
+  - Authorized administration, development, observability or CNI maintenance. No path/name-only
+    allowlist.
+  schema_version: 1
+- id: SATSUMA-LINUX-CLI-002
+  name: System preload file read
+  classification: indicator
+  severity: low
+  confidence: low
+  dedup_group: ld_preload_read
+  base_match:
+    source: sys_proc
+    cmd_regex_cs: ^(?:/\S*/)?(?:cat|head|tail|grep)\s+[^\n]*?(?<!\S)/etc/ld\.so\.preload(?:\s|$)
+  actions:
+  - record
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: UNKNOWN/UNVERIFIED
+  false_positives:
+  - Authorized administration, development, observability or CNI maintenance. No path/name-only
+    allowlist.
+  schema_version: 1
+- id: SATSUMA-LINUX-CLI-003
+  name: System preload file write via tee
+  classification: suspicious
+  severity: high
+  confidence: medium
+  dedup_group: ld_preload_write
+  base_match:
+    source: sys_proc
+    cmd_regex_cs: ^(?:/\S*/)?tee\s+(?:-a\s+)?/etc/ld\.so\.preload(?:\s|$)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: UNKNOWN/UNVERIFIED
+  false_positives:
+  - Authorized administration, development, observability or CNI maintenance. No path/name-only
+    allowlist.
+  schema_version: 1
+- id: SATSUMA-LINUX-CLI-004
+  name: Interpreter shell execution indicator
+  classification: indicator
+  severity: medium
+  confidence: low
+  dedup_group: interpreter_shell
+  base_match:
+    source: sys_proc
+    cmd_regex_cs: ^(?:/\S*/)?(?:find\s+[^\n]*-exec\s+/bin/(?:sh|bash)(?:\s|$)|(?:python[23]?(?:\.\d+)?|perl|awk)\s+[^\n]*(?:os\.system\(|system\(|exec\s+[\x27\x22]?/bin/(?:sh|bash)))
+  actions:
+  - record
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: UNKNOWN/UNVERIFIED
+  false_positives:
+  - Authorized administration, development, observability or CNI maintenance. No path/name-only
+    allowlist.
+  schema_version: 1

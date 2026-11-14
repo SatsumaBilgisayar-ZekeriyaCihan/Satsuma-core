@@ -1,0 +1,29 @@
+[Unit]
+Description=Satsuma early device and shared-memory execution restrictions
+DefaultDependencies=no
+After=local-fs.target
+# systemd-sysctl reapplies distribution defaults (50-coredump.conf, Yama scope);
+# running before it lets those defaults overwrite the hardened values.
+After=systemd-sysctl.service
+Before=network-pre.target satsuma-early-guard.service satsuma-core.service satsuma-teams.service
+Before=systemd-coredump.socket
+RequiresMountsFor=/dev /dev/shm /opt/satsuma-core
+Requires=satsuma-image.service
+After=satsuma-image.service
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+Type=oneshot
+RemainAfterExit=yes
+User=root
+WorkingDirectory=/opt/satsuma-core
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/boot_setup.py --harden-memory
+# 2.2.9: IPv6 off on every interface (satsuma.ipv6_off).
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/boot_setup.py --ipv6-off
+NoNewPrivileges=yes
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_SYS_PTRACE CAP_SYSLOG
+TimeoutStartSec=45
+
+[Install]
+WantedBy=sysinit.target

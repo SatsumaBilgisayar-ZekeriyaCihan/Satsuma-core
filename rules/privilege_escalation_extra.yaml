@@ -1,0 +1,457 @@
+- id: SATSUMA-PRIV-009
+  name: SUID binary kesfi
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - find / -perm -4000
+    - find / -perm -u=s
+    - find / -type f -perm -04000
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+  dedup_group: suid_discovery
+- id: SATSUMA-PRIV-010
+  name: SGID binary kesfi
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - find / -perm -2000
+    - find / -perm -g=s
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+  dedup_group: sgid_discovery
+- id: SATSUMA-PRIV-011
+  name: SUID shell
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - /bin/sh -p
+    - /bin/bash -p
+    - sh -p
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: suid_shell
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-012
+  name: Polkit exploit
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - pkexec /tmp/
+    - pkexec /dev/shm/
+    - pkttyagent /tmp/
+    - pkttyagent /dev/shm/
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: pkexec_suspicious
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-013
+  name: Sudo exploit
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - sudo -u#-1
+    - sudo -u#4294967295
+    - sudoedit -s
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: sudoedit_suspicious
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-014
+  name: Sudo chroot kullanımı göstergesi
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - sudo -R
+    - sudo --chroot
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: sudo_chroot
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-015
+  name: Capabilities exploit
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - getcap -r
+    - setcap
+    - capsh
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+  dedup_group: capability_tools
+- id: SATSUMA-PRIV-016
+  name: Kernel exploit
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - dirtypipe
+    - dirty_pipe
+    - dirtycow
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-017
+  name: Kernel module yukleme
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - insmod
+    - modprobe
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+  dedup_group: kernel_module_admin
+- id: SATSUMA-PRIV-018
+  name: Exploit derleme
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - gcc -o exploit
+    - gcc -o root
+    - cc -o exploit
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: exploit_compile
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-019
+  name: Exploit indirme
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex_cs:
+    - ^(?:curl|wget)\b.*https?://\S*(?:exploit|cve)\S*
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: exploit_download
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-020
+  name: LinEnum
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - LinEnum.sh
+    - linenum
+    - linuxprivchecker
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: linpeas_linenum
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-021
+  name: LinPEAS
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - linpeas.sh
+    - linpeas
+    - linux-exploit-suggester
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: linpeas_linenum
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-022
+  name: WinPEAS
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - winpeas
+    - winPEAS
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-023
+  name: PSPY
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - pspy
+    - pspy64
+    - pspy32
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-024
+  name: Etkileşimsiz veya stdin kullanan sudo göstergesi
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - sudo -n
+    - sudo -S
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+  dedup_group: noninteractive_sudo
+- id: SATSUMA-PRIV-025
+  name: Sudoers degistirme
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /etc/sudoers
+    - /etc/sudoers.d/*
+    operation: write
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: sudoers_write
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-026
+  name: Passwd degistirme
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /etc/passwd
+    operation: write
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-027
+  name: Shadow degistirme
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /etc/shadow
+    operation: write
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-028
+  name: Root shell yönetim komutu
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - sudo su -
+    - sudo -i
+    - sudo bash
+    - sudo sh
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+  dedup_group: root_shell_admin
+- id: SATSUMA-PRIV-029
+  name: Docker escape
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - docker run --privileged
+    - docker exec -u 0
+    - docker run -v /:/host
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: container_escape
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PRIV-030
+  name: Namespace giriş göstergesi
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - nsenter
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: container_escape
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.

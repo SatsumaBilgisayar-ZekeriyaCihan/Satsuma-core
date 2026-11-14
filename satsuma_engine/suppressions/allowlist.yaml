@@ -1,0 +1,6 @@
+schema: satsuma/v1
+version: 1
+defaults:
+  created_by: system-administrator
+  max_suppressed: 200
+suppressions: []

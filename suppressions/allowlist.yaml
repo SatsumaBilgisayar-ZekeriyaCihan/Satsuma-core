@@ -1,0 +1,29 @@
+schema: satsuma/v1
+version: 1
+
+defaults:
+  created_by: "soc@ornek.local"
+  max_suppressed: 200
+
+suppressions:
+  - id: SUP-ADMIN-SCAN
+    reason: "Yetkili aylık ağ taraması (kırmızı takım penceresi)."
+    ticket: SEC-1042
+    rule_ids: ["SATSUMA-DISC-002"]
+    hosts: ["vm-lab-02"]
+    expires_at: null
+
+  - id: SUP-LAB-SHADOW
+    reason: "Laboratuvar makinesinde yetki yükseltme testi; gölge dosya okuması beklenen davranış."
+    ticket: SEC-1051
+    rule_ids: ["SATSUMA-CRED-001"]
+    hosts: ["srv-web-01"]
+    severity_at_most: high
+    expires_in_seconds: 604800
+
+  - id: SUP-MAINT-CRON
+    reason: "Yama penceresi sırasında cron dosyası güncellemesi (süresi dolmuş örnek kayıt)."
+    ticket: SEC-0988
+    rule_ids: ["SATSUMA-PERS-001"]
+    hosts: ["patch-mgmt-01"]
+    expires_at: "2026-10-01T00:00:00Z"

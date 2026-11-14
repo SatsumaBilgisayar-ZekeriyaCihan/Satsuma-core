@@ -1,0 +1,24 @@
+[Unit]
+Requires=satsuma-image.service
+After=satsuma-image.service
+Description=Satsuma default-drop DNS/HTTPS firewall with IPS
+DefaultDependencies=no
+After=local-fs.target
+# 2.2.16-2: nftables.service (90-satsuma.conf) loads the same table at boot when
+# it is absent. Without this order both saw "absent", the rules were written
+# twice, readback failed and the emergency lockdown cut the network.
+After=nftables.service
+Before=satsuma-suricata-ips.service network-pre.target satsuma-core.service satsuma-teams.service
+Wants=network-pre.target satsuma-suricata-ips.service
+RequiresMountsFor=/opt/satsuma-core /etc/satsuma-core
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/network_setup.py
+TimeoutStartSec=45
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,9 @@
+[Unit]
+Description=Vet early boot one minute after boot and every six hours
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=6h
+
+[Install]
+WantedBy=timers.target

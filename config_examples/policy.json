@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "revision": 1,
+  "workers": {
+    "suricata_collector": {
+      "enabled": true,
+      "eve_path": "/var/log/suricata/eve.json",
+      "writer_uid": "managed_suricata"
+    },
+    "dns_monitor": {
+      "enabled": true,
+      "expected_servers": [],
+      "watch_domains": [],
+      "actions": []
+    },
+    "response": {
+      "enabled": true,
+      "nft": {
+        "family": "inet",
+        "table": "satsuma_core",
+        "ipv4_set": "blocked_ips",
+        "ipv6_set": "blocked_ips_v6"
+      },
+      "destructive": {
+        "enabled": true,
+        "allowed_actions": [
+          "network_isolate",
+          "process_kill"
+        ],
+        "sudo_autoblock_enabled": false
+      }
+    },
+    "otx": {
+      "enabled": true,
+      "blocker_mode": true,
+      "pulse_threshold": 11,
+      "recent_pulse_days": 14,
+      "require_tls": true
+    },
+    "audit": {
+      "enabled": true,
+      "log_path": "/var/log/audit/audit.log"
+    },
+    "finding": {
+      "enabled": true,
+      "correlation_window_seconds": 604800,
+      "audit_candidate_limit": 20
+    },
+    "evidence": {
+      "enabled": true,
+      "archive_budget_bytes": 1073741824
+    }
+  },
+  "correlation": {
+    "frequency_window_seconds": 300
+  },
+  "scheduled_scans": {
+    "enabled": true,
+    "interval_seconds": 3600,
+    "order": [
+      "clamav",
+      "rkhunter",
+      "chkrootkit"
+    ],
+    "overlap": false,
+    "automatic_quarantine": false
+  },
+  "features": {
+    "deepseek_model": "deepseek-chat",
+    "rule_adapter_enabled": true,
+    "otx_match_mode": "threshold",
+    "rule_adapter_require_review": true,
+    "hagezi_enabled": true,
+    "lan_access_enabled": true,
+    "dns_filter_enabled": true,
+    "deepseek_timeout": 30,
+    "deepseek_requests_per_hour": 60,
+    "network_discovery_enabled": true,
+    "app_control_enabled": true,
+    "investigation_enabled": true,
+    "rule_adapter_output_dir": "/var/lib/satsuma-core/generated_rules",
+    "deepseek_enabled": true,
+    "deepseek_endpoint": "https://api.deepseek.com/v1/chat/completions",
+    "subnet_protection_enabled": true,
+    "dns_threat_lists_enabled": true
+  }
+}

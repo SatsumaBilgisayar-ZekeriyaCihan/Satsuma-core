@@ -1,0 +1,9 @@
+#!/usr/bin/python3 -I
+import json,sys
+sys.path.insert(0,'/opt/satsuma-core')
+from satsuma.app_firewall import control
+if len(sys.argv)!=2 or sys.argv[1] not in ('status','enable','disable'):
+    raise SystemExit('Usage: satsuma-app-control status|enable|disable')
+import os
+if os.geteuid()!=0:raise SystemExit('Root required')
+print(json.dumps(control(sys.argv[1])))

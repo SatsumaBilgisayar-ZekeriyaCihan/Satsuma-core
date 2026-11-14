@@ -1,0 +1,20 @@
+[Unit]
+Description=Verify and mount the Satsuma SquashFS application image
+DefaultDependencies=no
+After=local-fs.target
+Before=satsuma-early-guard.service
+Before=satsuma-core.service satsuma-teams.service satsuma-reader.service satsuma-operator.service satsuma-app-control.service satsuma-suricata-ips.service
+RequiresMountsFor=/var/lib/satsuma-core/images /usr/libexec
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/python3 -I -B /usr/libexec/satsuma-image mount
+ExecStop=/usr/bin/python3 -I -B /usr/libexec/satsuma-image unmount
+TimeoutStartSec=120
+TimeoutStopSec=60
+
+[Install]
+WantedBy=sysinit.target

@@ -1,0 +1,23 @@
+{
+  "mode": "block",
+  "fast_log": "/var/log/suricata/fast.log",
+  "eve_json": "/var/log/suricata/eve.json",
+  "input": "fast",
+  "start_at_end": true,
+  "max_priority": 3,
+  "fast_block": true,
+  "otx_enabled": false,
+  "otx_api_key_file": "/etc/satsuma-core/otx-api.key",
+  "otx_min_pulses": 2,
+  "otx_min_reputation": 1,
+  "otx_match_mode": "threshold",
+  "otx_cache_hours": 24,
+  "otx_max_checks_hour": 120,
+  "subnet_enabled": true,
+  "subnet_prefix": 24,
+  "subnet_threshold": 10,
+  "conntrack_poll_seconds": 20,
+  "protected_cidrs": [],
+  "trusted_cidrs": [],
+  "state_dir": "/var/lib/satsuma-core/suricata-otx-guard"
+}

@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://satsuma.local/schemas/event.schema.json",
+  "title": "Satsuma Input Event",
+  "description": "JSONL olay girdisi. Zarf (`event` bloğu) tek zorunlu kısımdır; alanlar esnektir çünkü kurtarılan toplayıcı çıktıları farklı adlandırmalar kullanabilir.",
+  "type": "object",
+  "required": [
+    "event"
+  ],
+  "properties": {
+    "id": {
+      "type": [
+        "string",
+        "integer"
+      ]
+    },
+    "raw_id": {
+      "type": [
+        "string",
+        "integer",
+        "null"
+      ]
+    },
+    "source": {
+      "type": [
+        "string",
+        "object"
+      ]
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "timestamp"
+      ],
+      "properties": {
+        "timestamp": {
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        "host": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "additionalProperties": true
+            }
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "object"
+          ]
+        },
+        "kind": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "user": {
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        "uid": {
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        "pid": {
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        "ppid": {
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        "cmd": {
+          "type": "string"
+        },
+        "parent_cmd": {
+          "type": "string"
+        },
+        "exe": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "file_path": {
+          "type": "string"
+        },
+        "operation": {
+          "type": "string"
+        },
+        "src_ip": {
+          "type": "string"
+        },
+        "dest_ip": {
+          "type": "string"
+        },
+        "src_port": {
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        "dest_port": {
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        "proto": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string"
+        },
+        "event_id": {
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        "memory": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "region_perms": {
+              "type": "string"
+            },
+            "operation": {
+              "type": "string"
+            },
+            "mapping_type": {
+              "type": "string"
+            },
+            "target_pid": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          }
+        },
+        "identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "container_id": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "raw": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,29 @@
+[Unit]
+StartLimitIntervalSec=300
+StartLimitBurst=3
+Requires=satsuma-image.service
+After=satsuma-image.service
+Description=Satsuma network protection guard: Suricata alerts, subnet limit and PTR rule (OTX optional)
+After=network-online.target nftables.service satsuma-suricata-ips.service satsuma-early-guard.service
+Requires=satsuma-suricata-ips.service satsuma-early-guard.service
+Wants=network-online.target
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+RestartPreventExitStatus=78
+Type=simple
+User=root
+Group=root
+UMask=0077
+ExecStartPre=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/integrations/satsuma_guard.py --config /etc/satsuma-core/suricata-otx-guard.json check
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/integrations/satsuma_guard.py --config /etc/satsuma-core/suricata-otx-guard.json run
+Restart=on-failure
+RestartSec=8
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

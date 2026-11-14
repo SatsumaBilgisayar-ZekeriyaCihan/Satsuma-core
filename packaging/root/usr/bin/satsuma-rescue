@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# OMNI-SENTINEL rescue, derived from the supplied V51 script.
+# Independent of the dashboard, Core Store and application response lock.
+set -euo pipefail
+umask 077
+exec /usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/integrations/omni_sentinel_rescue.py

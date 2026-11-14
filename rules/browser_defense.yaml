@@ -1,0 +1,20 @@
+- id: SATSUMA-BROWSER-001
+  name: Tarayıcı alt sürecinden indirilen kodun kabuğa aktarılması
+  severity: high
+  classification: suspicious
+  confidence: high
+  category: browser
+  base_match:
+    source: sys_proc
+    action: browser_dangerous_child
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.action
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Kullanıcının tarayıcıdan başlattığı indirme-kurulum kabukları; bu dar davranış için engelleme politikası uygulanır.

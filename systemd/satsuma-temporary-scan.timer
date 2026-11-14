@@ -1,0 +1,11 @@
+[Unit]
+Description=Satsuma temporary-file scan every ten minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+AccuracySec=15s
+Unit=satsuma-temporary-scan.service
+
+[Install]
+WantedBy=timers.target

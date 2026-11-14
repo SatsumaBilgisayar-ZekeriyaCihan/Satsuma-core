@@ -1,0 +1,39 @@
+[Unit]
+StartLimitIntervalSec=300
+StartLimitBurst=3
+Requires=satsuma-image.service
+After=satsuma-image.service
+Description=Satsuma Core teams
+After=network.target satsuma-network.service satsuma-early-guard.service satsuma-deep-engine.service
+Wants=satsuma-early-guard.service
+Wants=satsuma-network.service
+Wants=satsuma-deep-engine.service
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+RestartPreventExitStatus=78
+Type=simple
+User=root
+Group=root
+SupplementaryGroups=satsuma-core
+WorkingDirectory=/opt/satsuma-core
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/run_satsuma_teams.py
+Restart=on-failure
+RestartSec=5
+UMask=0077
+LimitCORE=0
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/satsuma-core
+# Event flow socket (2.2.32): collectors send events here instead of the database.
+RuntimeDirectory=satsuma-flow
+RuntimeDirectoryMode=0770
+PrivateDevices=true
+# Writable private temporary storage for bounded journal stderr capture.
+PrivateTmp=true
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_DAC_READ_SEARCH CAP_SYSLOG CAP_SYS_PTRACE CAP_KILL
+AmbientCapabilities=CAP_NET_ADMIN CAP_DAC_READ_SEARCH CAP_SYSLOG CAP_SYS_PTRACE CAP_KILL
+[Install]
+WantedBy=multi-user.target

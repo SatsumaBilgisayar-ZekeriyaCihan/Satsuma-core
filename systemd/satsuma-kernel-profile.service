@@ -1,0 +1,30 @@
+[Unit]
+Description=Satsuma strictest kernel profile: put the boot command line back on every installed kernel
+# Started by satsuma-kernel-guard when a boot entry lost a profile word (a new
+# kernel package, an edited entry). Only satsuma.kernel_profile.CMDLINE is
+# ever added; nothing is read from a file.
+# Çekirdek bekçisi, bir açılış girdisi profil sözcüğünü kaybedince başlatır.
+Requires=satsuma-image.service
+After=satsuma-image.service local-fs.target
+RequiresMountsFor=/opt/satsuma-core /boot
+
+[Service]
+Environment=PATH=/usr/sbin:/usr/bin
+Environment=PYTHONDONTWRITEBYTECODE=1
+Type=oneshot
+User=root
+WorkingDirectory=/opt/satsuma-core
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -E -s -B -m satsuma.kernel_profile --apply-boot
+UMask=0077
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+ProtectSystem=strict
+# grubby updates the BLS entries and, with --update-kernel=ALL, the default command line.
+ReadWritePaths=/boot /var/lib/satsuma-core/kernel-guard /etc/default -/etc/kernel
+CapabilityBoundingSet=CAP_DAC_OVERRIDE CAP_CHOWN CAP_FOWNER
+RestrictAddressFamilies=AF_UNIX
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictNamespaces=yes
+TimeoutStartSec=120

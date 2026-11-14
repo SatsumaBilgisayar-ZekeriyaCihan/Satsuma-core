@@ -1,0 +1,376 @@
+# Regex patterns are written as ^(?>.*?A).*B instead of A.*B (audit K1):
+# the engine matches them on single-line text, so only the first A is tried
+# and matching stays linear on any command line. Same matches, no stall.
+# Düzenli ifadeler A.*B yerine ^(?>.*?A).*B biçiminde yazılır (denetim K1):
+# motor tek satıra indirilmiş metinde eşler, yalnızca ilk A denenir ve
+# eşleme her komut satırında doğrusal kalır. Eşleşmeler aynı, kilitlenme yok.
+- id: SATSUMA-EXEC-001
+  name: Ters shell (bash)
+  mitre:
+    tactic: Execution
+    technique: T1059.004
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?\bbash\b)(?>.*?-i).*(?:/dev/tcp/|/dev/udp/)
+    - ^(?>.*?\bbash\b)(?>.*?(?:/dev/tcp/|/dev/udp/)).*0>&1
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: reverse_shell
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXEC-002
+  name: Ters shell (python) — faaliyet göstergesi
+  mitre:
+    tactic: Execution
+    technique: T1059.006
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - python -c 'import socket
+    - python3 -c 'import socket
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  dedup_group: reverse_shell
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXEC-003
+  name: Ters shell (perl) — faaliyet göstergesi
+  mitre:
+    tactic: Execution
+    technique: T1059
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - perl -e 'use Socket
+    - perl -MIO::Socket
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  dedup_group: reverse_shell
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXEC-004
+  name: Ters shell (ruby) — faaliyet göstergesi
+  mitre:
+    tactic: Execution
+    technique: T1059
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - ruby -rsocket -e
+    - ruby -e 'require
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  dedup_group: reverse_shell
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXEC-005
+  name: Ters shell (php) — faaliyet göstergesi
+  mitre:
+    tactic: Execution
+    technique: T1059
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - php -r '$sock
+    - php -r 'fsockopen
+    - php -r fsockopen();
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  dedup_group: reverse_shell
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXEC-006
+  name: Shell çalıştıran socat tüneli — faaliyet göstergesi
+  mitre:
+    tactic: Execution
+    technique: T1059
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\bsocat\b).*(?:EXEC|SYSTEM):'
+    - ^(?>.*?\bsocat\b)(?>.*?(?:/bin/(?:ba)?sh|/usr/bin/(?:ba)?sh)).*TCP
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  dedup_group: reverse_shell
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXEC-007
+  name: Ters shell (nc)
+  mitre:
+    tactic: Execution
+    technique: T1059
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - nc -e /bin/bash
+    - nc -e /bin/sh
+    - ncat -e
+    - nc -c bash
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: reverse_shell
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXEC-008
+  name: Base64 decode + exec
+  mitre:
+    tactic: Defense Evasion
+    technique: T1140
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - base64 -d | bash
+    - base64 -d | sh
+    - base64 -d | python
+    - echo | base64 -d | bash
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXEC-009
+  name: Curl pipe bash
+  mitre:
+    tactic: Command and Control
+    technique: T1105
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?\bcurl\b).+\|\s*(?:ba)?sh\b
+    - ^(?>.*?\bwget\b).+\|\s*(?:ba)?sh\b
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXEC-010
+  name: Eval kullanimi — faaliyet göstergesi
+  mitre:
+    tactic: Execution
+    technique: T1059
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - 'eval '
+    - bash -c 'eval
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXEC-011
+  name: Xterm ters shell — faaliyet göstergesi
+  mitre:
+    tactic: Execution
+    technique: T1059
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - xterm -display
+    - xterm -e /bin/bash
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXEC-012
+  name: Awk ters shell
+  mitre:
+    tactic: Execution
+    technique: T1059
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?\bawk\b).*?/inet/(?:tcp|udp)/
+    - ^(?>.*?\bawk\b)(?>.*?\|&).*getline
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXEC-013
+  name: Telnet ters shell
+  mitre:
+    tactic: Execution
+    technique: T1059
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?\btelnet\b).+\|\s*/?(?:usr/)?bin/(?:ba)?sh\b
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXEC-014
+  name: Nmap script engine — faaliyet göstergesi
+  mitre:
+    tactic: Execution
+    technique: T1059
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - nmap --script
+    - nmap -sC
+    - nmap --script=vuln
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-EXEC-015
+  name: Metasploit — faaliyet göstergesi
+  mitre:
+    tactic: Execution
+    technique: T1059
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - msfconsole
+    - msfvenom
+    - meterpreter
+  actions:
+  - log_only
+  classification: indicator
+  confidence: low

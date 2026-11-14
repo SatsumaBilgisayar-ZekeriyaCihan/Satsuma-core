@@ -1,0 +1,4776 @@
+# PROPOSALS ONLY; not loaded from satsuma_engine/rules. All enabled=false, log_only.
+- schema: satsuma/v1
+  id: SATSUMA-BPF-CLI-001
+  title: BPF utility invocation
+  severity: low
+  classification: indicator
+  confidence: low
+  category: bpf-linux-current
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    regex: ^(?:/\S*/)?(?:bpftool|bpftrace)(?:\s|$)
+  actions:
+  - log_only
+  metadata:
+    origin_file: bpf_linux_current.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: bpf_cli
+- schema: satsuma/v1
+  id: SATSUMA-BPF-CLI-002
+  title: BPF program load/attach attempt
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: bpf-linux-current
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    regex: ^(?:/\S*/)?bpftool\s+(?:-[\w-]+\s+)*(?:prog\s+(?:loadall|load|attach)|struct_ops\s+register|iter\s+pin)(?:\s|$)
+  actions:
+  - log_only
+  metadata:
+    origin_file: bpf_linux_current.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: bpf_cli
+- schema: satsuma/v1
+  id: SATSUMA-BPF-CLI-003
+  title: BPF map creation/update or object pin attempt
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: bpf-linux-current
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    regex: ^(?:/\S*/)?bpftool\s+(?:-[\w-]+\s+)*(?:map\s+(?:create|update|pin)|prog\s+pin|link\s+pin)(?:\s|$)
+  actions:
+  - log_only
+  metadata:
+    origin_file: bpf_linux_current.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: bpf_cli
+- schema: satsuma/v1
+  id: SATSUMA-BPF-CLI-004
+  title: BPF detach or map delete attempt
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: bpf-linux-current
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    regex: ^(?:/\S*/)?bpftool\s+(?:-[\w-]+\s+)*(?:prog\s+detach|map\s+delete|link\s+detach|cgroup\s+detach|net\s+detach)(?:\s|$)
+  actions:
+  - log_only
+  metadata:
+    origin_file: bpf_linux_current.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: bpf_cli
+- schema: satsuma/v1
+  id: SATSUMA-BPF-CLI-005
+  title: bpftrace sensitive hook expression
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: bpf-linux-current
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    regex: ^(?:/\S*/)?bpftrace\s+(?!-l(?:\s|$))[^\n]*(?:kprobe|kretprobe|tracepoint|uprobe|uretprobe):[^\n]*(?:getdents(?:64)?|pam_get_authtok|pam_get_user|execve)
+  actions:
+  - log_only
+  metadata:
+    origin_file: bpf_linux_current.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: bpf_cli
+- schema: satsuma/v1
+  id: SATSUMA-BPF-CLI-006
+  title: TC BPF filter change attempt
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: bpf-linux-current
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    regex: ^(?:/\S*/)?tc\s+(?:-[\w-]+\s+)*filter\s+(?:add|replace|change)\s+[^\n]*\bbpf(?:\s|$)
+  actions:
+  - log_only
+  metadata:
+    origin_file: bpf_linux_current.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: SATSUMA-BPF-CLI-006
+- schema: satsuma/v1
+  id: SATSUMA-BPF-CLI-007
+  title: XDP attachment/removal attempt
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: bpf-linux-current
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    regex: ^(?:/\S*/)?ip\s+(?:-[\w-]+\s+)*link\s+set\s+[^\n]*\bxdp(?:drv|generic|offload)?\s+(?:obj|object|pinned|off)(?:\s|$)
+  actions:
+  - log_only
+  metadata:
+    origin_file: bpf_linux_current.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: SATSUMA-BPF-CLI-007
+- schema: satsuma/v1
+  id: SATSUMA-LINUX-CLI-001
+  title: Explicit LD_PRELOAD command-line indicator
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: bpf-linux-current
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    regex: ^(?:/\S*/)?env\s+(?:-\S+\s+)*LD_PRELOAD=\S+
+  actions:
+  - log_only
+  metadata:
+    origin_file: bpf_linux_current.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: ld_preload_env
+- schema: satsuma/v1
+  id: SATSUMA-LINUX-CLI-002
+  title: System preload file read
+  severity: low
+  classification: indicator
+  confidence: low
+  category: bpf-linux-current
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    regex: ^(?:/\S*/)?(?:cat|head|tail|grep)\s+[^\n]*?(?<!\S)/etc/ld\.so\.preload(?:\s|$)
+  actions:
+  - log_only
+  metadata:
+    origin_file: bpf_linux_current.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: ld_preload_read
+- schema: satsuma/v1
+  id: SATSUMA-LINUX-CLI-003
+  title: System preload file write via tee
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: bpf-linux-current
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    regex: ^(?:/\S*/)?tee\s+(?:-a\s+)?/etc/ld\.so\.preload(?:\s|$)
+  actions:
+  - log_only
+  metadata:
+    origin_file: bpf_linux_current.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: ld_preload_write
+- schema: satsuma/v1
+  id: SATSUMA-LINUX-CLI-004
+  title: Interpreter shell execution indicator
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: bpf-linux-current
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    regex: ^(?:/\S*/)?(?:find\s+[^\n]*-exec\s+/bin/(?:sh|bash)(?:\s|$)|(?:python[23]?(?:\.\d+)?|perl|awk)\s+[^\n]*(?:os\.system\(|system\(|exec\s+[\x27\x22]?/bin/(?:sh|bash)))
+  actions:
+  - log_only
+  metadata:
+    origin_file: bpf_linux_current.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: interpreter_shell
+- schema: satsuma/v1
+  id: SATSUMA-COLL-001
+  title: Toplu dosya kopyalama
+  severity: high
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - tar -czf /tmp
+    - zip -r /tmp
+    - cp -r /etc /tmp
+    - cp -r /home /tmp
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-002
+  title: Ekran goruntusu
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - import -window
+    - scrot
+    - gnome-screenshot
+    - xfce4-screenshooter
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-003
+  title: Klavye kaydi
+  severity: critical
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - logkeys
+    - xinput test
+    - keylogger
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-004
+  title: Pano erisimi
+  severity: high
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - xclip -o
+    - xsel -o
+    - wl-paste
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-005
+  title: E-posta toplama
+  severity: high
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^.*/\.thunderbird/.*/ImapMail/.*$
+      - field: event.file_path
+        regex: ^.*/\.local/share/evolution/mail/.*$
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-006
+  title: Tarayici gecmisi
+  severity: high
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^.*/\.mozilla/firefox/.*/places\.sqlite$
+      - field: event.file_path
+        regex: ^.*/\.config/opera/.*/History$
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-007
+  title: Tarayici cerezleri
+  severity: high
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^.*/\.mozilla/firefox/.*/cookies\.sqlite$
+      - field: event.file_path
+        regex: ^.*/\.config/opera/.*/Cookies$
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-008
+  title: SSH bilgileri
+  severity: critical
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^\~/\.ssh/known_hosts$
+      - field: event.file_path
+        regex: ^\~/\.ssh/config$
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-009
+  title: Veritabani dosyalari
+  severity: high
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - tar -czf ... *.db
+    - zip ... *.sqlite
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-010
+  title: Kaynak kod toplama
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - tar -czf ... *.py
+    - tar -czf ... *.js
+    - tar -czf ... *.go
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-011
+  title: Ev dizini arsiv
+  severity: high
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - tar -czf /tmp/home
+    - tar -czf /tmp/root
+    - tar -czf /tmp/user
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-012
+  title: Tum disk arsiv
+  severity: critical
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - dd if=/dev/sd
+    - dd if=/dev/nvme
+    - tar -czf /tmp/ -C /
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-013
+  title: Sistem loglari
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - cp /var/log/syslog
+    - cp /var/log/auth.log
+    - cp /var/log/messages
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-014
+  title: Veritabani dump
+  severity: high
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - mysqldump
+    - pg_dump
+    - sqlite3 .dump
+    - mongodump
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-015
+  title: Parola dosyalari
+  severity: critical
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/etc/passwd$
+      - field: event.file_path
+        regex: ^/etc/shadow$
+      - field: event.file_path
+        regex: ^/etc/gshadow$
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-016
+  title: SSH private key
+  severity: critical
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^\~/\.ssh/id_rsa$
+      - field: event.file_path
+        regex: ^\~/\.ssh/id_ed25519$
+      - field: event.file_path
+        regex: ^\~/\.ssh/id_ecdsa$
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-017
+  title: GPG key
+  severity: critical
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^\~/\.gnupg/secring\.gpg$
+      - field: event.file_path
+        regex: ^\~/\.gnupg/private\-keys\-v1\.d/.*$
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-018
+  title: Kubernetes config
+  severity: critical
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - field: event.file_path
+      regex: ^\~/\.kube/config$
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-019
+  title: AWS credentials
+  severity: critical
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^\~/\.aws/credentials$
+      - field: event.file_path
+        regex: ^\~/\.aws/config$
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-COLL-020
+  title: Docker config
+  severity: high
+  classification: indicator
+  confidence: low
+  category: collection
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - field: event.file_path
+      regex: ^\~/\.docker/config\.json$
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: collection.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-C2-001
+  title: Ters shell
+  severity: critical
+  classification: likely
+  confidence: high
+  category: command-and-control
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - bash -i >& /dev/tcp
+    - nc -e /bin/bash
+    - python3 -c 'import socket
+  actions:
+  - log_only
+  metadata:
+    origin_file: command_control.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1059.004
+    tactic: command-and-control
+  dedup_group: reverse_shell
+- schema: satsuma/v1
+  id: SATSUMA-C2-002
+  title: Netcat kullanımı
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: command-and-control
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - nc -lvnp
+    - nc -l
+    - ncat -l
+  actions:
+  - log_only
+  metadata:
+    origin_file: command_control.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1059
+    tactic: command-and-control
+- schema: satsuma/v1
+  id: SATSUMA-C2-003
+  title: DNS tünelleme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: command-and-control
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - iodine
+    - dnscat2
+    - dns2tcp
+  actions:
+  - log_only
+  metadata:
+    origin_file: command_control.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1071.004
+    tactic: command-and-control
+- schema: satsuma/v1
+  id: SATSUMA-C2-004
+  title: HTTP POST aktarım göstergesi
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: command-and-control
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - curl -X POST
+    - wget --post-data
+  actions:
+  - log_only
+  metadata:
+    origin_file: command_control.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1071.001
+    tactic: command-and-control
+- schema: satsuma/v1
+  id: SATSUMA-C2-005
+  title: ICMP tünelleme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: command-and-control
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - ptunnel
+    - icmptunnel
+    - hans
+  actions:
+  - log_only
+  metadata:
+    origin_file: command_control.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1095
+    tactic: command-and-control
+- schema: satsuma/v1
+  id: SATSUMA-CRED-003
+  title: Memory dump
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: credential-access
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - gcore
+    - gdb -p
+    - cat /proc/*/mem
+    - strings /proc/*/mem
+  actions:
+  - log_only
+  metadata:
+    origin_file: credential_access.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1003.007
+    tactic: credential-access
+- schema: satsuma/v1
+  id: SATSUMA-CRED-004
+  title: Browser credential erişimi
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: credential-access
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^.*/\.mozilla/firefox/.*/logins\.json$
+      - field: event.file_path
+        regex: ^.*/\.config/google\-chrome/.*/Login\ Data$
+      - field: event.file_path
+        regex: ^.*/\.config/opera/.*/Login\ Data$
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: credential_access.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1555
+    tactic: credential-access
+- schema: satsuma/v1
+  id: SATSUMA-CRED-005
+  title: Kerberos ticket
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: credential-access
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/tmp/krb5cc_.*$
+      - field: event.file_path
+        regex: ^/etc/krb5\.keytab$
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: credential_access.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1558
+    tactic: credential-access
+- schema: satsuma/v1
+  id: SATSUMA-CRED-006
+  title: GPG key çalma
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: credential-access
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/root/\.gnupg/.*$
+      - field: event.file_path
+        regex: ^/home/.*/\.gnupg/.*$
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: credential_access.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1552.004
+    tactic: credential-access
+- schema: satsuma/v1
+  id: SATSUMA-KERNEL-003
+  title: CVE-2024-1086 nf_tables exploit göstergesi
+  severity: critical
+  classification: likely
+  confidence: high
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - CVE-2024-1086
+    - nf_tables_uaf
+    - nft_uaf
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-KERNEL-004
+  title: CVE-2021-41073 io_uring exploit göstergesi
+  severity: critical
+  classification: likely
+  confidence: high
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - CVE-2021-41073
+    - io_uring_lpe
+    - ioring_lpe
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-KERNEL-005
+  title: CVE-2023-6931 perf_event exploit göstergesi
+  severity: critical
+  classification: likely
+  confidence: high
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - CVE-2023-6931
+    - perf_event_lpe
+    - perf_lpe
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-KERNEL-006
+  title: CVE-2021-3493 OverlayFS exploit göstergesi
+  severity: critical
+  classification: likely
+  confidence: high
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - CVE-2021-3493
+    - overlayfs_lpe
+    - overlayfs_exploit
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-KERNEL-007
+  title: PLP Rose UAF
+  severity: critical
+  classification: likely
+  confidence: high
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - rose_bind
+    - plp_rose
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-KERNEL-008
+  title: CVE-2026-46331 pedit partial-COW exploit göstergesi
+  severity: critical
+  classification: likely
+  confidence: high
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - CVE-2026-46331
+    - pedit_cow
+    - pedit_lpe
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-KERNEL-009
+  title: CVE-2026-43503 shared-frag exploit göstergesi
+  severity: critical
+  classification: likely
+  confidence: high
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - CVE-2026-43503
+    - shared_frag_exploit
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-KERNEL-010
+  title: Shared-frag kernel exploit göstergesi
+  severity: critical
+  classification: likely
+  confidence: high
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - dirtyfrag
+    - dirty_frag
+    - CVE-2026-43284
+    - CVE-2026-43500
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-POLKIT-001
+  title: Şüpheli pkexec hedef/argüman kullanımı
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - pkexec --user
+    - pkexec /tmp/
+    - pkexec /dev/shm/
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: pkexec_suspicious
+- schema: satsuma/v1
+  id: SATSUMA-SUDO-001
+  title: Baron Samedit
+  severity: critical
+  classification: likely
+  confidence: high
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - sudoedit -s
+    - sudoedit -s \"
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: sudoedit_suspicious
+- schema: satsuma/v1
+  id: SATSUMA-SUDO-002
+  title: Sudo Chroot LPE
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - sudo -R
+    - sudo --chroot
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: sudo_chroot
+- schema: satsuma/v1
+  id: SATSUMA-SUDO-005
+  title: Sudoers Degistirme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/etc/sudoers$
+      - field: event.file_path
+        regex: ^/etc/sudoers\.d/.*$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: sudoers_write
+- schema: satsuma/v1
+  id: SATSUMA-SUID-001
+  title: SUID Kesfi
+  severity: high
+  classification: indicator
+  confidence: low
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - find / -perm -4000
+    - find / -perm -u=s
+    - find / -type f -perm -04000
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: suid_discovery
+- schema: satsuma/v1
+  id: SATSUMA-SUID-002
+  title: SGID Kesfi
+  severity: high
+  classification: indicator
+  confidence: low
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - find / -perm -2000
+    - find / -perm -g=s
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: sgid_discovery
+- schema: satsuma/v1
+  id: SATSUMA-SUID-003
+  title: SUID Shell
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - /bin/sh -p
+    - /bin/bash -p
+    - sh -p
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: suid_shell
+- schema: satsuma/v1
+  id: SATSUMA-SUID-004
+  title: Capabilities Kullanimi
+  severity: high
+  classification: indicator
+  confidence: low
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - getcap -r
+    - setcap
+    - capsh
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: capability_tools
+- schema: satsuma/v1
+  id: SATSUMA-CONT-001
+  title: runc 2025 container escape CVE göstergesi
+  severity: critical
+  classification: likely
+  confidence: high
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - CVE-2025-31133
+    - CVE-2025-52565
+    - CVE-2025-52881
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-CONT-002
+  title: Docker Privileged
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - docker run --privileged
+    - docker exec -u 0
+    - docker run -v /:/host
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: container_escape
+- schema: satsuma/v1
+  id: SATSUMA-CONT-003
+  title: Namespace Kacisi
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - nsenter
+    - unshare -r
+    - unshare --user
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: container_escape
+- schema: satsuma/v1
+  id: SATSUMA-LNX-EVAS-003
+  title: Auditd Durdurma
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - systemctl stop auditd
+    - systemctl disable auditd
+    - auditctl -e 0
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: audit_disable
+- schema: satsuma/v1
+  id: SATSUMA-LNX-DISC-001
+  title: LinPEAS / LinEnum
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - linpeas.sh
+    - linpeas
+    - LinEnum.sh
+    - linenum
+    - linuxprivchecker
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: linpeas_linenum
+- schema: satsuma/v1
+  id: SATSUMA-LNX-DISC-002
+  title: Exploit Indirme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - wget exploit
+    - curl exploit
+    - wget cve
+    - curl cve
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: exploit_download
+- schema: satsuma/v1
+  id: SATSUMA-LNX-DISC-003
+  title: Exploit Derleme
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - gcc -o exploit
+    - gcc -o root
+    - cc -o exploit
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: exploit_compile
+- schema: satsuma/v1
+  id: SATSUMA-LNX-EXFIL-001
+  title: Veri Sizdirma
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: custom-linux-exploits
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - nc -e
+    - ncat -e
+    - socat exec
+    - curl -T
+    - wget --post-file
+  actions:
+  - log_only
+  metadata:
+    origin_file: custom_linux_exploits.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-001
+  title: Log silme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - rm -rf /var/log
+    - rm /var/log
+    - '> /var/log'
+    - history -c
+    - shred /var/log
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1070.002
+    tactic: defense-evasion
+  dedup_group: log_erasure
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-002
+  title: Auditd durdurma
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - systemctl stop auditd
+    - auditctl -e 0
+    - service auditd stop
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1562.001
+    tactic: defense-evasion
+  dedup_group: audit_disable
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-003
+  title: SELinux devre disi
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - setenforce 0
+    - echo 0 > /selinux/enforce
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1562.001
+    tactic: defense-evasion
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-004
+  title: AppArmor devre disi
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - aa-complain
+    - aa-disable
+    - apparmor_parser -R
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1562.001
+    tactic: defense-evasion
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-005
+  title: Firewall kurali silme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - iptables -F
+    - nft flush ruleset
+    - ufw disable
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1562.004
+    tactic: defense-evasion
+  dedup_group: firewall_disable
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-006
+  title: Firewall panic off
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - firewall-cmd --panic-off
+    - firewall-cmd --set-default-zone=trusted
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1562.004
+    tactic: defense-evasion
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-007
+  title: Zaman degistirme
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - timedatectl set-time
+    - date -s
+    - hwclock --set
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1070.006
+    tactic: defense-evasion
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-008
+  title: Dosya zaman damgasi
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - touch -t
+    - touch -d
+    - touch -r
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1070.006
+    tactic: defense-evasion
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-009
+  title: Immutable bayrak kaldırma göstergesi
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - chattr -i
+    - chattr -R -i
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1222
+    tactic: defense-evasion
+  dedup_group: immutable_remove
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-012
+  title: Rootkit tarama aracı çalıştırıldı
+  severity: low
+  classification: indicator
+  confidence: low
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - rkhunter
+    - chkrootkit
+    - unhide
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1014
+    tactic: defense-evasion
+  dedup_group: rootkit_scanner
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-013
+  title: SELinux policy yukleme
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - semodule -i
+    - semodule -r
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1562.001
+    tactic: defense-evasion
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-014
+  title: Kernel module kaldirma
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - rmmod
+    - modprobe -r
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1562.001
+    tactic: defense-evasion
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-015
+  title: Sysctl degistirme
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - sysctl -w
+    - echo ... > /proc/sys
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1562.001
+    tactic: defense-evasion
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-016
+  title: Kernel taint
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - echo 1 > /proc/sys/kernel/tainted
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1014
+    tactic: defense-evasion
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-017
+  title: History temizleme
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - history -c
+    - history -w
+    - '> ~/.bash_history'
+    - shred ~/.bash_history
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1070.003
+    tactic: defense-evasion
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-018
+  title: Utmp/Wtmp temizleme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - rm /var/log/wtmp
+    - rm /var/log/btmp
+    - '> /var/log/wtmp'
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1070.005
+    tactic: defense-evasion
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-019
+  title: Process gizleme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - mount -o bind /dev/null /proc/
+    - unshare -m
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1014
+    tactic: defense-evasion
+- schema: satsuma/v1
+  id: SATSUMA-EVAS-020
+  title: Dosya silme (shred)
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - shred -u
+    - shred -z
+    - wipe -f
+  actions:
+  - log_only
+  metadata:
+    origin_file: defense_evasion.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1070.004
+    tactic: defense-evasion
+- schema: satsuma/v1
+  id: SATSUMA-DISC-001
+  title: Sistem bilgisi toplama
+  severity: low
+  classification: indicator
+  confidence: low
+  category: discovery
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - uname -a
+    - cat /etc/os-release
+    - hostnamectl
+    - whoami
+    - id
+  actions:
+  - log_only
+  metadata:
+    origin_file: discovery.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1082
+    tactic: discovery
+- schema: satsuma/v1
+  id: SATSUMA-DISC-002
+  title: Ağ keşfi
+  severity: low
+  classification: indicator
+  confidence: low
+  category: discovery
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - ip a
+    - ifconfig
+    - netstat -tuln
+    - ss -tuln
+    - arp -a
+  actions:
+  - log_only
+  metadata:
+    origin_file: discovery.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1016
+    tactic: discovery
+- schema: satsuma/v1
+  id: SATSUMA-DISC-003
+  title: Kullanıcı keşfi
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: discovery
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - cat /etc/passwd
+    - cat /etc/group
+    - getent passwd
+  actions:
+  - log_only
+  metadata:
+    origin_file: discovery.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1087.001
+    tactic: discovery
+- schema: satsuma/v1
+  id: SATSUMA-DISC-004
+  title: Süreç keşfi
+  severity: low
+  classification: indicator
+  confidence: low
+  category: discovery
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - ps aux
+    - ps -ef
+    - top
+    - htop
+  actions:
+  - log_only
+  metadata:
+    origin_file: discovery.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1057
+    tactic: discovery
+- schema: satsuma/v1
+  id: SATSUMA-DISC-005
+  title: Dosya keşfi
+  severity: low
+  classification: indicator
+  confidence: low
+  category: discovery
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - find / -name
+    - 'locate '
+    - ls -la /
+  actions:
+  - log_only
+  metadata:
+    origin_file: discovery.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1083
+    tactic: discovery
+- schema: satsuma/v1
+  id: SATSUMA-DISC-006
+  title: Servis keşfi
+  severity: low
+  classification: indicator
+  confidence: low
+  category: discovery
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - systemctl list-units
+    - service --status-all
+    - chkconfig --list
+  actions:
+  - log_only
+  metadata:
+    origin_file: discovery.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1007
+    tactic: discovery
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-005
+  title: Ters shell (php)
+  severity: critical
+  classification: likely
+  confidence: high
+  category: execution
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - php -r '$sock
+    - php -r 'fsockopen
+  actions:
+  - log_only
+  metadata:
+    origin_file: execution.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1059.006
+    tactic: execution
+  dedup_group: reverse_shell
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-006
+  title: Shell çalıştıran socat tüneli
+  severity: critical
+  classification: likely
+  confidence: high
+  category: execution
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: '\bsocat\b.*(?:EXEC|SYSTEM):'
+    - field: event.cmd
+      regex: \bsocat\b.*(?:/bin/(?:ba)?sh|/usr/bin/(?:ba)?sh).*TCP
+  actions:
+  - log_only
+  metadata:
+    origin_file: execution.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1059
+    tactic: execution
+  dedup_group: reverse_shell
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-007
+  title: Ters shell (nc)
+  severity: critical
+  classification: likely
+  confidence: high
+  category: execution
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - nc -e /bin/bash
+    - nc -e /bin/sh
+    - ncat -e
+    - nc -c bash
+  actions:
+  - log_only
+  metadata:
+    origin_file: execution.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1059
+    tactic: execution
+  dedup_group: reverse_shell
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-008
+  title: Base64 decode + exec
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: execution
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - base64 -d | bash
+    - base64 -d | sh
+    - base64 -d | python
+    - echo | base64 -d | bash
+  actions:
+  - log_only
+  metadata:
+    origin_file: execution.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1140
+    tactic: execution
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-009
+  title: Curl pipe bash
+  severity: critical
+  classification: likely
+  confidence: high
+  category: execution
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: \\bcurl\\b.+\\|\\s*(?:ba)?sh\\b
+    - field: event.cmd
+      regex: \\bwget\\b.+\\|\\s*(?:ba)?sh\\b
+  actions:
+  - log_only
+  metadata:
+    origin_file: execution.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1105
+    tactic: execution
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-010
+  title: Eval kullanimi
+  severity: medium
+  classification: suspicious
+  confidence: medium
+  category: execution
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - 'eval '
+    - bash -c 'eval
+  actions:
+  - log_only
+  metadata:
+    origin_file: execution.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1059
+    tactic: execution
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-011
+  title: Xterm ters shell
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: execution
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - xterm -display
+    - xterm -e /bin/bash
+  actions:
+  - log_only
+  metadata:
+    origin_file: execution.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1059
+    tactic: execution
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-012
+  title: Awk ters shell
+  severity: critical
+  classification: likely
+  confidence: high
+  category: execution
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: \\bawk\\b.*?/inet/(?:tcp|udp)/
+    - field: event.cmd
+      regex: \\bawk\\b.*\\|&.*getline
+  actions:
+  - log_only
+  metadata:
+    origin_file: execution.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1059
+    tactic: execution
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-013
+  title: Telnet ters shell
+  severity: critical
+  classification: likely
+  confidence: high
+  category: execution
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    regex: \\btelnet\\b.+\\|\\s*/?(?:usr/)?bin/(?:ba)?sh\\b
+  actions:
+  - log_only
+  metadata:
+    origin_file: execution.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1059
+    tactic: execution
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-014
+  title: Nmap script engine
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: execution
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - nmap --script
+    - nmap -sC
+    - nmap --script=vuln
+  actions:
+  - log_only
+  metadata:
+    origin_file: execution.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1059
+    tactic: execution
+- schema: satsuma/v1
+  id: SATSUMA-EXEC-015
+  title: Metasploit
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: execution
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - msfconsole
+    - msfvenom
+    - meterpreter
+  actions:
+  - log_only
+  metadata:
+    origin_file: execution.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1059
+    tactic: execution
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-002
+  title: HTTP POST exfiltration
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - curl -X POST -d @
+    - curl --data-binary @
+    - wget --post-file
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-003
+  title: FTP exfiltration
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - ftp -u
+    - ftp -p
+    - lftp -e
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-004
+  title: SCP exfiltration
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - scp /etc
+    - scp /home
+    - scp /root
+    - scp /var
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-005
+  title: Rsync exfiltration
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - rsync -av /etc
+    - rsync -av /home
+    - rsync -av /root
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-006
+  title: Netcat exfiltration
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - nc -w
+    - ncat -w
+    - < /etc
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-007
+  title: ICMP exfiltration
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - ping -p
+    - hping3 -E
+    - icmpsh
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-008
+  title: Base64 exfiltration
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - base64 /etc
+    - base64 /home
+    - base64 /root
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-009
+  title: Tar + curl exfiltration
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - tar czf - | curl
+    - tar czf - | nc
+    - tar czf - | wget
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-010
+  title: SSH tunnel exfiltration
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - ssh -R
+    - ssh -L
+    - ssh -D
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-011
+  title: Socat exfiltration
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - socat - TCP
+    - socat FILE
+    - socat OPEN
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-012
+  title: Tor exfiltration
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - torsocks
+    - torify
+    - proxychains
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-013
+  title: WebDAV exfiltration
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - cadaver
+    - davfs2
+    - mount -t davfs
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-014
+  title: SMB/CIFS aktarım göstergesi
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - smbclient
+    - mount -t cifs
+    - smbmap
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: smb_activity
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-015
+  title: NFS exfiltration
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - mount -t nfs
+    - showmount -e
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-016
+  title: Git exfiltration
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - git clone
+    - git push
+    - git remote add
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-017
+  title: Docker exfiltration
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - docker save
+    - docker export
+    - docker cp
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-018
+  title: Kubernetes exfiltration
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - kubectl cp
+    - kubectl exec
+    - kubectl get secret
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-019
+  title: Email exfiltration
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - sendmail
+    - mail -s
+    - mutt -s
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-020
+  title: Pastebin exfiltration
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: exfiltration
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - pastebinit
+    - curl pastebin.com
+    - curl hastebin.com
+  actions:
+  - log_only
+  metadata:
+    origin_file: exfiltration.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-IMP-001
+  title: Şifreleme/arşivleme aracı kullanımı
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: impact
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - openssl enc
+    - gpg -c
+    - 7z a -p
+    - rar a -p
+  actions:
+  - log_only
+  metadata:
+    origin_file: impact.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1486
+    tactic: impact
+- schema: satsuma/v1
+  id: SATSUMA-IMP-002
+  title: Disk silme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: impact
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - dd if=/dev/zero
+    - shred -vfz
+    - wipefs
+    - mkfs.ext4 /dev/sd
+  actions:
+  - log_only
+  metadata:
+    origin_file: impact.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1485
+    tactic: impact
+- schema: satsuma/v1
+  id: SATSUMA-IMP-003
+  title: Veri sızdırma
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: impact
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - curl -T
+    - wget --post-file
+    - ftp -u
+  actions:
+  - log_only
+  metadata:
+    origin_file: impact.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1041
+    tactic: impact
+- schema: satsuma/v1
+  id: SATSUMA-IMP-004
+  title: Servis durdurma/deaktivasyon komutu
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: impact
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - systemctl stop
+    - systemctl disable
+    - service stop
+  actions:
+  - log_only
+  metadata:
+    origin_file: impact.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1489
+    tactic: impact
+- schema: satsuma/v1
+  id: SATSUMA-IMP-005
+  title: Defacement
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: impact
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/var/www/html/.*$
+      - field: event.file_path
+        regex: ^/usr/share/nginx/html/.*$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: impact.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1491
+    tactic: impact
+- schema: satsuma/v1
+  id: SATSUMA-IMP-006
+  title: Kaynak tüketimi
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: impact
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - stress
+    - stress-ng
+    - fork bomb
+    - ':(){ :|:& };:'
+  actions:
+  - log_only
+  metadata:
+    origin_file: impact.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1499
+    tactic: impact
+- schema: satsuma/v1
+  id: SATSUMA-LAT-001
+  title: SSH yanal hareket
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: lateral-movement
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - ssh -o StrictHostKeyChecking=no
+    - sshpass -p
+  actions:
+  - log_only
+  metadata:
+    origin_file: lateral_movement.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1021.004
+    tactic: lateral-movement
+- schema: satsuma/v1
+  id: SATSUMA-LAT-002
+  title: SCP/Rsync transfer
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: lateral-movement
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - scp /etc/
+    - rsync -av /etc/
+    - scp /root/
+  actions:
+  - log_only
+  metadata:
+    origin_file: lateral_movement.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1021.004
+    tactic: lateral-movement
+- schema: satsuma/v1
+  id: SATSUMA-LAT-003
+  title: SMB/CIFS aktarım göstergesi
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: lateral-movement
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - smbclient
+    - mount -t cifs
+    - smbmap
+  actions:
+  - log_only
+  metadata:
+    origin_file: lateral_movement.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1021.002
+    tactic: lateral-movement
+  dedup_group: smb_activity
+- schema: satsuma/v1
+  id: SATSUMA-LAT-004
+  title: RDP bağlantısı
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: lateral-movement
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - xfreerdp
+    - rdesktop
+  actions:
+  - log_only
+  metadata:
+    origin_file: lateral_movement.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1021.001
+    tactic: lateral-movement
+- schema: satsuma/v1
+  id: SATSUMA-LAT-005
+  title: VNC bağlantısı
+  severity: medium
+  classification: suspicious
+  confidence: medium
+  category: lateral-movement
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - vncviewer
+    - xvncviewer
+  actions:
+  - log_only
+  metadata:
+    origin_file: lateral_movement.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1021.005
+    tactic: lateral-movement
+- schema: satsuma/v1
+  id: SATSUMA-LAT-006
+  title: Docker escape
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: lateral-movement
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - docker run --privileged
+    - docker exec -it
+    - nsenter
+  actions:
+  - log_only
+  metadata:
+    origin_file: lateral_movement.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1610
+    tactic: lateral-movement
+  dedup_group: container_escape
+- schema: satsuma/v1
+  id: SATSUMA-PERS-001
+  title: Crontab değişikliği
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: persistence
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/var/spool/cron/.*$
+      - field: event.file_path
+        regex: ^/etc/crontab$
+      - field: event.file_path
+        regex: ^/etc/cron\.d/.*$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: persistence.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1053.003
+    tactic: persistence
+- schema: satsuma/v1
+  id: SATSUMA-PERS-002
+  title: Systemd servis ekleme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: persistence
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/etc/systemd/system/.*\.service$
+      - field: event.file_path
+        regex: ^/lib/systemd/system/.*\.service$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: persistence.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1543.002
+    tactic: persistence
+- schema: satsuma/v1
+  id: SATSUMA-PERS-003
+  title: SSH authorized_keys ekleme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: persistence
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/root/\.ssh/authorized_keys$
+      - field: event.file_path
+        regex: ^/home/.*/\.ssh/authorized_keys$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: persistence.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1098.004
+    tactic: persistence
+- schema: satsuma/v1
+  id: SATSUMA-PERS-004
+  title: Bashrc/Profile değişikliği
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: persistence
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/root/\.bashrc$
+      - field: event.file_path
+        regex: ^/root/\.profile$
+      - field: event.file_path
+        regex: ^/home/.*/\.bashrc$
+      - field: event.file_path
+        regex: ^/home/.*/\.profile$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: persistence.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1546.004
+    tactic: persistence
+- schema: satsuma/v1
+  id: SATSUMA-PERS-005
+  title: Init.d/SysV servis
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: persistence
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/etc/init\.d/.*$
+      - field: event.file_path
+        regex: ^/etc/rc.*\.d/.*$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: persistence.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1037
+    tactic: persistence
+- schema: satsuma/v1
+  id: SATSUMA-PERS-006
+  title: XDG autostart
+  severity: medium
+  classification: suspicious
+  confidence: medium
+  category: persistence
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/etc/xdg/autostart/.*$
+      - field: event.file_path
+        regex: ^/home/.*/\.config/autostart/.*$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: persistence.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1547
+    tactic: persistence
+- schema: satsuma/v1
+  id: SATSUMA-PERS-007
+  title: Kernel modülü kalıcılık
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: persistence
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/etc/modules$
+      - field: event.file_path
+        regex: ^/etc/modules\-load\.d/.*$
+      - field: event.file_path
+        regex: ^/etc/modprobe\.d/.*$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: persistence.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1547.006
+    tactic: persistence
+- schema: satsuma/v1
+  id: SATSUMA-PERS-008
+  title: PAM backdoor
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: persistence
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/etc/pam\.d/.*$
+      - field: event.file_path
+        regex: ^/lib/security/pam_.*\.so$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: persistence.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1556.003
+    tactic: persistence
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-002
+  title: Sudoedit exploit
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - sudoedit -s
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1548.003
+    tactic: privilege-escalation
+  dedup_group: sudoedit_suspicious
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-003
+  title: Şüpheli pkexec kullanımı
+  severity: high
+  classification: indicator
+  confidence: low
+  category: privilege-escalation
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - pkexec --user
+    - pkexec /tmp/
+    - pkexec /dev/shm/
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1548.003
+    tactic: privilege-escalation
+  dedup_group: pkexec_suspicious
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-004
+  title: SUID binary keşfi
+  severity: high
+  classification: indicator
+  confidence: low
+  category: privilege-escalation
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - find / -perm -4000
+    - find / -perm -2000
+    - find / -perm -u=s
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1548.001
+    tactic: privilege-escalation
+  dedup_group: suid_discovery
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-005
+  title: Kernel exploit
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - dirtypipe
+    - dirty_pipe
+    - cve-2022-0847
+    - cve-2024-1086
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1068
+    tactic: privilege-escalation
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-006
+  title: Dirty Pipe exploit
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    all:
+    - field: event.cmd
+      contains_any:
+      - dirtypipe
+    - any:
+      - field: event.file_path
+        regex: ^/etc/passwd$
+      - field: event.file_path
+        regex: ^/etc/shadow$
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1068
+    tactic: privilege-escalation
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-007
+  title: Sudo chroot exploit
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - sudo -R
+    - sudo --chroot
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1548.003
+    tactic: privilege-escalation
+  dedup_group: sudo_chroot
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-008
+  title: Capabilities exploit
+  severity: high
+  classification: indicator
+  confidence: low
+  category: privilege-escalation
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - getcap -r
+    - setcap
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1548
+    tactic: privilege-escalation
+  dedup_group: capability_tools
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-009
+  title: SUID binary kesfi
+  severity: high
+  classification: indicator
+  confidence: low
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - find / -perm -4000
+    - find / -perm -u=s
+    - find / -type f -perm -04000
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: suid_discovery
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-010
+  title: SGID binary kesfi
+  severity: high
+  classification: indicator
+  confidence: low
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - find / -perm -2000
+    - find / -perm -g=s
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: sgid_discovery
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-011
+  title: SUID shell
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - /bin/sh -p
+    - /bin/bash -p
+    - sh -p
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: suid_shell
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-012
+  title: Polkit exploit
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - pkexec --user
+    - pkexec /tmp/
+    - pkexec /dev/shm/
+    - pkttyagent /tmp/
+    - pkttyagent /dev/shm/
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: pkexec_suspicious
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-013
+  title: Sudo exploit
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - sudo -u#
+    - sudoedit
+    - sudo -e
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: sudoedit_suspicious
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-014
+  title: Sudo CVE
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - sudo -R
+    - sudo -r
+    - sudo --chroot
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: sudo_chroot
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-015
+  title: Capabilities exploit
+  severity: high
+  classification: indicator
+  confidence: low
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - getcap -r
+    - setcap
+    - capsh
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: capability_tools
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-016
+  title: Kernel exploit
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - dirtypipe
+    - dirty_pipe
+    - dirtycow
+    - cve-
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-017
+  title: Kernel module yukleme
+  severity: critical
+  classification: indicator
+  confidence: low
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - insmod
+    - modprobe
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: kernel_module_admin
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-018
+  title: Exploit derleme
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - gcc -o exploit
+    - gcc -o root
+    - cc -o exploit
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: exploit_compile
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-019
+  title: Exploit indirme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - wget exploit
+    - curl exploit
+    - wget cve
+    - curl cve
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: exploit_download
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-020
+  title: LinEnum
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - LinEnum.sh
+    - linenum
+    - linuxprivchecker
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: linpeas_linenum
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-021
+  title: LinPEAS
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - linpeas.sh
+    - linpeas
+    - linux-exploit-suggester
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: linpeas_linenum
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-022
+  title: WinPEAS
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - winpeas
+    - winPEAS
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-023
+  title: PSPY
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - pspy
+    - pspy64
+    - pspy32
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-024
+  title: Non-interactive sudo kullanımı
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - sudo -n
+    - sudo -S
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: noninteractive_sudo
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-025
+  title: Sudoers degistirme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/etc/sudoers$
+      - field: event.file_path
+        regex: ^/etc/sudoers\.d/.*$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: sudoers_write
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-026
+  title: Passwd degistirme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - field: event.file_path
+      regex: ^/etc/passwd$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-027
+  title: Shadow degistirme
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - field: event.file_path
+      regex: ^/etc/shadow$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-028
+  title: Root shell yönetim komutu
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - sudo su -
+    - sudo -i
+    - sudo bash
+    - sudo sh
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: root_shell_admin
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-029
+  title: Docker escape
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - docker run --privileged
+    - docker exec -u 0
+    - docker run -v /:/host
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: container_escape
+- schema: satsuma/v1
+  id: SATSUMA-PRIV-030
+  title: Namespace escape
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: privilege-escalation-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - nsenter
+    - unshare -r
+    - unshare --user
+  actions:
+  - log_only
+  metadata:
+    origin_file: privilege_escalation_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  dedup_group: container_escape
+- schema: satsuma/v1
+  id: SATSUMA-ROOT-001
+  title: Kernel modül yönetimi
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: rootkit
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - insmod
+    - modprobe
+    - rmmod
+  actions:
+  - log_only
+  metadata:
+    origin_file: rootkit.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1014
+    tactic: rootkit
+  dedup_group: kernel_module_admin
+- schema: satsuma/v1
+  id: SATSUMA-ROOT-003
+  title: /dev değişikliği
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: rootkit
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - field: event.file_path
+      regex: ^/dev/.*$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: rootkit.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1014
+    tactic: rootkit
+- schema: satsuma/v1
+  id: SATSUMA-ROOT-004
+  title: Rootkit tarama aracı çalıştırıldı
+  severity: low
+  classification: indicator
+  confidence: low
+  category: rootkit
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - unhide
+    - rkhunter --check
+    - chkrootkit
+  actions:
+  - log_only
+  metadata:
+    origin_file: rootkit.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1014
+    tactic: rootkit
+  dedup_group: rootkit_scanner
+- schema: satsuma/v1
+  id: SATSUMA-SUDO-HARD-001
+  title: Sudoers dosyasına NOPASSWD yazılması
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: sudo-hardening
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/etc/sudoers$
+      - field: event.file_path
+        regex: ^/etc/sudoers\.d/.*$
+    - field: event.operation
+      equals: write
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: sudo_hardening.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1548.003
+    tactic: privilege-escalation
+  dedup_group: sudoers_nopasswd_write
+- schema: satsuma/v1
+  id: SATSUMA-SUDO-HARD-002
+  title: Parolasız sudo kullanımı (non-interactive)
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: sudo-hardening
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - sudo -n
+    - sudo -S
+    - sudo --non-interactive
+    - sudo --stdin
+  actions:
+  - log_only
+  metadata:
+    origin_file: sudo_hardening.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1548.003
+    tactic: privilege-escalation
+  dedup_group: noninteractive_sudo_autoblock
+- schema: satsuma/v1
+  id: SATSUMA-SUDO-HARD-003
+  title: Sudoers dosyası okunması (keşif)
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: sudo-hardening
+  enabled: false
+  logsource:
+    source: audit
+  match:
+    all:
+    - any:
+      - field: event.file_path
+        regex: ^/etc/sudoers$
+      - field: event.file_path
+        regex: ^/etc/sudoers\.d/.*$
+    - field: event.operation
+      equals: read
+    - field: event.action
+      equals: file_access
+  actions:
+  - log_only
+  metadata:
+    origin_file: sudo_hardening.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1087
+    tactic: discovery
+  dedup_group: sudoers_read_recon
+- schema: satsuma/v1
+  id: SATSUMA-LOL-001
+  title: LOLBin — curl/wget ile uzaktan script yürütme
+  severity: high
+  classification: likely
+  confidence: high
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: (?:curl|wget)\s+[^|]*\|\s*(?:ba)?sh
+    - field: event.cmd
+      regex: (?:curl|wget)\s+[^|]*\|\s*python3?
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1059.004
+    tactic: execution
+  dedup_group: lolbin_pipe_shell
+- schema: satsuma/v1
+  id: SATSUMA-LOL-002
+  title: LOLBin — base64 decode + shell
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: base64\s+(?:-d|--decode)\s*\|.*(?:ba)?sh
+    - field: event.cmd
+      regex: echo\s+[A-Za-z0-9+/=]{20,}\s*\|\s*base64\s+-d
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1140
+    tactic: defense-evasion
+  dedup_group: obfuscated_exec
+- schema: satsuma/v1
+  id: SATSUMA-LOL-003
+  title: LOLBin — eval/exec ile dinamik kod
+  severity: medium
+  classification: suspicious
+  confidence: medium
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: python3?\s+-c\s+['"]?.*(?:eval|exec|__import__)\s*\(
+    - field: event.cmd
+      regex: perl\s+-e\s+['"]?.*eval
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1059.006
+    tactic: execution
+  dedup_group: dynamic_code
+- schema: satsuma/v1
+  id: SATSUMA-LOL-004
+  title: LOLBin — xterm/script ile TTY kaçışı
+  severity: medium
+  classification: suspicious
+  confidence: low
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: script\s+-qc?\s+.*/dev/null
+    - field: event.cmd
+      regex: python3?\s+-c\s+['"]?import\s+pty
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1059
+    tactic: execution
+  dedup_group: tty_escape
+- schema: satsuma/v1
+  id: SATSUMA-FILELESS-001
+  title: Fileless — memfd_create ile bellek-içi binary
+  severity: critical
+  classification: likely
+  confidence: high
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: memfd_create
+    - field: event.cmd
+      regex: /proc/self/fd/\d+.*(?:exec|sh)
+    - field: event.cmd
+      regex: '/memfd:'
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1620
+    tactic: defense-evasion
+  dedup_group: fileless_memfd
+- schema: satsuma/v1
+  id: SATSUMA-FILELESS-002
+  title: Fileless — /dev/shm veya /tmp'den yürütme
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.exe
+      regex: ^/dev/shm/
+    - field: event.exe
+      regex: ^/tmp/\.\w+
+    - field: event.exe
+      regex: ^/var/tmp/
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1036
+    tactic: defense-evasion
+  dedup_group: tmp_exec
+- schema: satsuma/v1
+  id: SATSUMA-FILELESS-003
+  title: Fileless — ptrace ile süreç enjeksiyonu
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: ptrace\s+PTRACE_(?:POKE|ATTACH)
+    - field: event.cmd
+      regex: gdb\s+-p\s+\d+.*(?:call|inject)
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1055.008
+    tactic: defense-evasion
+  dedup_group: ptrace_inject
+- schema: satsuma/v1
+  id: SATSUMA-CONT-101
+  title: Container escape — docker.sock erişimi
+  severity: critical
+  classification: suspicious
+  confidence: medium
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - /var/run/docker.sock
+    - docker run --privileged
+    - docker exec -it
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1611
+    tactic: privilege-escalation
+  dedup_group: container_escape
+- schema: satsuma/v1
+  id: SATSUMA-CONT-102
+  title: Container escape — host mount / namespace kaçışı
+  severity: critical
+  classification: likely
+  confidence: high
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: nsenter\s+.*-t\s+1\s+.*(?:mount|ns)
+    - field: event.cmd
+      regex: mount\s+.*-o\s+bind.*/(?:host|root)
+    - field: event.cmd
+      regex: chroot\s+/host
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1611
+    tactic: privilege-escalation
+  dedup_group: container_escape
+- schema: satsuma/v1
+  id: SATSUMA-CLOUD-001
+  title: Cloud metadata servisi erişimi
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    field: event.cmd
+    contains_any:
+    - 169.254.169.254
+    - metadata.google.internal
+    - /latest/meta-data/
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1552.005
+    tactic: credential-access
+  dedup_group: cloud_metadata
+- schema: satsuma/v1
+  id: SATSUMA-CRED-101
+  title: SSH anahtar hırsızlığı girişimi
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: (?:cat|cp|scp|tar)\s+.*\.ssh/(?:id_rsa|id_ed25519|id_ecdsa|authorized_keys)
+    - field: event.cmd
+      regex: find\s+.*-name\s+['"]?id_rsa
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1552.004
+    tactic: credential-access
+  dedup_group: ssh_key_theft
+- schema: satsuma/v1
+  id: SATSUMA-CRED-102
+  title: Tarayıcı/uygulama kimlik deposu erişimi
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: (?:cat|cp|grep)\s+.*(?:\.mozilla|\.config/google-chrome|Login Data|keyring)
+    - field: event.cmd
+      regex: secret-tool\s+(?:lookup|search)
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1555
+    tactic: credential-access
+  dedup_group: cred_store
+- schema: satsuma/v1
+  id: SATSUMA-CRED-103
+  title: Ortam değişkeninden kimlik bilgisi sızdırma
+  severity: medium
+  classification: suspicious
+  confidence: low
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: (?:env|printenv|set)\s*\|.*(?:grep|curl|nc|wget)
+    - field: event.cmd
+      regex: echo\s+\$(?:AWS_|GCP_|AZURE_|TOKEN|SECRET|PASSWORD)
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1552.001
+    tactic: credential-access
+  dedup_group: env_cred
+- schema: satsuma/v1
+  id: SATSUMA-PERSIST-003
+  title: Kalıcılık — cron/at job ekleme
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: crontab\s+.*(?:-|/tmp|/dev/shm)
+    - field: event.cmd
+      regex: (?:echo|cat)\s+.*>>?\s*/etc/cron
+    - field: event.cmd
+      regex: at\s+now\s+\+
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1053.003
+    tactic: persistence
+  dedup_group: cron_persist
+- schema: satsuma/v1
+  id: SATSUMA-EVASION-001
+  title: Savunma atlatma — log temizleme
+  severity: critical
+  classification: likely
+  confidence: high
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: (?:>|truncate\s+-s\s*0)\s*/var/log/
+    - field: event.cmd
+      regex: rm\s+.*(?:/var/log/|\.bash_history|wtmp|btmp)
+    - field: event.cmd
+      regex: history\s+-c
+    - field: event.cmd
+      regex: journalctl\s+--rotate.*--vacuum
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1070
+    tactic: defense-evasion
+  dedup_group: log_wipe
+- schema: satsuma/v1
+  id: SATSUMA-EVASION-002
+  title: Savunma atlatma — güvenlik aracı devre dışı
+  severity: critical
+  classification: likely
+  confidence: high
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: systemctl\s+(?:stop|disable|mask)\s+.*(?:auditd|firewalld|apparmor|selinux|clamav|suricata|satsuma)
+    - field: event.cmd
+      regex: setenforce\s+0
+    - field: event.cmd
+      regex: aa-complain
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1562.001
+    tactic: defense-evasion
+  dedup_group: security_disable
+- schema: satsuma/v1
+  id: SATSUMA-EVASION-003
+  title: Savunma atlatma — zaman damgası manipülasyonu
+  severity: medium
+  classification: suspicious
+  confidence: low
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: touch\s+.*-d\s+['"]?\d{4}
+    - field: event.cmd
+      regex: touch\s+.*-t\s+\d{8,}
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1070.006
+    tactic: defense-evasion
+  dedup_group: timestomp
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-101
+  title: Veri sızdırma — bulut depolamaya yükleme
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: (?:rclone|aws\s+s3|gsutil|az\s+storage)\s+(?:copy|cp|sync|upload)
+    - field: event.cmd
+      regex: curl\s+.*(?:-T|--upload-file)
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1567.002
+    tactic: exfiltration
+  dedup_group: cloud_exfil
+- schema: satsuma/v1
+  id: SATSUMA-EXFIL-102
+  title: Veri sızdırma — DNS/ICMP üzerinden
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: (?:dig|nslookup)\s+.*\$\(.*(?:cat|base64)
+    - field: event.cmd
+      regex: tar\s+.*\|\s*(?:nc|ncat|curl)
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1048.003
+    tactic: exfiltration
+  dedup_group: covert_exfil
+- schema: satsuma/v1
+  id: SATSUMA-MINE-001
+  title: Kripto madencilik — bilinen miner
+  severity: high
+  classification: likely
+  confidence: high
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: (?:xmrig|minerd|cpuminer|ethminer|nbminer|phoenixminer)
+    - field: event.cmd
+      regex: stratum\+tcp://
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1496
+    tactic: impact
+  dedup_group: cryptomining
+- schema: satsuma/v1
+  id: SATSUMA-RANSOM-001
+  title: Fidye yazılımı — toplu dosya şifreleme göstergesi
+  severity: critical
+  classification: likely
+  confidence: medium
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: openssl\s+enc\s+.*-in\s+.*-out\s+.*\.(?:enc|locked|crypt)
+    - field: event.cmd
+      regex: find\s+.*-type\s+f\s+.*-exec\s+.*(?:openssl|gpg)
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1486
+    tactic: impact
+  dedup_group: ransomware_encrypt
+- schema: satsuma/v1
+  id: SATSUMA-RANSOM-002
+  title: Fidye yazılımı — gölge kopya silme
+  severity: critical
+  classification: likely
+  confidence: high
+  category: threat-intel-extra
+  enabled: false
+  logsource:
+    source: sys_proc
+  match:
+    any:
+    - field: event.cmd
+      regex: (?:vssadmin|wbadmin)\s+delete
+    - field: event.cmd
+      regex: rm\s+-rf\s+.*(?:snapshot|backup)
+    - field: event.cmd
+      regex: btrfs\s+subvolume\s+delete
+  actions:
+  - log_only
+  metadata:
+    origin_file: threat_intel_extra.yaml
+    staging_only: true
+    original_actions_retained_in_source: true
+  mitre:
+  - technique: T1490
+    tactic: impact
+  dedup_group: ransomware_backup_wipe

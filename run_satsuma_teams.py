@@ -1,0 +1,713 @@
+#!/usr/bin/env python3
+"""Correlate findings and dispatch through existing policy/identity guards.
+
+Periodic follow-up records process metadata and decisions without authorizing
+signals or inheriting a threat verdict for related processes.
+
+Stopping decisions run before investigation, a smart-rule backlog starts
+the next round at once, and the slow team collectors (40 s a round in the
+field) run at most every 30 seconds instead of holding up every rule round
+(field 2026-11-04: decisions lagged up to 38 minutes). Since 2.2.32 events
+arrive through the in-memory flow (satsuma.flow) every quarter second;
+only suspicious findings and termination attempts are written, each with
+its process's 30-minute flow history, and stored raw events are removed
+once.
+
+Bulguları korele eder; mevcut politika ve kimlik kapılarından müdahaleye yollar.
+Periyodik takip süreç üstverisini ve kararları kaydeder; sinyal yetkisi vermez,
+ilişkili süreçlere zararlılık kararı devretmez. Durdurma kararları
+incelemeden önce çalışır; akıllı kural birikimi varsa sonraki tur beklemeden
+başlar; yavaş ekip toplayıcıları (sahada tur başına 40 sn) her kural turunu
+bekletmek yerine en çok 30 saniyede bir çalışır (saha 2026-11-04: kararlar
+38 dakikaya kadar gecikiyordu). 2.2.32'den beri olaylar bellek içi akıştan
+(satsuma.flow) çeyrek saniyede bir gelir; yalnızca şüpheli bulgular ve
+sonlandırma denemeleri, sürecin 30 dakikalık akış geçmişiyle yazılır;
+saklanmış ham olaylar bir kez silinir.
+"""
+from __future__ import annotations
+
+import ipaddress
+import os
+import json
+import sys
+import contextlib
+import time
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from satsuma.store import Store
+from satsuma.pipeline import Pipeline
+from satsuma.config import load
+from satsuma.correlation_engine import CorrelationEngine
+from satsuma.smart_rules import SmartRuleEngine
+from satsuma.short_event_evidence import ShortEvidenceWindow
+from satsuma.finding_origin import annotate as annotate_origin
+from satsuma import shutdown
+from satsuma.auto_action import AutoActionEngine
+from satsuma.finding_store import record_finding
+from satsuma.response_policy import authorize_destructive, denied_action_record
+from satsuma.action_contract import (
+    DESTRUCTIVE_ACTIONS,
+    SAFE_ACTIONS,
+    SafeActionBroker,
+    canonical_action,
+    normalize_action_spec,
+)
+from satsuma.teams.host_team import HostTeamLead
+from satsuma.teams.identity_team import IdentityTeamLead
+from satsuma.teams.file_team import FileTeamLead
+from satsuma.teams.network_team import NetworkTeamLead
+from satsuma.correlation_manager import CorrelationManager
+
+SMART_CURSOR_KEY = 'brain.smart_rules.cursor.v2'
+SMART_BATCH_LIMIT = 5000
+
+
+def _latest_normalized_id(store):
+    row = store.db.execute(
+        "SELECT COALESCE(MAX(id),0) FROM records WHERE kind='normalized'"
+    ).fetchone()
+    return int(row[0] or 0)
+
+
+def _smart_event(rid, body_str):
+    outer = json.loads(body_str)
+    inner = outer.get('event') or {}
+    ev = inner.get('event') or {}
+    raw_block = inner.get('raw') or {}
+    raw = raw_block.get('data') if isinstance(raw_block, dict) else {}
+    if not isinstance(raw, dict):
+        raw = {}
+    metadata = inner.get('metadata') or {}
+    extensions = metadata.get('extensions') if isinstance(metadata, dict) else {}
+    if not isinstance(extensions, dict):
+        extensions = {}
+    network = inner.get('network') or {}
+    if not isinstance(network, dict):
+        network = {}
+    source = inner.get('source') or {}
+    if not isinstance(source, dict):
+        source = {}
+
+    def ext(*names, default=None):
+        for name in names:
+            value = extensions.get(name)
+            if value is not None:
+                return value
+        return default
+
+    return {
+        'id': rid,
+        'raw_id': outer.get('raw_id'),
+        'timestamp': ev.get('timestamp'),
+        'source': source.get('type') or source.get('collector_id'),
+        'action': ev.get('action'),
+        'kind': raw.get('kind') or ext('host.kind') or ev.get('action'),
+        'category': ev.get('category'),
+        'severity': ev.get('severity'),
+        'metadata': metadata,
+        'raw': raw,
+        'cmd': raw.get('cmd') or ext('host.cmd', default=''),
+        'origin': raw.get('origin') or ext('host.origin'),
+        'exe': raw.get('exe') or ext('host.exe', default=''),
+        'uid': raw.get('uid', ext('host.uid')),
+        'pid': raw.get('pid', ext('host.pid')),
+        'ppid': raw.get('ppid', ext('host.ppid')),
+        'parent_cmd': raw.get('parent_cmd') or ext('host.parent_cmd', default=''),
+        'file_path': raw.get('file_path') or raw.get('path') or ext('host.file_path', 'host.path', default=''),
+        'path': raw.get('path') or raw.get('file_path') or ext('host.path', 'host.file_path', default=''),
+        'operation': raw.get('operation') or ext('host.operation', default=''),
+        'env': raw.get('env') or ext('host.env', default=''),
+        'target_ip': raw.get('target_ip') or ext('host.target_ip'),
+        'file_sha256': raw.get('file_sha256') or ext('host.file_sha256'),
+        'starttime': raw.get('starttime') or ext('host.starttime'),
+        'src_ip': network.get('src_ip') or raw.get('src_ip') or ext('host.src_ip'),
+        'dest_ip': network.get('dst_ip') or network.get('dest_ip') or raw.get('dest_ip') or ext('host.dest_ip'),
+        'src_port': network.get('src_port') or raw.get('src_port') or ext('host.src_port'),
+        'dest_port': network.get('dst_port') or network.get('dest_port') or raw.get('dest_port') or ext('host.dest_port'),
+        'proto': network.get('proto') or raw.get('proto') or ext('host.proto'),
+    }
+
+
+def _run_teams(store, config, pipeline):
+    manager = getattr(pipeline, '_team_manager', None)
+    if manager is None:
+        manager = CorrelationManager(store, config, pipeline)
+        for team_cls in (HostTeamLead, IdentityTeamLead, FileTeamLead, NetworkTeamLead):
+            manager.register_team(team_cls(store, config, pipeline))
+        pipeline._team_manager = manager
+    return manager.tick()
+
+
+def _run_smart_rules(store, engine, start_cursor):
+    rows = store.db.execute(
+        "SELECT id, body FROM records WHERE kind='normalized' AND id>? ORDER BY id ASC LIMIT ?",
+        (int(start_cursor), SMART_BATCH_LIMIT),
+    ).fetchall()
+
+    fresh = []
+    processed = 0
+    last_id = int(start_cursor)
+    errors = 0
+
+    for rid, body_str in rows:
+        try:
+            event = _smart_event(rid, body_str)
+            if event.get('origin') == 'satsuma':
+                continue
+            for finding in engine.match(event):
+                if not _recordable(finding):
+                    continue
+                finding['team'] = 'smart_rules'
+                annotate_origin(finding, event)
+                result = record_finding(store, finding, 'smart_rules')
+                finding['_dedup'] = result
+                if result.get('written'):
+                    fresh.append(finding)
+            processed += 1
+            last_id = int(rid)
+        except Exception as exc:
+            errors += 1
+            store.add('errors', {
+                'component': 'brain.smart_rules.event',
+                'record_id': rid,
+                'error': str(exc)[:300],
+            })
+            break
+
+    # Commit only the last successfully persisted record; failed events retry.
+    if rows:
+        store.set(SMART_CURSOR_KEY, last_id)
+
+    return fresh, {
+        'processed_events': processed,
+        'event_errors': errors,
+        'cursor_start': int(start_cursor),
+        'cursor_end': last_id,
+        'batch_size': len(rows),
+        'backlog_remaining': len(rows) >= SMART_BATCH_LIMIT,
+    }
+
+
+def _canonical_actions(finding):
+    return [canonical_action(token) for token in normalize_action_spec(finding.get('actions') or [])]
+
+
+def _automatic_actions(store, config, findings):
+    # Compatibility function name for older diagnostics; no tickets are created.
+    engine = AutoActionEngine(store, config)
+    processed = duplicate = 0
+    from satsuma.auto_process import corroborate
+    confirmed = corroborate(findings)
+    for finding in confirmed:
+        store.add('findings', finding)
+    for finding in [*findings, *confirmed]:
+        result = engine.process(finding)
+        if result.get('status') == 'duplicate':
+            duplicate += 1
+        else:
+            processed += 1
+    return processed, 0, duplicate
+
+
+def _dispatch_safe_actions(pipeline, findings):
+    """Production non-destructive action dispatch.
+
+    Only explicit allow-listed actions reach :class:`SafeActionBroker`.
+    Destructive action names are left on the existing response_policy gate.
+    Unknown actions fail closed and are recorded as denied; the broker itself
+    also refuses them.  A per-finding/per-action key prevents duplicate
+    execution when the same finding reaches the dispatcher through more than
+    one source list.
+    """
+    broker = SafeActionBroker(pipeline.store, pipeline.config)
+    seen = set()
+    dispatched = 0
+    denied = 0
+    for finding in findings or []:
+        if not isinstance(finding, dict):
+            continue
+        finding_id = str(finding.get('finding_id') or ('obj:' + str(id(finding))))
+        event = finding.get('event') if isinstance(finding.get('event'), dict) else {}
+        context = {'finding': finding, 'finding_id': finding_id, 'event': event}
+        for token in normalize_action_spec(finding.get('actions') or []):
+            canonical = canonical_action(token)
+            if canonical not in SAFE_ACTIONS and canonical not in DESTRUCTIVE_ACTIONS:
+                # notify_admin is an existing non-destructive response path in
+                # _confirmed_actions and is not part of the broker contract.
+                if canonical == 'notify':
+                    continue
+                key = (finding_id, canonical)
+                if key in seen:
+                    continue
+                seen.add(key)
+                result = broker.dispatch(canonical, context)
+                if result.get('status') == 'unknown_action':
+                    denied += 1
+                    pipeline.store.add('actions', {
+                        'timestamp': time.time(),
+                        'status': 'unknown_action_denied',
+                        'action': token,
+                        'canonical_action': canonical,
+                        'finding_id': finding_id,
+                        'rule_id': finding.get('rule_id'),
+                        'executed': False,
+                    })
+                continue
+            if canonical in DESTRUCTIVE_ACTIONS:
+                # Destructive actions must flow through response_policy below.
+                continue
+            key = (finding_id, canonical)
+            if key in seen:
+                continue
+            seen.add(key)
+            result = broker.dispatch(canonical, context)
+            if result.get('status') not in {
+                'unknown_action', 'blocked_destructive', 'failed',
+            }:
+                dispatched += 1
+    return {'safe_actions_dispatched': dispatched, 'unknown_actions_denied': denied}
+
+
+def _sudo_autoblock(pipeline, findings, config):
+    # Sudo is gated BEFORE exec by PAM; no kill/allowlist race.
+    return 0
+
+
+def _confirmed_actions(pipeline, findings):
+    """Yalnizca explicit CONFIRMED finding icin destructive action uygula.
+
+    Kurala ait action listesi yoksa Brain kendiliginden aksiyon icat etmez.
+    """
+    count = 0
+    notified = 0
+    for finding in findings:
+        classification = str(finding.get('classification', 'suspicious')).lower()
+        actions = set(finding.get('actions') or [])
+
+        # likely/confirmed bildirim yapabilir, sistem durumunu degistirmez.
+        if 'notify_admin' in actions and classification in {'likely', 'confirmed'}:
+            pipeline.response.notify_admin(
+                'Satsuma Guvenlik Bulgusu',
+                f"{finding.get('rule_id') or finding.get('type')}: {finding.get('summary') or finding.get('rule_name', '')}",
+                'critical' if finding.get('severity') == 'critical' else 'normal',
+            )
+            notified += 1
+
+        if 'block_ip' in actions and classification in ('likely','confirmed'):
+            from satsuma.auto_network import respond
+            event = finding.get('event') or {}
+            target = event.get('dest_ip') or event.get('src_ip') or finding.get('dst_ip') or finding.get('src_ip')
+            result = respond(pipeline.response, finding, target, str(finding.get('rule_id') or finding.get('type')))
+            if result.get('status') == 'set_membership_confirmed': count += 1
+            actions.discard('block_ip')
+        if classification != 'confirmed':
+            continue
+
+        event = finding.get('event') if isinstance(finding.get('event'), dict) else {}
+        reason = f"confirmed: {finding.get('rule_id') or finding.get('type', 'finding')}"
+
+        if 'block_ip' in actions:
+            candidate = event.get('dest_ip') or event.get('src_ip') or finding.get('dst_ip') or finding.get('src_ip')
+            if candidate:
+                try:
+                    addr = ipaddress.ip_address(candidate)
+                except (ValueError, TypeError):
+                    addr = None
+                if addr is not None and addr.is_global:
+                    # A rule/event finding is never sufficient by itself.  The
+                    # gate requires response_enabled + confirmed classification
+                    # + multi-source correlation + explicit policy + fail-safe.
+                    auth = authorize_destructive(
+                        'network_isolate', finding, pipeline.config,
+                        context={'target_ip': str(addr), 'manual': False}, evidence_store=pipeline.store,
+                    )
+                    if auth.allowed:
+                        result = pipeline.response.block_ip(str(addr), reason, manual=False)
+                        if result.get('status') == 'blocked':
+                            count += 1
+                    else:
+                        try:
+                            record = denied_action_record(auth, finding)
+                            record['target_ip'] = str(addr)
+                            pipeline.store.add('actions', record)
+                        except Exception:
+                            pass
+
+        if 'quarantine_file' in actions:
+            path = event.get('file_path') or event.get('path') or finding.get('path')
+            if path:
+                auth = authorize_destructive(
+                    'file_quarantine', finding, pipeline.config,
+                    context={'path': path, 'manual': False}, evidence_store=pipeline.store,
+                )
+                if auth.allowed:
+                    result = pipeline.response.quarantine_file(path, reason)
+                    if result.get('status') == 'quarantined':
+                        count += 1
+                else:
+                    try:
+                        record = denied_action_record(auth, finding)
+                        record['path'] = path
+                        pipeline.store.add('actions', record)
+                    except Exception:
+                        pass
+
+        # kill_process remains approval/manual-policy-only.  The BPF/process
+        # kill methods are never invoked here merely because a rule matched.
+
+    return count, notified
+
+
+@contextlib.contextmanager
+def _timed(phases, name):
+    """Add the wall time of one phase of a turn, in milliseconds, to ``phases``.
+
+    Bir turun bir aşamasının duvar saati süresini (ms) ``phases`` içine ekler.
+    """
+    start = time.monotonic()
+    try:
+        yield
+    finally:
+        phases[name] = phases.get(name, 0) + int((time.monotonic() - start) * 1000)
+
+
+def _recordable(finding):
+    """Only a suspicious process is written down (user decision 2026-11-04).
+
+    Suspicious, likely and confirmed findings, and any finding the stop policy
+    may act on, are recorded; log-only and indicator findings stay in the flow.
+    """
+    from satsuma import enforcement
+    if finding.get('log_only'):
+        return enforcement.eligible(finding) and str(finding.get('classification', '')).lower() != 'indicator'
+    return str(finding.get('classification', '')).lower() in ('suspicious', 'likely', 'confirmed') or enforcement.eligible(finding)
+
+
+def _flow_tick(store, config, pipeline, engine, flow, receiver, limit=5000, short_window=None, deep_lane=None):
+    """Evaluate the events that arrived in the flow and act at once.
+
+    Akışa gelen olayları değerlendirir ve hemen harekete geçer.
+    """
+    bodies = receiver.drain(limit)
+    fresh = []
+    for body in bodies:
+        if not isinstance(body, dict) or not isinstance(body.get('event'), dict):
+            continue
+        flow.add(body)
+        if body.get('own'):
+            # Satsuma's own command: kept in the process chain, never evaluated.
+            continue
+        try:
+            event = _smart_event(body.get('raw_id'), json.dumps({'raw_id': body.get('raw_id'), 'event': body['event']}, default=str))
+            # No evidence window is required for legacy callers. Live mode
+            # provides a bounded instance, owned by Smart Rules only.
+            short_evidence = short_window.observe(event) if short_window is not None else None
+            if deep_lane is not None:
+                deep_lane.submit({**event, 'lab_test_mode': store.get('interactive_process_test_mode', False) is True})  # only privileged local setting; never authorizes actions
+            for finding in engine.match(event):
+                if not _recordable(finding):
+                    continue
+                finding['team'] = 'smart_rules'
+                annotate_origin(finding, event)
+                if short_evidence is not None:
+                    finding['short_evidence'] = short_evidence
+                identity = finding.get('event') or {}
+                finding['flow'] = flow.snapshot(identity.get('pid'), identity.get('starttime'))
+                result = record_finding(store, finding, 'smart_rules')
+                finding['_dedup'] = result
+                if result.get('written'):
+                    fresh.append(finding)
+        except Exception as exc:
+            store.add('errors', {'component': 'brain.flow.event', 'error': str(exc)[:300]})
+    if fresh:
+        _dispatch_safe_actions(pipeline, fresh)
+        _automatic_actions(store, config, fresh)
+        _sudo_autoblock(pipeline, fresh, config)
+        _confirmed_actions(pipeline, fresh)
+        if config.get('investigation_enabled', True):
+            try:
+                from satsuma.investigation import investigate_and_record
+                for finding in fresh:
+                    investigate_and_record(store, finding, config)
+            except Exception as exc:
+                store.add('errors', {'component': 'brain.flow.investigation', 'error': str(exc)[:300]})
+    return {'events': len(bodies), 'findings': len(fresh)}
+
+
+def _purge_raw_records(db_path=None, chunk=5000, pause=0.2):
+    """One-time removal of stored raw events (user decision 2026-11-04).
+
+    Normalized rows and raw host/Suricata events go; findings, investigations,
+    actions and evidence stay. Runs in small chunks in its own connection.
+    """
+    import sqlite3
+    db = sqlite3.connect(str(db_path or '/var/lib/satsuma-core/core.db'), timeout=30)
+    try:
+        if db.execute("SELECT body FROM state WHERE key='flow.raw_purge_done'").fetchone():
+            return 0
+        removed = 0
+        raw_events = ("kind='events' AND COALESCE(json_extract(body,'$.event.category'),'')!='finding' "
+                      "AND json_extract(body,'$.metadata.finding') IS NULL")
+        for condition in ("kind='normalized'", raw_events):
+            while not shutdown.requested():
+                cursor = db.execute(f"DELETE FROM records WHERE id IN (SELECT id FROM records WHERE {condition} LIMIT ?)", (chunk,))
+                db.commit()
+                removed += cursor.rowcount
+                if cursor.rowcount < chunk:
+                    break
+                time.sleep(pause)
+        if not shutdown.requested():
+            db.execute("INSERT OR REPLACE INTO state(key,body) VALUES('flow.raw_purge_done',?)",
+                       (json.dumps({'removed': removed, 'at': time.time()}),))
+            db.commit()
+        return removed
+    finally:
+        db.close()
+
+
+def _run_once(store, config, pipeline, smart_engine, rule_stats, run_teams=True):
+    """Tek bir Brain turu: teams + correlation + smart rules + dispatch.
+
+    Donen deger: health sozlugu.
+    """
+    from satsuma.process_followup import tick as followup_tick
+    phases = {}
+    if not shutdown.requested():
+        try:
+            with _timed(phases, 'followup'):
+                followup_tick(store)
+        except Exception as exc:
+            store.add('errors',{'component':'process_followup','error':type(exc).__name__})
+            store.set('process_followup.health',{'updated_at':time.time(),'status':'ERROR','error':type(exc).__name__})
+    smart_engine.refresh_managed_rules()
+    rule_stats = smart_engine.stats()
+    store.set('deepseek_runtime', {'updated_at': time.time(), 'loaded': rule_stats.get('managed_packages', {}),
+                                 'load_errors': rule_stats.get('load_errors', [])})
+    started = time.time()
+    # Ilk 0.5 calismasinda eski normalized gecmisi tekrar alarm yapmasin.
+    cursor = store.get(SMART_CURSOR_KEY, None)
+    if cursor is None:
+        cursor = 0
+        store.set(SMART_CURSOR_KEY, cursor)
+
+    try:
+        with _timed(phases, 'teams'):
+            # Field 2026-11-04: the team collectors took 40 s per round and held
+            # the rule engine back; between team rounds only the rules run.
+            team_result = _run_teams(store, config, pipeline) if run_teams else {'ok': True, 'teams': 0, 'findings': 0, 'cross_team': 0, 'findings_list': [], 'skipped': True}
+        team_findings = team_result.get('findings_list', []) or []
+    except Exception as exc:
+        team_result = {'teams': 0, 'findings': 0, 'cross_team': 0, 'findings_list': []}
+        team_findings = []
+        store.add('errors', {'component': 'brain.teams', 'error': str(exc)[:300]})
+
+    correlation_failed = False
+    investigation_failed = False
+    stopping = shutdown.requested()
+    try:
+        with _timed(phases, 'correlation'):
+            engine_findings = [] if stopping or not run_teams else CorrelationEngine(store, config).correlate()
+    except Exception as exc:
+        engine_findings = []
+        correlation_failed = True
+        store.add('errors', {'component': 'brain.correlation_engine', 'error': str(exc)[:300]})
+
+    try:
+        if stopping:
+            # The cursor stays put; these events are read after the restart.
+            smart_findings, smart_health = [], {'processed_events': 0, 'event_errors': 0, 'cursor_start': cursor, 'cursor_end': cursor, 'stopped': True}
+        else:
+            with _timed(phases, 'smart_rules'):
+                smart_findings, smart_health = _run_smart_rules(store, smart_engine, cursor)
+    except Exception as exc:
+        smart_findings = []
+        smart_health = {'processed_events': 0, 'event_errors': 1, 'cursor_start': cursor, 'cursor_end': cursor}
+        store.add('errors', {'component': 'brain.smart_rules', 'error': str(exc)[:300]})
+
+    all_findings = team_findings + engine_findings + smart_findings
+
+    # Field 2026-11-04: stopping decisions came after every finding had been
+    # investigated; actions now run first, investigation afterwards.
+    with _timed(phases, 'safe_dispatch'):
+        safe_dispatch = _dispatch_safe_actions(pipeline, all_findings)
+    with _timed(phases, 'automatic_actions'):
+        auto_processed, auto_updated, auto_duplicates = _automatic_actions(store, config, all_findings)
+    sudo_killed = _sudo_autoblock(pipeline, all_findings, config)
+    with _timed(phases, 'confirmed_actions'):
+        actions, notifications = _confirmed_actions(pipeline, all_findings)
+
+    # Investigation engine — her bulguyu yerel olarak araştır (süreç rolü takibi).
+    # Web araştırması yalnızca config açıksa çalışır (varsayılan kapalı).
+    investigation_count = 0
+    if config.get("investigation_enabled", True):
+        try:
+            from satsuma.investigation import investigate_and_record
+            with _timed(phases, 'investigation'):
+                for finding in all_findings:
+                    investigate_and_record(store, finding, config)
+                    investigation_count += 1
+        except Exception as exc:
+            investigation_failed = True
+            store.add("errors", {"component": "brain.investigation", "error": str(exc)[:300]})
+    elapsed = int((time.time() - started) * 1000)
+    health = {
+        'updated_at': int(time.time()),
+        'status': 'STOPPING' if shutdown.requested() else 'DEGRADED' if rule_stats.get('invalid_files') or smart_health.get('event_errors') or not team_result.get('ok',False) or correlation_failed or investigation_failed or store.get('correlation_engine.health', {}).get('status') == 'DEGRADED' else 'RUNNING',
+        'teams': team_result.get('teams', 0),
+        'team_findings_new': len(team_findings),
+        'engine_findings_new': len(engine_findings),
+        'smart_findings_new': len(smart_findings),
+        'smart_rules_total': rule_stats.get('total_rules', 0),
+        'smart_rule_classifications': rule_stats.get('classifications', {}),
+        'smart_rule_load_errors': rule_stats.get('load_errors', []),
+        'smart': smart_health,
+        'auto_actions_processed': auto_processed,
+        'auto_actions_updated': auto_updated,
+        'auto_action_duplicates': auto_duplicates,
+        'automatic_destructive_actions': actions,
+        'sudo_autoblock_killed': sudo_killed,
+        'notifications': notifications,
+        'safe_action_dispatch': safe_dispatch,
+        'cross_team_new': team_result.get('new_cross_team', team_result.get('cross_team', 0)),
+        'elapsed_ms': elapsed,
+        'phase_ms': phases,
+        'response_enabled': bool(config.get('response_enabled', False)),
+        'response_policy': 'automatic_network_policy; process_termination_requires_confirmed_independent_evidence_and_identity',
+    }
+    store.set('brain.health', health)
+    return health
+
+
+def main():
+    """Brain dongusu: periyodik olarak _run_once cagirir.
+
+    systemd Type=simple ile surekli calisir. Her tur arasinda BRAIN_INTERVAL
+    saniye bekler. SIGTERM/SIGINT ile temiz kapanir.
+    """
+    import signal
+    from satsuma.memory_access import protect_self
+    protect_self()
+
+    interval = float(os.environ.get('SATSUMA_BRAIN_INTERVAL', '10'))
+    # Team collectors run at most this often; the rule engine runs every round.
+    teams_interval = float(os.environ.get('SATSUMA_TEAMS_INTERVAL', '30'))
+    last_teams = -teams_interval
+    running = True
+
+    def _stop(*_):
+        nonlocal running
+        running = False
+        shutdown.request()
+
+    signal.signal(signal.SIGTERM, _stop)
+    signal.signal(signal.SIGINT, _stop)
+
+    store = Store()
+    try:
+        config = load()
+        config['early_guard_required']=True
+        pipeline = Pipeline(store, config)
+        smart_engine = SmartRuleEngine()
+        rule_stats = smart_engine.stats()
+        # Event flow (2.2.32): events arrive here instead of the database.
+        from satsuma import flow as flow_module
+        process_flow = flow_module.ProcessFlow(window=float(config.get('flow_window_seconds', 1800)))
+        short_window = ShortEvidenceWindow()
+        deep_lane = None
+        deep_lane_error = None
+        try:
+            from satsuma_engine.process_ipc import DeepProcessClient
+            deep_lane = DeepProcessClient()
+        except Exception as exc:
+            deep_lane_error = type(exc).__name__
+            store.add('errors', {'component': 'brain.deep_engine.start', 'error': deep_lane_error})
+        receiver = flow_module.FlowReceiver()
+        try:
+            receiver.start()
+        except OSError as exc:
+            store.add('errors', {'component': 'brain.flow.socket', 'error': str(exc)[:300]})
+        flow_module.ACTIVE = process_flow
+        pipeline.flow_sink = receiver.put
+        import threading
+        threading.Thread(target=_purge_raw_records, name='satsuma-raw-purge', daemon=True).start()
+        last_flow_health = 0.0
+
+        def flow_step():
+            nonlocal last_flow_health
+            try:
+                _flow_tick(store, config, pipeline, smart_engine, process_flow, receiver, short_window=short_window, deep_lane=deep_lane)
+            except Exception as exc:
+                store.add('errors', {'component': 'brain.flow', 'error': str(exc)[:300]})
+            if time.monotonic() - last_flow_health >= 5:
+                last_flow_health = time.monotonic()
+                store.set('flow.health', {'updated_at': time.time(), 'receiver': receiver.health(),
+                                          'processes': process_flow.health(), 'smart_short_evidence': short_window.health(),
+                                          'deep_engine': deep_lane.health() if deep_lane else {'running': False, 'error': deep_lane_error},
+                                          'socket': str(flow_module.SOCKET)})
+        while running:
+            start = time.monotonic()
+            health = None
+            try:
+                run_teams = time.monotonic() - last_teams >= teams_interval
+                health = _run_once(store, config, pipeline, smart_engine, rule_stats, run_teams=run_teams)
+                if deep_lane is not None:
+                    for evidence in deep_lane.drain(8):
+                        # Not forwarded to enforcement, only archived as bounded evidence.
+                        # Do not persist lab suggestions after test mode is turned off.
+                        # These are review evidence, not process approval/execution.
+                        if evidence.get('test_rule') is True and store.get('interactive_process_test_mode', False) is not True:
+                            continue
+                        store.add('deep_engine_evidence', evidence)
+                        if evidence.get('test_rule') is True and evidence.get('review_required') is True:
+                            from satsuma.deep_rule_review import enqueue as queue_deep_review
+                            queue_deep_review(store, evidence)
+                if run_teams:
+                    last_teams = time.monotonic()
+                print(json.dumps(health, ensure_ascii=False), flush=True)
+            except Exception as exc:
+                store.add('errors', {'component': 'brain.loop', 'error': str(exc)[:300]})
+                store.set('brain.health', {
+                    'updated_at': int(time.time()),
+                    'status': 'ERROR',
+                    'error': str(exc)[:300],
+                })
+            # Field 2026-11-04: with a backlog, the next round starts at once
+            # (decisions were up to 38 minutes behind the events).
+            if isinstance(health, dict) and (health.get('smart') or {}).get('backlog_remaining'):
+                flow_step()
+                continue
+            # Tur arasi bekleme (SIGTERM'e duyarli); the flow is served meanwhile.
+            while running and time.monotonic() - start < interval:
+                flow_step()
+                time.sleep(0.25)
+        return 0
+    finally:
+        if locals().get('deep_lane') is not None:
+            deep_lane.close()
+        try:
+            receiver.close()
+        except NameError:
+            pass
+        manager=getattr(pipeline, '_team_manager', None)
+        if manager:
+            for team in manager.teams:
+                for worker in team.worker_instances:
+                    if hasattr(worker, 'close'):worker.close()
+        store.close()
+
+
+if __name__ == '__main__':
+    from satsuma.integrity_monitor import assess_runtime
+    assessment=assess_runtime()
+    if assessment['status']!='HEALTHY':
+        print('SATSUMA INTEGRITY WARNING: correlation continues; mutations locked: '+assessment.get('error',''),file=sys.stderr)
+        state=Store()
+        try:
+            state.set('integrity_runtime',assessment)
+            state.add('errors',{'component':'brain.integrity',**assessment})
+        finally:state.close()
+    sys.exit(main())

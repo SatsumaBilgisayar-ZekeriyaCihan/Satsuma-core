@@ -1,0 +1,134 @@
+- id: SATSUMA-IMP-001
+  name: Şifreleme/arşivleme aracı kullanımı — faaliyet göstergesi
+  mitre:
+    tactic: Impact
+    technique: T1486
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - openssl enc
+    - gpg -c
+    - 7z a -p
+    - rar a -p
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+- id: SATSUMA-IMP-002
+  name: Disk silme
+  mitre:
+    tactic: Impact
+    technique: T1485
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - dd if=/dev/zero
+    - shred -vfz
+    - wipefs
+    - mkfs.ext4 /dev/sd
+    - mkfs.ext4 /dev/nvme
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-IMP-003
+  name: Veri sızdırma — faaliyet göstergesi
+  mitre:
+    tactic: Exfiltration
+    technique: T1041
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - curl -T
+    - wget --post-file
+    - ftp -u
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-IMP-004
+  name: Servis durdurma/deaktivasyon komutu — faaliyet göstergesi
+  mitre:
+    tactic: Impact
+    technique: T1489
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_regex_cs:
+    - ^service\s+\S+\s+stop(?:\s|$)
+    - ^systemctl\s+(?:--\S+\s+)*(?:stop|disable)(?:\s|$)
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+- id: SATSUMA-IMP-005
+  name: Defacement — faaliyet göstergesi
+  mitre:
+    tactic: Impact
+    technique: T1491
+  severity: medium
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /var/www/html/*
+    - /usr/share/nginx/html/*
+    operation: write
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-IMP-006
+  name: Kaynak tüketimi — faaliyet göstergesi
+  mitre:
+    tactic: Impact
+    technique: T1499
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - stress
+    - stress-ng
+    - fork bomb
+    - ':(){ :|:& };:'
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low

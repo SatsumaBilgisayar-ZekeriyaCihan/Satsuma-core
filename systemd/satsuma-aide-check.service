@@ -1,0 +1,30 @@
+[Unit]
+Description=Satsuma AIDE guard: compare the machine with the snapshot taken after setup
+# Lists every change with how it can be undone; nothing is undone here.
+# Undoing needs the root command: satsuma-admin aide geri-al <yol>.
+# Kurulumdan sonra alınan örnekle karşılaştırır; geri alma yalnızca onayla.
+Requires=satsuma-image.service
+After=satsuma-image.service local-fs.target
+RequiresMountsFor=/opt/satsuma-core /var/lib/satsuma-core
+
+[Service]
+Environment=PATH=/usr/sbin:/usr/bin
+Environment=PYTHONDONTWRITEBYTECODE=1
+Type=oneshot
+User=root
+WorkingDirectory=/opt/satsuma-core
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -E -s -B -m satsuma.aide_guard --check
+SuccessExitStatus=0
+UMask=0077
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/satsuma-core
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE CAP_FOWNER
+RestrictAddressFamilies=AF_UNIX
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictNamespaces=yes
+TimeoutStartSec=2h

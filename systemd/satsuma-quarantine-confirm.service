@@ -1,0 +1,10 @@
+[Unit]
+Description=Satsuma: confirm quarantined programs after a completed boot
+After=multi-user.target
+ConditionDirectoryNotEmpty=/var/lib/satsuma-core/quarantine-pending
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+Type=oneshot
+ExecStart=/usr/libexec/satsuma-quarantine-rollback confirm

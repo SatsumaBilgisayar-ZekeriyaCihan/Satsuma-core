@@ -1,0 +1,84 @@
+- id: SATSUMA-RAM-001
+  name: Anonim yazılabilir/çalıştırılabilir bellek bölgesi
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: memory
+  base_match:
+    source: memory
+    action: anonymous_rwx
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - memory.action
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - JIT, paket güncellemesi veya meşru memfd kullanımı; tek başına saldırı kanıtı
+    değildir.
+- id: SATSUMA-RAM-002
+  name: Memfd üzerinden çalışan süreç
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: memory
+  base_match:
+    source: memory
+    action: memfd_executable
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - memory.action
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - JIT, paket güncellemesi veya meşru memfd kullanımı; tek başına saldırı kanıtı
+    değildir.
+- id: SATSUMA-RAM-003
+  name: Çalıştırılabilir memfd eşlemesi
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: memory
+  base_match:
+    source: memory
+    action: memfd_mapping
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - memory.action
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - JIT, paket güncellemesi veya meşru memfd kullanımı; tek başına saldırı kanıtı
+    değildir.
+- id: SATSUMA-RAM-004
+  name: Silinmiş yürütülebilir dosyadan çalışan süreç
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: memory
+  base_match:
+    source: memory
+    action: deleted_executable
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - memory.action
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - JIT, paket güncellemesi veya meşru memfd kullanımı; tek başına saldırı kanıtı
+    değildir.

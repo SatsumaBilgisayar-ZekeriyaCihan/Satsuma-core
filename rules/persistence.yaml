@@ -1,0 +1,235 @@
+- id: SATSUMA-PERS-001
+  name: Crontab değişikliği
+  mitre:
+    tactic: Persistence
+    technique: T1053.003
+  severity: high
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /var/spool/cron/*
+    - /etc/crontab
+    - /etc/cron.d/*
+    - /etc/cron.hourly/*
+    - /etc/cron.daily/*
+    - /etc/cron.weekly/*
+    - /etc/cron.monthly/*
+    operation: write
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PERS-002
+  name: Systemd servis ekleme
+  mitre:
+    tactic: Persistence
+    technique: T1543.002
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /etc/systemd/system/*.service
+    - /lib/systemd/system/*.service
+    - /usr/lib/systemd/system/*.service
+    - /etc/systemd/system/*.service.d/*.conf
+    - /home/*/.config/systemd/user/*.service
+    operation: write
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PERS-003
+  name: SSH authorized_keys ekleme
+  mitre:
+    tactic: Persistence
+    technique: T1098.004
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /root/.ssh/authorized_keys
+    - /home/*/.ssh/authorized_keys
+    operation: write
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PERS-004
+  name: Bashrc/Profile değişikliği
+  mitre:
+    tactic: Persistence
+    technique: T1546.004
+  severity: high
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /root/.bashrc
+    - /root/.profile
+    - /home/*/.bashrc
+    - /home/*/.profile
+    - /etc/profile
+    - /etc/profile.d/*
+    - /home/*/.bash_profile
+    - /root/.bash_profile
+    operation: write
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PERS-005
+  name: Init.d/SysV servis
+  mitre:
+    tactic: Persistence
+    technique: T1037
+  severity: high
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /etc/init.d/*
+    - /etc/rc*.d/*
+    operation: write
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PERS-006
+  name: XDG autostart
+  mitre:
+    tactic: Persistence
+    technique: T1547
+  severity: medium
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /etc/xdg/autostart/*
+    - /home/*/.config/autostart/*
+    - /root/.config/autostart/*
+    operation: write
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PERS-007
+  name: Kernel modülü kalıcılık
+  mitre:
+    tactic: Persistence
+    technique: T1547.006
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /etc/modules
+    - /etc/modules-load.d/*
+    - /etc/modprobe.d/*
+    operation: write
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-PERS-008
+  name: PAM backdoor
+  mitre:
+    tactic: Persistence
+    technique: T1556.003
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /etc/pam.d/*
+    - /lib/security/pam_*.so
+    - /lib64/security/pam_*.so
+    - /usr/lib/security/pam_*.so
+    - /usr/lib64/security/pam_*.so
+    operation: write
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - audit.file_path
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.

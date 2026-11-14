@@ -1,0 +1,94 @@
+- id: SATSUMA-C2-001
+  name: Ters shell
+  mitre:
+    tactic: Command and Control
+    technique: T1059.004
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - bash -i >& /dev/tcp
+    - nc -e /bin/bash
+    - python3 -c 'import socket
+    cmd_regex:
+    - /dev/tcp/|nc\s+-e\s+/bin/(?:ba)?sh|(?:connect|create_connection)\s*\(|dup2|pty\.spawn|/bin/(?:ba)?sh
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: likely
+  confidence: high
+  dedup_group: reverse_shell
+- id: SATSUMA-C2-002
+  name: Netcat kullanımı
+  mitre:
+    tactic: Command and Control
+    technique: T1059
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - nc -lvnp
+    - nc -l
+    - ncat -l
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+- id: SATSUMA-C2-003
+  name: DNS tünelleme
+  mitre:
+    tactic: Command and Control
+    technique: T1071.004
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - iodine
+    - dnscat2
+    - dns2tcp
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+- id: SATSUMA-C2-004
+  name: HTTP POST aktarım göstergesi
+  mitre:
+    tactic: Command and Control
+    technique: T1071.001
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - curl -X POST
+    - wget --post-data
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-C2-005
+  name: ICMP tünelleme
+  mitre:
+    tactic: Command and Control
+    technique: T1095
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - ptunnel
+    - icmptunnel
+    - hans
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium

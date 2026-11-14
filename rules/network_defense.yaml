@@ -1,0 +1,76 @@
+- id: SATSUMA-NET-201
+  name: Yeni dinleme portu göstergesi
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: network
+  base_match:
+    source: sys_proc
+    action: new_port
+  actions:
+  - record
+  - evidence
+  - network_inventory
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.action
+  proof_level: HARDENING
+  false_positives:
+  - Yetkili servis kurulumu veya ağ yapılandırması; audit kapsamına bağlıdır.
+- id: SATSUMA-NET-202
+  name: Kalıcı firewall yapılandırmasına yazma
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: network
+  base_match:
+    source: audit
+    action: file_access
+    operation: write
+    file_path:
+    - /etc/nftables.conf
+    - /etc/nftables.d/*
+    - /etc/firewalld/*
+    - /etc/ufw/*
+  actions:
+  - record
+  - evidence
+  - network_inventory
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - audit.action
+  proof_level: HARDENING
+  false_positives:
+  - Yetkili servis kurulumu veya ağ yapılandırması; audit kapsamına bağlıdır.
+- id: SATSUMA-NET-203
+  name: DNS resolver yapılandırmasına yazma
+  severity: medium
+  classification: indicator
+  confidence: low
+  category: network
+  base_match:
+    source: audit
+    action: file_access
+    operation: write
+    file_path:
+    - /etc/resolv.conf
+    - /etc/dnsmasq.conf
+    - /etc/dnsmasq.d/*
+    - /etc/systemd/resolved.conf
+    - /etc/systemd/resolved.conf.d/*
+  actions:
+  - record
+  - evidence
+  - network_inventory
+  - correlation_request
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - audit.action
+  proof_level: HARDENING
+  false_positives:
+  - Yetkili servis kurulumu veya ağ yapılandırması; audit kapsamına bağlıdır.

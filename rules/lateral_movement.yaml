@@ -1,0 +1,142 @@
+- id: SATSUMA-LAT-001
+  name: SSH yanal hareket — faaliyet göstergesi
+  mitre:
+    tactic: Lateral Movement
+    technique: T1021.004
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - ssh -o StrictHostKeyChecking=no
+    - sshpass -p
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-LAT-002
+  name: SCP/Rsync transfer — faaliyet göstergesi
+  mitre:
+    tactic: Lateral Movement
+    technique: T1021.004
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - scp /etc/
+    - rsync -av /etc/
+    - scp /root/
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-LAT-003
+  name: SMB/CIFS aktarım göstergesi
+  mitre:
+    tactic: Lateral Movement
+    technique: T1021.002
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - smbclient
+    - mount -t cifs
+    - smbmap
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  dedup_group: smb_activity
+- id: SATSUMA-LAT-004
+  name: RDP bağlantısı — faaliyet göstergesi
+  mitre:
+    tactic: Lateral Movement
+    technique: T1021.001
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - xfreerdp
+    - rdesktop
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-LAT-005
+  name: VNC bağlantısı — faaliyet göstergesi
+  mitre:
+    tactic: Lateral Movement
+    technique: T1021.005
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - vncviewer
+    - xvncviewer
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.
+- id: SATSUMA-LAT-006
+  name: Ayrıcalıklı container/namespace yönetim göstergesi
+  mitre:
+    tactic: Privilege Escalation
+    technique: T1611
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - docker run --privileged
+    - docker exec -it
+    - nsenter
+  actions:
+  - record
+  - evidence
+  - correlation_request
+  classification: indicator
+  confidence: low
+  dedup_group: container_escape
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires:
+  - sys_proc.cmd
+  false_positives:
+  - Yetkili bakım, geliştirme veya güvenlik testi; sonuç ve korelasyon gerekir.

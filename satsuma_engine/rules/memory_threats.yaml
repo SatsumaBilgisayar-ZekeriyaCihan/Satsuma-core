@@ -1,0 +1,195 @@
+- schema: satsuma/v1
+  id: SATSUMA-MEM-001
+  title: RWX bellek bölgesi oluşturulması (shellcode göstergesi)
+  severity: high
+  classification: likely
+  confidence: high
+  category: defense-evasion
+  tags:
+  - linux
+  - memory
+  - shellcode
+  - ebpf
+  logsource:
+    kind: memory
+  match:
+    all:
+    - field: event.memory.region_perms
+      equals: rwx
+    - not:
+        field: event.exe
+        contains_any:
+        - java
+        - node
+        - dotnet
+        - libjvm
+  dedup:
+    key:
+    - event.host
+    - event.pid
+    window_seconds: 300
+  mitre:
+  - tactic: defense-evasion
+    technique: T1055
+  actions:
+  - create_ticket
+- schema: satsuma/v1
+  id: SATSUMA-MEM-002
+  title: Uzak sürece bellek yazma (process injection)
+  severity: critical
+  classification: likely
+  confidence: high
+  category: defense-evasion
+  tags:
+  - linux
+  - memory
+  - injection
+  - ptrace
+  - ebpf
+  logsource:
+    kind: memory
+  match:
+    any:
+    - field: event.action
+      equals: ptrace_attach
+    - field: event.memory.operation
+      contains_any:
+      - process_vm_writev
+      - ptrace_poketext
+  dedup:
+    key:
+    - event.host
+    - event.memory.target_pid
+    window_seconds: 600
+  mitre:
+  - tactic: defense-evasion
+    technique: T1055
+  actions:
+  - create_ticket
+  - ask_user
+- schema: satsuma/v1
+  id: SATSUMA-MEM-003
+  title: Dosyasız çalıştırma (memfd üzerinden exec)
+  severity: critical
+  classification: likely
+  confidence: high
+  category: execution
+  tags:
+  - linux
+  - memory
+  - fileless
+  - memfd
+  - ebpf
+  logsource:
+    kind: process
+  match:
+    any:
+    - field: event.exe
+      regex: ^/proc/(self|[0-9]+)/fd/[0-9]+
+    - field: event.memory.mapping_type
+      equals: memfd
+  dedup:
+    key:
+    - event.host
+    - event.pid
+    window_seconds: 300
+  mitre:
+  - tactic: defense-evasion
+    technique: T1620
+  actions:
+  - create_ticket
+  - ask_user
+- schema: satsuma/v1
+  id: SATSUMA-MEM-004
+  title: /proc/<pid>/mem üzerinden süreç belleğine yazma
+  severity: high
+  classification: likely
+  confidence: medium
+  category: defense-evasion
+  tags:
+  - linux
+  - memory
+  - injection
+  - procfs
+  logsource:
+    kind: memory
+  match:
+    all:
+    - field: event.path
+      regex: ^/proc/[0-9]+/mem$
+    - field: event.operation
+      equals: write
+  dedup:
+    key:
+    - event.host
+    - event.memory.target_pid
+    window_seconds: 600
+  mitre:
+  - tactic: defense-evasion
+    technique: T1055
+  actions:
+  - create_ticket
+- schema: satsuma/v1
+  id: SATSUMA-MEM-005
+  title: Silinmiş veya isimsiz dosyadan çalışan ikili
+  severity: high
+  classification: suspicious
+  confidence: medium
+  category: defense-evasion
+  tags:
+  - linux
+  - memory
+  - fileless
+  - deleted-binary
+  logsource:
+    kind: process
+  match:
+    any:
+    - field: event.exe
+      contains: (deleted)
+    - field: event.memory.mapping_type
+      equals: deleted_file
+  dedup:
+    key:
+    - event.host
+    - event.exe
+    window_seconds: 900
+  mitre:
+  - tactic: defense-evasion
+    technique: T1036
+  actions:
+  - create_ticket
+- schema: satsuma/v1
+  id: SATSUMA-MEM-006
+  title: Container içinden silinmiş ikiliyle dış bağlantı
+  severity: critical
+  classification: likely
+  confidence: high
+  category: command-and-control
+  tags:
+  - linux
+  - container
+  - memory
+  - c2
+  - ebpf
+  logsource:
+    kind: network
+  match:
+    all:
+    - field: event.identity.container_id
+      exists: true
+    - field: event.exe
+      contains: (deleted)
+    - field: event.dest_ip
+      exists: true
+  dedup:
+    key:
+    - event.host
+    - event.dest_ip
+    window_seconds: 600
+  mitre:
+  - tactic: command-and-control
+    technique: T1071
+  actions:
+  - create_ticket
+  - ask_user

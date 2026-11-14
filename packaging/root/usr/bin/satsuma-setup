@@ -1,0 +1,18 @@
+#!/bin/bash
+set -euo pipefail
+if [[ $EUID != 0 || ${1:-} != --user || -z ${2:-} ]]; then
+ echo 'Kullanım: sudo satsuma-setup --user MASAUSTU_KULLANICISI'
+ exit 2
+fi
+operator_user=$2
+[[ $(id -u "$operator_user") != 0 ]] || { echo 'Normal masaüstü kullanıcısını belirtin.'; exit 2; }
+/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/boot_setup.py --enroll-user "$operator_user"
+if [[ ! -f /etc/satsuma-core/admin.hash ]]; then satsuma-admin set-password; fi
+/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/service_setup.py
+systemctl daemon-reload
+# Verify the selected application image; never enroll modified files.
+/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/boot_setup.py
+systemctl restart satsuma-early-guard.service
+systemctl start satsuma-app-control.service
+systemctl start satsuma-core-gateway.service satsuma-core-sentinel.service satsuma-rescue.service satsuma-self-health.timer satsuma-udev.service satsuma-integrity-check.timer satsuma-suricata-otx-guard.service satsuma-suricata-ips.service satsuma-early-guard.service satsuma-network.service satsuma-network-modes.service satsuma-core.service satsuma-teams.service satsuma-reader.service satsuma-operator.service satsuma-guardian.service satsuma-core-audit.service satsuma-core-dns.service satsuma-core-otx.service satsuma-core-subnet.service satsuma-core-finding.service satsuma-core-security-scan.timer satsuma-core-dns-refresh.timer
+printf 'Kurulum yapılandırıldı. Grup üyeliği için oturumu kapatıp açın, sonra satsuma-dashboard çalıştırın.\nUygulama dosya doğrulaması otomatik yapılır. Suricata ağ arayüzü yapılandırmasını doğrulayın.\n'

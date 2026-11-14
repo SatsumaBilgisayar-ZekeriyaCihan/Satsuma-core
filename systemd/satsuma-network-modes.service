@@ -1,0 +1,17 @@
+[Unit]
+Requires=satsuma-image.service
+After=satsuma-image.service
+Description=Restore selected Satsuma LAN and DNS modes
+After=satsuma-network.service satsuma-core-dns.service satsuma-suricata-ips.service satsuma-app-control.service
+Requires=satsuma-network.service
+Wants=satsuma-core-dns.service
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/network_modes_setup.py
+
+[Install]
+WantedBy=multi-user.target

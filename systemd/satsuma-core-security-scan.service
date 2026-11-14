@@ -1,0 +1,35 @@
+[Unit]
+# The timer starts this every minute and each start exits at once unless the
+# hourly scan is due; a 3-starts-in-5-minutes limit made every 4th and 5th
+# start "failed" (field log 2026-10-26). No start limit for this unit.
+StartLimitIntervalSec=0
+Requires=satsuma-image.service
+After=satsuma-image.service
+Description=Satsuma Core core-security-scan
+After=network.target satsuma-network.service
+Requires=satsuma-network.service
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+RestartPreventExitStatus=78
+Type=oneshot
+TimeoutStartSec=50min
+User=root
+Group=root
+WorkingDirectory=/opt/satsuma-core
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/main.py --security-scan
+Restart=no
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+# 2.2.11: automatic quarantine moves detected files out of these places, and
+# /dev/shm must be the host's own (no PrivateDevices) to be scanned at all.
+ProtectHome=no
+ReadWritePaths=/var/lib/satsuma-core -/home -/root -/tmp -/var/tmp -/dev/shm -/opt -/usr/local -/srv -/usr/bin -/usr/sbin
+PrivateDevices=false
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE CAP_FOWNER CAP_CHOWN
+AmbientCapabilities=CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE CAP_FOWNER CAP_CHOWN
+[Install]
+WantedBy=multi-user.target

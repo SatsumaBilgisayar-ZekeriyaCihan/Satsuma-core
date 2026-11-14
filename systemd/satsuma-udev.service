@@ -1,0 +1,32 @@
+[Unit]
+StartLimitIntervalSec=300
+StartLimitBurst=3
+Requires=satsuma-image.service
+After=satsuma-image.service
+Description=Satsuma udev lifecycle and observed process-device correlation
+After=systemd-udevd.service satsuma-core.service
+Wants=systemd-udevd.service
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+RestartPreventExitStatus=78
+Type=simple
+User=root
+UMask=0077
+ExecStart=/usr/bin/python3 -I -B -X pycache_prefix=/run/satsuma-python-cache /opt/satsuma-core/installer/udev_worker.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/satsuma-core
+DevicePolicy=closed
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_SYS_PTRACE
+AmbientCapabilities=CAP_DAC_READ_SEARCH CAP_SYS_PTRACE
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+SystemCallFilter=~ptrace process_vm_readv process_vm_writev kcmp pidfd_getfd
+
+[Install]
+WantedBy=multi-user.target

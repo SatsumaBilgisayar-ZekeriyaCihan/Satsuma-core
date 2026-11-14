@@ -1,0 +1,8 @@
+[Unit]
+Description=Hourly Satsuma scanner
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1min
+Unit=satsuma-core-security-scan.service
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Satsuma Security
+Comment=Security monitoring and automatic action dashboard
+Exec=satsuma-dashboard
+Icon=security-high
+Terminal=false
+Categories=System;Security;

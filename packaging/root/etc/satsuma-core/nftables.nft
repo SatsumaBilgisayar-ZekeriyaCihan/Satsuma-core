@@ -1,0 +1,41 @@
+table inet satsuma_core {
+ comment "Satsuma Core managed"
+ set blocked_ips { type ipv4_addr; }
+ set blocked_ips_v6 { type ipv6_addr; }
+ chain input { type filter hook input priority 0; policy drop;
+  meta nfproto ipv6 counter drop
+  iifname "lo" ct state established,related accept
+  iifname "lo" tcp dport { 53, 5939 } accept
+  iifname "lo" udp dport 53 accept
+  iifname "lo" counter drop
+  ct state invalid drop
+  ip saddr @blocked_ips counter drop
+  ip6 saddr @blocked_ips_v6 counter drop
+  ct state established ct direction reply tcp sport { 5938, 6568 } counter accept
+  ct state established ct direction reply udp sport { 67, 123, 5938 } counter accept
+  ct state established ct direction reply tcp sport { 53, 443 } counter queue num 100
+  ct state established ct direction reply udp sport 53 counter queue num 100
+ }
+ chain output { type filter hook output priority 0; policy drop;
+  meta nfproto ipv6 counter drop
+  oifname "lo" ct state established,related accept
+  oifname "lo" tcp dport { 53, 5939 } accept
+  oifname "lo" udp dport 53 accept
+  oifname "lo" counter drop
+  ct state invalid drop
+  ip daddr @blocked_ips counter drop
+  ip6 daddr @blocked_ips_v6 counter drop
+  tcp dport { 5938, 6568 } counter accept
+  udp dport { 67, 123, 5938 } counter accept
+  tcp dport { 53, 443 } counter queue num 100
+  udp dport 53 counter queue num 100
+ }
+ chain forward { type filter hook forward priority 0; policy drop;
+  meta nfproto ipv6 counter drop
+  ct state invalid drop
+  ip saddr @blocked_ips counter drop
+  ip6 saddr @blocked_ips_v6 counter drop
+  ip daddr @blocked_ips counter drop
+  ip6 daddr @blocked_ips_v6 counter drop
+ }
+}

@@ -1,0 +1,102 @@
+- id: SATSUMA-DISC-001
+  name: Sistem bilgisi toplama
+  mitre:
+    tactic: Discovery
+    technique: T1082
+  severity: low
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - uname -a
+    - cat /etc/os-release
+    - hostnamectl
+    - whoami
+    - id
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-DISC-002
+  name: Ağ keşfi
+  mitre:
+    tactic: Discovery
+    technique: T1016
+  severity: low
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - ip address show
+    - ip -brief address show
+    - ifconfig
+    - netstat -tuln
+    - ss -tuln
+    - arp -a
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-DISC-003
+  name: Kullanıcı keşfi
+  mitre:
+    tactic: Discovery
+    technique: T1087.001
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - cat /etc/passwd
+    - cat /etc/group
+    - getent passwd
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-DISC-004
+  name: Süreç keşfi
+  mitre:
+    tactic: Discovery
+    technique: T1057
+  severity: low
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - ps aux
+    - ps -ef
+    - top
+    - htop
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-DISC-005
+  name: Dosya keşfi
+  mitre:
+    tactic: Discovery
+    technique: T1083
+  severity: low
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - find / -name
+    - 'locate '
+    - ls -la /
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low
+- id: SATSUMA-DISC-006
+  name: Servis keşfi
+  mitre:
+    tactic: Discovery
+    technique: T1007
+  severity: low
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - systemctl list-units
+    - service --status-all
+    - chkconfig --list
+  actions:
+  - always: log_only
+  classification: indicator
+  confidence: low

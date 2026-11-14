@@ -1,0 +1,7 @@
+FROM debian:trixie-slim
+RUN --mount=type=secret,id=proxy_ca,required=true \
+    SSL_CERT_FILE=/run/secrets/proxy_ca \
+    apt-get -o Acquire::https::CaInfo=/run/secrets/proxy_ca update && \
+    apt-get -o Acquire::https::CaInfo=/run/secrets/proxy_ca install -y --no-install-recommends \
+    nftables iproute2 conntrack dnsmasq-base suricata python3 python3-yaml python3-pytest python3-netfilterqueue tcpdump ca-certificates && \
+    rm -rf /var/lib/apt/lists/*

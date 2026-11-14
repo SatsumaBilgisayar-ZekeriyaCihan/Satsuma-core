@@ -1,0 +1,33 @@
+[Unit]
+StartLimitIntervalSec=300
+StartLimitBurst=3
+Requires=satsuma-image.service
+After=satsuma-image.service
+Description=Satsuma independent OMNI-SENTINEL last protection watchdog
+After=local-fs.target
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+RestartPreventExitStatus=78
+Type=simple
+User=root
+ExecStart=/usr/bin/satsuma-rescue
+Restart=always
+RestartSec=3
+RuntimeDirectory=satsuma-rescue
+RuntimeDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ReadWritePaths=/run/satsuma-rescue
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_DAC_READ_SEARCH
+AmbientCapabilities=CAP_NET_ADMIN CAP_DAC_READ_SEARCH
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,38 @@
+[Unit]
+Requires=satsuma-image.service
+After=satsuma-image.service
+Description=Satsuma process internet permissions
+DefaultDependencies=no
+Before=network-pre.target satsuma-core.service satsuma-teams.service
+After=satsuma-early-guard.service satsuma-network.service
+Wants=satsuma-early-guard.service
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+RestartPreventExitStatus=78
+Type=notify
+NotifyAccess=main
+TimeoutStartSec=120
+User=root
+WorkingDirectory=/opt/satsuma-core
+ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/app_control.py
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadOnlyPaths=/opt/satsuma-core /usr/share/satsuma-core /etc/satsuma-core/trust
+ReadWritePaths=/var/lib/satsuma-core/app-control
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_DAC_READ_SEARCH CAP_SYS_PTRACE
+AmbientCapabilities=CAP_NET_ADMIN CAP_DAC_READ_SEARCH CAP_SYS_PTRACE
+RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

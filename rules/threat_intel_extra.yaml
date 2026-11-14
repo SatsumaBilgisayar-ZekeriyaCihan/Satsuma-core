@@ -1,0 +1,640 @@
+# Regex patterns are written as ^(?>.*?A).*B instead of A.*B (audit K1):
+# the engine matches them on single-line text, so only the first A is tried
+# and matching stays linear on any command line. Same matches, no stall.
+# Düzenli ifadeler A.*B yerine ^(?>.*?A).*B biçiminde yazılır (denetim K1):
+# motor tek satıra indirilmiş metinde eşler, yalnızca ilk A denenir ve
+# eşleme her komut satırında doğrusal kalır. Eşleşmeler aynı, kilitlenme yok.
+- id: SATSUMA-LOL-001
+  name: LOLBin — curl/wget ile uzaktan script yürütme
+  mitre:
+    tactic: Execution
+    technique: T1059.004
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - (?:^|(?<=\|))(?>[^|]*?(?:curl|wget)\s)[^|]*\|\s*(?:ba)?sh
+    - (?:^|(?<=\|))(?>[^|]*?(?:curl|wget)\s)[^|]*\|\s*python3?
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: lolbin_pipe_shell
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Kurulum scriptleri, CI/CD pipeline, geliştirici otomasyonu.
+  schema_version: 1
+- id: SATSUMA-LOL-002
+  name: LOLBin — base64 decode + shell
+  mitre:
+    tactic: Defense Evasion
+    technique: T1140
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?base64\s+(?:-d|--decode)\s*\|).*(?:ba)?sh
+    - echo\s+[A-Za-z0-9+/=]{20,}\s*\|\s*base64\s+-d
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: obfuscated_exec
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Meşru script decode işlemleri.
+  schema_version: 1
+- id: SATSUMA-LOL-003
+  name: LOLBin — eval/exec ile dinamik kod
+  mitre:
+    tactic: Execution
+    technique: T1059.006
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?python3?\s+-c\s).*(?:eval|exec|__import__)\s*\(
+    - ^(?>.*?perl\s+-e\s).*eval
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: dynamic_code
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Geliştirici testleri, otomasyon.
+  schema_version: 1
+- id: SATSUMA-LOL-004
+  name: LOLBin — xterm/script ile TTY kaçışı
+  mitre:
+    tactic: Execution
+    technique: T1059
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?script\s+-qc?\s).*/dev/null
+    - python3?\s+-c\s+['"]?import\s+pty
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: low
+  dedup_group: tty_escape
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Oturum kaydı araçları.
+  schema_version: 1
+- id: SATSUMA-FILELESS-001
+  name: Fileless — memfd_create ile bellek-içi binary
+  mitre:
+    tactic: Defense Evasion
+    technique: T1620
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - memfd_create
+    - ^(?>.*?/proc/self/fd/\d).*(?:exec|sh)
+    - '/memfd:'
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: fileless_memfd
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Bazı sandbox ve runtime araçları memfd kullanır.
+  schema_version: 1
+- id: SATSUMA-FILELESS-002
+  name: Fileless — /dev/shm veya /tmp'den yürütme
+  mitre:
+    tactic: Defense Evasion
+    technique: T1036
+  severity: high
+  base_match:
+    source: sys_proc
+    exe_regex:
+    - ^/dev/shm/
+    - ^/tmp/\.\w+
+    - ^/var/tmp/
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: tmp_exec
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Geçici kurulum scriptleri, test araçları.
+  schema_version: 1
+- id: SATSUMA-FILELESS-003
+  name: Fileless — ptrace ile süreç enjeksiyonu
+  mitre:
+    tactic: Defense Evasion
+    technique: T1055.008
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ptrace\s+PTRACE_(?:POKE|ATTACH)
+    - ^(?>.*?gdb\s+-p\s+\d).*(?:call|inject)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: ptrace_inject
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Hata ayıklama, geliştirme.
+  schema_version: 1
+- id: SATSUMA-CONT-101
+  name: Container escape — docker.sock erişimi
+  mitre:
+    tactic: Privilege Escalation
+    technique: T1611
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_contains:
+    - /var/run/docker.sock
+    - docker run --privileged
+    - docker exec -it
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: container_escape
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Meşru container yönetimi.
+  schema_version: 1
+- id: SATSUMA-CONT-102
+  name: Container escape — host mount / namespace kaçışı
+  mitre:
+    tactic: Privilege Escalation
+    technique: T1611
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?nsenter\s)(?>.*?-t\s+1\s).*(?:mount|ns)
+    - ^(?>.*?mount\s)(?>.*?-o\s+bind).*/(?:host|root)
+    - chroot\s+/host
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: container_escape
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Sistem yönetimi, debug.
+  schema_version: 1
+- id: SATSUMA-CLOUD-001
+  name: Cloud metadata servisi erişimi
+  mitre:
+    tactic: Credential Access
+    technique: T1552.005
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_arg_contains:
+    - 169.254.169.254
+    - metadata.google.internal
+    - /latest/meta-data/
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: cloud_metadata
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Meşru cloud SDK / agent kullanımı.
+  schema_version: 1
+- id: SATSUMA-CRED-101
+  name: SSH anahtar hırsızlığı girişimi
+  mitre:
+    tactic: Credential Access
+    technique: T1552.004
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?(?:cat|cp|scp|tar)\s).*\.ssh/(?:id_rsa|id_ed25519|id_ecdsa|authorized_keys)
+    - ^(?>.*?find\s).*-name\s+['"]?id_rsa
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: ssh_key_theft
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Yedekleme, meşru anahtar yönetimi.
+  schema_version: 1
+- id: SATSUMA-CRED-102
+  name: Tarayıcı/uygulama kimlik deposu erişimi
+  mitre:
+    tactic: Credential Access
+    technique: T1555
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?(?:cat|cp|grep)\s).*(?:\.mozilla|\.config/google-chrome|Login Data|keyring)
+    - secret-tool\s+(?:lookup|search)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: cred_store
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Meşru uygulama erişimi.
+  schema_version: 1
+- id: SATSUMA-CRED-103
+  name: Ortam değişkeninden kimlik bilgisi sızdırma
+  mitre:
+    tactic: Credential Access
+    technique: T1552.001
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?(?:env|printenv|set)\s*\|).*(?:grep|curl|nc|wget)
+    - echo\s+\$(?:AWS_|GCP_|AZURE_|TOKEN|SECRET|PASSWORD)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: low
+  dedup_group: env_cred
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Debug, CI/CD.
+  schema_version: 1
+- id: SATSUMA-PERSIST-001
+  name: Kalıcılık — systemd timer/service oluşturma
+  mitre:
+    tactic: Persistence
+    technique: T1543.002
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>(?:\S*/)?(?:cp|mv|tee|cat)\s).*\.(?:service|timer)\s*$
+    - systemctl\s+(?:enable|start)\s+\S+\.(?:service|timer)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: systemd_persist
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Paket kurulumu, meşru servis yönetimi.
+  schema_version: 1
+- id: SATSUMA-PERSIST-002
+  name: Kalıcılık — shell profil dosyası değişikliği
+  mitre:
+    tactic: Persistence
+    technique: T1546.004
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?(?:echo|cat|tee)\s)(?>.*?>).*(?:\.bashrc|\.bash_profile|\.profile|\.zshrc)
+    - ^(?>.*?(?:cp|mv)\s).*(?:\.bashrc|\.profile)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: shell_persist
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Kullanıcı ortam kurulumu.
+  schema_version: 1
+- id: SATSUMA-PERSIST-003
+  name: Kalıcılık — cron/at job ekleme
+  mitre:
+    tactic: Persistence
+    technique: T1053.003
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^crontab\s+(?:-e|-|/(?:tmp|dev/shm)/\S+)(?:\s|$)
+    - ^(?:echo|cat)\s+.*>>?\s*/etc/cron
+    - ^at\s+now\s+\+
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: cron_persist
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Meşru zamanlanmış görevler.
+  schema_version: 1
+- id: SATSUMA-EVASION-001
+  name: Savunma atlatma — log temizleme
+  mitre:
+    tactic: Defense Evasion
+    technique: T1070
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - (?:>|truncate\s+-s\s*0)\s*/var/log/
+    - ^(?>.*?rm\s).*(?:/var/log/|\.bash_history|wtmp|btmp)
+    - history\s+-c
+    - ^(?>.*?journalctl\s+--rotate).*--vacuum
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: log_wipe
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Log rotasyonu, disk temizliği.
+  schema_version: 1
+- id: SATSUMA-EVASION-002
+  name: Savunma atlatma — güvenlik aracı devre dışı
+  mitre:
+    tactic: Defense Evasion
+    technique: T1562.001
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?systemctl\s+(?:stop|disable|mask)\s).*(?:auditd|firewalld|apparmor|selinux|clamav|suricata|satsuma)
+    - setenforce\s+0
+    - aa-complain
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: security_disable
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Bakım, sorun giderme.
+  schema_version: 1
+- id: SATSUMA-EVASION-003
+  name: Savunma atlatma — zaman damgası manipülasyonu
+  mitre:
+    tactic: Defense Evasion
+    technique: T1070.006
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?touch\s).*-d\s+['"]?\d{4}
+    - ^(?>.*?touch\s).*-t\s+\d{8,}
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: low
+  dedup_group: timestomp
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Build sistemleri, arşivleme.
+  schema_version: 1
+- id: SATSUMA-EXFIL-101
+  name: Veri sızdırma — bulut depolamaya yükleme
+  mitre:
+    tactic: Exfiltration
+    technique: T1567.002
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - (?:rclone|aws\s+s3|gsutil|az\s+storage)\s+(?:copy|cp|sync|upload)
+    - ^(?>.*?curl\s).*(?:-T|--upload-file)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: cloud_exfil
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Meşru yedekleme, senkronizasyon.
+  schema_version: 1
+- id: SATSUMA-EXFIL-102
+  name: Veri sızdırma — DNS/ICMP üzerinden
+  mitre:
+    tactic: Exfiltration
+    technique: T1048.003
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?(?:dig|nslookup)\s)(?>.*?\$\().*(?:cat|base64)
+    - ^(?>.*?tar\s).*\|\s*(?:nc|ncat|curl)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: covert_exfil
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Ağ teşhis araçları.
+  schema_version: 1
+- id: SATSUMA-MINE-001
+  name: Kripto madencilik — bilinen miner
+  mitre:
+    tactic: Impact
+    technique: T1496
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - (?:xmrig|minerd|cpuminer|ethminer|nbminer|phoenixminer)
+    - stratum\+tcp://
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: cryptomining
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Bilinçli madencilik (nadir).
+  schema_version: 1
+- id: SATSUMA-RANSOM-001
+  name: Fidye yazılımı — toplu dosya şifreleme göstergesi
+  mitre:
+    tactic: Impact
+    technique: T1486
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - ^(?>.*?openssl\s+enc\s)(?>.*?-in\s)(?>.*?-out\s).*\.(?:enc|locked|crypt)
+    - ^(?>.*?find\s)(?>.*?-type\s+f\s)(?>.*?-exec\s).*(?:openssl|gpg)
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: ransomware_encrypt
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Meşru şifreleme, yedekleme.
+  schema_version: 1
+- id: SATSUMA-RANSOM-002
+  name: Fidye yazılımı — gölge kopya silme
+  mitre:
+    tactic: Impact
+    technique: T1490
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - (?:vssadmin|wbadmin)\s+delete
+    - ^(?>.*?rm\s+-rf\s).*(?:snapshot|backup)
+    - btrfs\s+subvolume\s+delete
+  actions:
+  - record
+  - evidence
+  - ticket
+  - correlation_request
+  classification: suspicious
+  confidence: medium
+  dedup_group: ransomware_backup_wipe
+  implementation_status: CURRENT_TELEMETRY
+  requires:
+  - sys_proc.cmd
+  proof_level: PUBLIC_RESEARCH
+  false_positives:
+  - Meşru yedek yönetimi.
+  schema_version: 1

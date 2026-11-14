@@ -1,0 +1,4 @@
+PyYAML>=6.0.2,<7
+pydantic>=2.9,<3
+psutil>=6,<8
+jsonschema>=4,<5
