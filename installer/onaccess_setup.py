@@ -17,6 +17,18 @@ END = '# SATSUMA_ONACCESS_END'
 # Explicitly report this limited initial coverage instead of suggesting full-system prevention.
 PROTECTED = ('/home',)
 
+
+def protected_paths():
+    """PROTECTED as real folders.
+
+    2.2.42 (owner, Fedora Atomic 2026-11-18: satsuma-clamonacc failed after every
+    restart): on Fedora Atomic /home is a link to var/home and clamonacc was
+    told to watch the link. The configuration names the real folder; on a
+    normal Fedora system the path is unchanged.
+    Atomic'te /home, var/home'a bağdır; yapılandırma gerçek klasörü yazar.
+    """
+    return [os.path.realpath(path) for path in PROTECTED]
+
 def properties(config_text):
     found = {}
     for raw in config_text.splitlines():
@@ -48,7 +60,7 @@ def render(config_text):
         raise RuntimeError('Existing on-access policy needs explicit reconciliation')
     user = opts.get('User', ['clamscan'])[0]
     pwd.getpwnam(user)
-    lines = [START, *(f'OnAccessIncludePath {path}' for path in PROTECTED),
+    lines = [START, *(f'OnAccessIncludePath {path}' for path in protected_paths()),
              'OnAccessPrevention yes', f'OnAccessExcludeUname {user}',
              'OnAccessMaxFileSize 5M', END]
     return config_text.rstrip() + '\n\n' + '\n'.join(lines) + '\n'
@@ -64,7 +76,7 @@ def verify():
     opts = properties(text)
     if text.count(START) != 1 or text.count(END) != 1:
         raise RuntimeError('Satsuma on-access configuration missing')
-    if opts.get('OnAccessPrevention') != ['yes'] or opts.get('OnAccessIncludePath') != list(PROTECTED):
+    if opts.get('OnAccessPrevention') != ['yes'] or opts.get('OnAccessIncludePath') != protected_paths():
         raise RuntimeError('On-access prevention or protected paths differ')
     validate_local_socket(opts)
     user = opts.get('User', ['clamscan'])[0]
@@ -72,11 +84,40 @@ def verify():
         raise RuntimeError('ClamAV daemon must be excluded to prevent recursion')
     return True
 
+def migrate_link_paths(config=CONFIG):
+    """Rewrite a managed block written with the link path (/home) to the real folder.
+
+    Only lines inside Satsuma's own block are touched; returns True when changed.
+    """
+    trusted_file(config)
+    text = config.read_text()
+    if text.count(START) != 1 or text.count(END) != 1:
+        return False
+    head, rest = text.split(START, 1)
+    block, tail = rest.split(END, 1)
+    wanted = protected_paths()
+    lines = block.splitlines(keepends=True)
+    current = [l.split(' ', 1)[1].strip() for l in lines if l.startswith('OnAccessIncludePath ')]
+    if current == wanted or current != list(PROTECTED):
+        return False
+    real = iter(wanted)
+    block = ''.join(f'OnAccessIncludePath {next(real)}\n' if l.startswith('OnAccessIncludePath ') else l for l in lines)
+    temp = config.with_name(config.name + '.satsuma-new')
+    with temp.open('x') as out:
+        out.write(head + START + block + END + tail)
+    os.chmod(temp, 0o600)
+    os.replace(temp, config)
+    return True
+
+
 def install():
     if os.geteuid() != 0: raise PermissionError('root required')
     trusted_file(CONFIG)
     current = CONFIG.read_text()
     if START in current or END in current:
+        if migrate_link_paths():
+            verify()
+            return 'Configured; protected path moved to its real folder, restart clamonacc'
         verify()
         return 'Already configured'
     new_text = render(current)

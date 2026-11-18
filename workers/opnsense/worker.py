@@ -144,6 +144,17 @@ class WorkerOpnsense:
                 raw_lines = self._collect_file()
             else:
                 raise ValueError('Unknown OPNsense input mode')
+        except FileNotFoundError as exc:
+            path = self._file_path()
+            if mode == 'file' and not path.is_symlink() and not path.exists():
+                # 2.2.42: no OPNsense on this network means no log file; that is
+                # not a fault ("Sorunlu çalışıyor" in the panel). Ağda OPNsense yoksa arıza değildir.
+                report={'timestamp':time.time(),'updated_at':time.time(),'status':'NOT_CONFIGURED','mode':mode,
+                        'reason':'OPNsense kayıt dosyası yok: '+str(path)+' (ağda OPNsense yapılandırılmamış)','events':[]}
+            else:
+                report={'timestamp':time.time(),'status':'ERROR','mode':mode,'error':str(exc)[:300],'events':[]}
+            if self.store is not None:self.store.set(self.health_key,report)
+            return report
         except (OSError, ValueError, TypeError) as exc:
             report={'timestamp':time.time(),'status':'ERROR','mode':mode,'error':str(exc)[:300],'events':[]}
             if self.store is not None:self.store.set(self.health_key,report)

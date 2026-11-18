@@ -194,6 +194,7 @@ def _tr_status(value):
         'KEY_MISSING': 'ANAHTAR EKSİK',
         'CONFIGURED': 'YAPILANDIRILMIŞ',
         'CONNECTING': 'BAĞLANIYOR',
+        'NOT_CONFIGURED': 'Yapılandırılmamış',
     }
     return mapping.get(str(value).upper(), str(value))
 
@@ -649,8 +650,12 @@ def m_workers():
             'PARTIAL': 'DEGRADED',
             'KEY_MISSING': 'DEGRADED',
         }
+        if raw_status == 'RETIRED':
+            # 2.2.42: a component removed from the product (ram_v2, the RAM
+            # ClamAV engine) is not listed as "Veri alınamadı". Kaldırılan bileşen listelenmez.
+            return
         status = aliases.get(raw_status, raw_status)
-        if status not in ('RUNNING', 'DEGRADED', 'STOPPED', 'DISABLED', 'UNKNOWN'):
+        if status not in ('RUNNING', 'DEGRADED', 'STOPPED', 'DISABLED', 'UNKNOWN', 'NOT_CONFIGURED'):
             # 'ok' alani string/0 olabilir; truthy kontrolu yerine acikca yorumla.
             ok = raw.get('ok')
             if isinstance(ok, str):
