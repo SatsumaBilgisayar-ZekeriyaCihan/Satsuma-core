@@ -174,3 +174,13 @@ def test_advanced_management_page_shares_the_lock(make, app):
     assert window.current_panel().token == session.token
     session.lock()
     assert window.current_panel().token is None
+
+
+def test_old_management_login_button_opens_the_shared_lock(make, app):
+    from PyQt6.QtWidgets import QPushButton
+    window, session, operator = make(passwords=['dogru'])
+    window.nav.select('admin')
+    access = next(b for b in window.current_panel().findChildren(QPushButton) if b.text() == 'Yönetici oturumu aç')
+    access.click()
+    assert wait(app, session.unlocked)
+    assert session.asked == ['Yönetici kilidini aç'] and window.current_panel().token == session.token

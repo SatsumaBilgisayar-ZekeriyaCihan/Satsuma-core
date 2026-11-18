@@ -215,6 +215,15 @@ class MainWindow(QMainWindow):
         if not getattr(panel, '_session_bound', False):
             panel._session_bound = True
             panel.completed.connect(lambda method, result: self.session.adopt(panel.token) if method in ('login', 'logout') else None)
+            # Its own "Yönetici oturumu aç" button opens the shared lock instead of a second login.
+            from ..qt import QPushButton
+            for child in panel.findChildren(QPushButton):
+                if child.text() == 'Yönetici oturumu aç':
+                    try:
+                        child.clicked.disconnect()
+                    except TypeError:
+                        pass
+                    child.clicked.connect(lambda checked=False: self.session.unlock(self))
         panel.token = self.session.token
         if hasattr(panel, '_set_enabled'):
             panel._set_enabled()

@@ -270,7 +270,7 @@ class ProtectionPanel(UserPage):
             return
         for value in values:
             line = QHBoxLayout()
-            line.addWidget(label(value, 'mono', selectable=True))
+            line.addWidget(label(value, 'mono', wrap=False, selectable=True))
             note = (notes or {}).get(value)
             line.addWidget(label(note or '', 'secondary'), 1)
             line.addWidget(button(verb, lambda v=value: self.act(make_action(v)), 'danger' if verb != 'Engeli kaldır' else 'danger'))

@@ -68,7 +68,7 @@ class HealthPanel(UserPage):
         content.addLayout(self.summary)
 
         content.addLayout(section('Bileşenler', 'Satsuma servislerinin anlık durumu.'))
-        self.units = Card(name='listCard', margins=(18, 10, 18, 10), spacing=0)
+        self.units = Card(name='listCard', margins=(18, 12, 18, 12), spacing=8)
         content.addWidget(self.units)
 
         content.addLayout(section('Son bakım', 'Bakım kiti her açılıştan 15 dakika sonra ve altı saatte bir kendiliğinden çalışır.'))
@@ -132,12 +132,15 @@ class HealthPanel(UserPage):
             self.units.body.addWidget(label('Servis durumu raporda yok.', 'secondary'))
         for unit, item in sorted(states.items(), key=lambda kv: UNIT_NAMES.get(kv[0], kv[0])):
             line = QHBoxLayout()
+            line.setSpacing(12)
             active = item.get('ActiveState')
             line.addWidget(Dot('ok' if active == 'active' else 'warn' if active in ('activating', 'reloading') else 'crit'))
             line.addWidget(label(UNIT_NAMES.get(unit, unit), 'rowTitle'), 1)
             line.addWidget(label({'active': 'Çalışıyor', 'inactive': 'Durmuş', 'failed': 'Hata verdi', 'activating': 'Başlıyor',
                                   'unhealthy': 'Çalışıyor ama yanıt vermiyor'}.get(active, str(active)), 'secondary', wrap=False))
-            line.addWidget(label(unit, 'mono', wrap=False))
+            unit_label = label(unit, 'mono', wrap=False)
+            unit_label.setMinimumWidth(260)
+            line.addWidget(unit_label)
             self.units.body.addLayout(line)
         clear(self.maintenance.body)
         maintenance = maintenance or {}

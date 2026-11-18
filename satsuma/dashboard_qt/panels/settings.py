@@ -71,6 +71,7 @@ class SettingsPanel(UserPage):
         self.vpn_state = label('Profilleri görmek için kilidi açın.', 'secondary')
         card.body.addWidget(self.vpn_state)
         self.vpn_profiles = QComboBox()
+        self.vpn_profiles.hide()
         card.body.addWidget(self.vpn_profiles)
         vpn = QHBoxLayout()
         vpn.addWidget(button('Bağlan', lambda: self._wireguard('up')))
@@ -185,6 +186,7 @@ class SettingsPanel(UserPage):
         self.vpn_profiles.clear()
         for item in wg.get('profiles') or []:
             self.vpn_profiles.addItem(item['name'] + (' · bağlı' if item.get('active') else ''), item['name'])
+        self.vpn_profiles.setVisible(self.vpn_profiles.count() > 0)
         index = self.vpn_profiles.findData(current)
         if index >= 0:
             self.vpn_profiles.setCurrentIndex(index)

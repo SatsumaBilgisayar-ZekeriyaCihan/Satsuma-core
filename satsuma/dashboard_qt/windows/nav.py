@@ -9,7 +9,7 @@ Ctrl+1…5 open the sections.
 Önceki sürümlerin her teknik tablosu "Uzman görünümü" altında durur.
 """
 from ..qt import (QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QListWidget, QListWidgetItem, QSize, QSettings,
-                  pyqtSignal, USER_ROLE, NO_ITEM_FLAGS, POINTING)
+                  pyqtSignal, USER_ROLE, NO_ITEM_FLAGS, POINTING, NO_SCROLL)
 from .. import panels as registry
 from ..security_widgets import icon
 from ..style.theme import Colors
@@ -93,6 +93,7 @@ class NavigationBar(QFrame):
         self.tools = QListWidget()
         self.tools.setObjectName('navTools')
         self.tools.setWordWrap(True)
+        self.tools.setHorizontalScrollBarPolicy(NO_SCROLL)
         self.tools.currentItemChanged.connect(self._tool_changed)
         layout.addWidget(self.tools, 1)
         self.spacer = QLabel('')
