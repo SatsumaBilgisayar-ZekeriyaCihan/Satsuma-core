@@ -78,14 +78,15 @@ class ScannersPanel(ReadOnlyModulePanel):
                              ('SSH sunucusunu kapat',self.ssh_server_off)):
             button=QPushButton(text);button.setObjectName('quiet');button.clicked.connect(handler);tools.addWidget(button)
         tools.addStretch()
-        holder=QWidget();box=QVBoxLayout(holder);box.setContentsMargins(0,0,0,0);box.setSpacing(6)
+        self.manual_after_scan=QCheckBox('Bulunan dosya için karantina öner')
+        self.manual_after_scan.setToolTip('Tarama bitince doğrulanabilir bir ClamAV bulgusu varsa karantinayı önerir; onaysız hiçbir dosya taşınmaz.')
+        self.manual_after_scan.toggled.connect(self._toggle_manual_after_scan)
+        actions.insertWidget(1,self.manual_after_scan)
+        holder=QWidget();box=QVBoxLayout(holder);box.setContentsMargins(0,0,0,0);box.setSpacing(4)
         box.addLayout(actions);box.addLayout(tools)
         self._layout.insertWidget(4,holder)
-        self.manual_after_scan=QCheckBox('Tarama bitince bulunan dosyalar için karantina önerisi göster')
-        self.manual_after_scan.toggled.connect(self._toggle_manual_after_scan)
-        self._layout.insertWidget(5,self.manual_after_scan)
         self._last_manual_prompt_scan=None
-        self.table.setMinimumHeight(320)
+        self.table.setMinimumHeight(220)
 
     def _filter_changed(self,*args):
         self._last_render=None

@@ -117,7 +117,7 @@ def test_new_panels_are_registered_and_reachable():
     try:
         window.nav.select('scanners');assert window.current_panel().PANEL_ID=='scanners'
         panel=window.current_panel()
-        assert set(panel.cards)=={'clamav','rkhunter','chkrootkit'} and panel.table.minimumHeight()>=300
+        assert set(panel.cards)=={'clamav','rkhunter','chkrootkit'} and panel.table.minimumHeight()>=200
         window.nav.select('network_devices');assert window.current_panel().PANEL_ID=='network_devices'
         panel=window.current_panel();panel.decide('allow')
         assert 'Önce bir cihaz' in panel.status.text()

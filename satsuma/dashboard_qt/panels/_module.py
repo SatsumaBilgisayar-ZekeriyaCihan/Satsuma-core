@@ -93,19 +93,23 @@ class ReadOnlyModulePanel(BasePanel):
         refresh_btn = QPushButton('Yenile')
         refresh_btn.setObjectName('quiet')
         refresh_btn.clicked.connect(self.refresh)
-        filter_row.addStretch()
-        filter_row.addWidget(refresh_btn)
-        self._layout.addLayout(filter_row)
+        if self.FILTERS:
+            filter_row.addStretch()
+            filter_row.addWidget(refresh_btn)
+            self._layout.addLayout(filter_row)
 
         self.summary_card = QFrame()
         self.summary_card.setObjectName('summaryCard')
-        summary = QVBoxLayout(self.summary_card)
-        summary.setContentsMargins(18, 12, 18, 12)
+        summary = QHBoxLayout(self.summary_card)
+        summary.setContentsMargins(18, 8, 10, 8)
         self.status = QLabel('Veri bekleniyor')
         self.status.setWordWrap(True)
         self.status.setObjectName('summaryText')
         self.status.setTextInteractionFlags(enum(_Qt, 'TextInteractionFlag', 'TextSelectableByMouse'))
-        summary.addWidget(self.status)
+        summary.addWidget(self.status, 1)
+        if not self.FILTERS:
+            # 2.2.47: no row of its own; the table keeps the height.
+            summary.addWidget(refresh_btn)
         self._layout.addWidget(self.summary_card)
 
         self.table = QTableWidget()

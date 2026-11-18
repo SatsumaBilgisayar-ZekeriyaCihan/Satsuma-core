@@ -97,7 +97,7 @@ class LogbookPanel(ReadOnlyModulePanel):
         self.search.returnPressed.connect(self._restart)
         self.older.clicked.connect(self._page_older)
         self.newest.clicked.connect(self._restart)
-        self.table.setMinimumHeight(360)
+        self.table.setMinimumHeight(260)
 
     def _params(self):
         params = {'view': self.view.currentData(), 'hours': self.period.currentData(), 'limit': 100}
