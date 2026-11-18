@@ -23,18 +23,74 @@ class ApplicationSignatureMismatch(PermissionError):
     code='APPLICATION_TAMPERED'
 
 
-def safe_read(path, ownership=True, limit=128*1024*1024):
-    path=Path(path)
-    # Walk parent descriptors; never follow a substituted directory symlink.
-    fd=os.open(path.anchor or '.',os.O_RDONLY|os.O_DIRECTORY)
+LINK_HOPS=8
+
+
+def _root_link(directory_fd, name):
+    """Target of a link only root could have placed, else None.
+
+    2.2.39 (owner's Fedora Atomic report 2026-11-18: "Not a directory: 'opt'",
+    every Satsuma service down): on Fedora Atomic /opt, /home, /root, /srv,
+    /mnt and /usr/local are links into /var, so a walk that refused every link
+    failed at its first step. A link is followed only when it is owned by root
+    and sits in a root-owned folder no one else can write: nobody but root can
+    have put it there, and root is the trust anchor anyway. A substituted link
+    in a folder others can write, or a link owned by another user, is refused
+    as before; the file itself is never a link.
+    Atomic'te /opt, /home, /root ... /var'a bağdır. Bağ yalnızca root'a aitse ve
+    başkasının yazamadığı root klasöründeyse izlenir; başka her bağ reddedilir.
+    """
     try:
-        for part in path.parts[1:-1] if path.is_absolute() else path.parts[:-1]:
-            child=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=fd)
+        info=os.stat(name,dir_fd=directory_fd,follow_symlinks=False)
+    except OSError:
+        return None
+    folder=os.fstat(directory_fd)
+    if not stat.S_ISLNK(info.st_mode) or info.st_uid!=0 or folder.st_uid!=0 or folder.st_mode&0o022:
+        return None
+    return os.readlink(name,dir_fd=directory_fd)
+
+
+def open_parent(path, ownership=True):
+    """(folder fd, final name) for path; the caller closes the fd.
+
+    Parents are opened one descriptor at a time. ownership=True also requires
+    every folder to be root's and not writable by group or others.
+    """
+    path=Path(path)
+    import errno
+    fd=os.open(path.anchor or '.',os.O_RDONLY|os.O_DIRECTORY)
+    pending=list(path.parts[1:-1] if path.is_absolute() else path.parts[:-1])
+    hops=0
+    try:
+        while pending:
+            part=pending.pop(0)
+            try:
+                child=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=fd)
+            except OSError as exc:
+                target=_root_link(fd,part) if exc.errno in (errno.ENOTDIR,errno.ELOOP) else None
+                if target is None or hops>=LINK_HOPS:
+                    raise
+                hops+=1
+                if target.startswith('/'):
+                    os.close(fd);fd=os.open('/',os.O_RDONLY|os.O_DIRECTORY)
+                pending=[x for x in Path(target).parts if x!='/']+pending
+                continue
             os.close(fd);fd=child
             st=os.fstat(fd)
             if ownership and (st.st_uid!=0 or st.st_mode&0o022):
                 raise PermissionError('Unsafe parent: '+str(path))
-        stream=os.open(path.name,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK,dir_fd=fd)
+        return fd,path.name
+    except BaseException:
+        os.close(fd);raise
+
+
+def safe_read(path, ownership=True, limit=128*1024*1024):
+    path=Path(path)
+    # Walk parent descriptors; never follow a substituted directory symlink
+    # (only links root alone could have placed, see _root_link).
+    fd,name=open_parent(path,ownership)
+    try:
+        stream=os.open(name,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK,dir_fd=fd)
         with os.fdopen(stream,'rb') as f:
             info=os.fstat(f.fileno())
             if (not stat.S_ISREG(info.st_mode) or info.st_nlink!=1

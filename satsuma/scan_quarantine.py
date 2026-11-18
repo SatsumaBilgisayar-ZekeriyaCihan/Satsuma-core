@@ -38,10 +38,14 @@ import uuid
 
 MAX_FILE_BYTES=64*1024*1024
 QUARANTINE=Path('/var/lib/satsuma-core/scan-quarantine')
+# 2.2.39: Fedora Atomic keeps these under /var (/home -> var/home and so
+# on); scanners report the real path. Atomic'te bu kökler /var altındadır.
 ALLOWED_ROOTS=(Path('/home'),Path('/opt'),Path('/root'),Path('/tmp'),Path('/var/tmp'),Path('/dev/shm'),
-               Path('/usr/local'),Path('/srv'))
+               Path('/usr/local'),Path('/srv'),
+               Path('/var/home'),Path('/var/opt'),Path('/var/roothome'),Path('/var/usrlocal'),Path('/var/srv'))
 # Program directories, only for malware confirmed by satsuma.binary_audit.
 SYSTEM_ROOTS=(Path('/usr/bin'),Path('/usr/sbin'),Path('/usr/local/bin'),Path('/usr/local/sbin'),
+              Path('/var/usrlocal/bin'),Path('/var/usrlocal/sbin'),Path('/var/usrlocal/share'),
               # Media checked by satsuma.media_audit (2.2.15).
               Path('/usr/share/icons'),Path('/usr/share/pixmaps'),Path('/usr/share/fonts'),Path('/usr/share/man'),
               Path('/usr/local/share'))
@@ -84,14 +88,11 @@ def open_parent(path):
     path=Path(path)
     if not path.is_absolute() or '..' in path.parts or path.name in ('', '.', '..'):
         raise ValueError('An absolute file path is required')
-    fd=os.open('/',os.O_RDONLY|os.O_DIRECTORY)
-    try:
-        for part in path.parts[1:-1]:
-            child=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=fd)
-            os.close(fd);fd=child
-        return fd,path.name
-    except Exception:
-        os.close(fd);raise
+    # 2.2.39: the same walk as the integrity check: a link is followed only
+    # when root alone could have placed it (Fedora Atomic /home -> var/home).
+    # User folders are not required to be root's here.
+    from installer.integrity import open_parent as walk
+    return walk(path, ownership=False)
 
 
 def fingerprint(fd):
@@ -164,7 +165,8 @@ def quarantine_target(target, audit, *, directory=QUARANTINE, system_ok=False, p
     # System configuration and Satsuma's own payload need a repair workflow,
     # not a file-removal button; program directories only for confirmed malware.
     roots=ALLOWED_ROOTS+(SYSTEM_ROOTS if system_ok else ())
-    if not any(path.is_relative_to(root) for root in roots) or path.is_relative_to('/opt/satsuma-core'):
+    if not any(path.is_relative_to(root) for root in roots) or path.is_relative_to('/opt/satsuma-core') \
+            or path.is_relative_to('/var/opt/satsuma-core'):
         raise PermissionError('System or unsupported target path requires manual repair')
     parent,name=open_parent(path)
     try:
