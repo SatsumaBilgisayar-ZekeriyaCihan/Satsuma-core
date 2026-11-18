@@ -6,7 +6,7 @@ try:
     from PyQt6.QtWidgets import (QApplication, QWidget, QFrame, QLabel, QPushButton, QToolButton, QVBoxLayout, QHBoxLayout,
                                  QGridLayout, QScrollArea, QStackedWidget, QLineEdit, QComboBox, QCheckBox, QPlainTextEdit,
                                  QListWidget, QListWidgetItem, QDialog, QDialogButtonBox, QSizePolicy, QMainWindow,
-                                 QSplitter, QButtonGroup, QRadioButton, QMessageBox, QInputDialog, QFileDialog)
+                                 QSplitter, QButtonGroup, QRadioButton, QMessageBox, QInputDialog, QFileDialog, QStatusBar)
     from PyQt6.QtGui import QColor, QFont, QIcon, QPixmap, QPainter, QPen, QBrush, QKeySequence, QShortcut
     from PyQt6.QtCore import Qt, QTimer, QSize, QObject, pyqtSignal, QSettings, QRectF, QPoint
     QT = 6
@@ -14,7 +14,7 @@ except ImportError:  # pragma: no cover - PyQt5 systems
     from PyQt5.QtWidgets import (QApplication, QWidget, QFrame, QLabel, QPushButton, QToolButton, QVBoxLayout, QHBoxLayout,
                                  QGridLayout, QScrollArea, QStackedWidget, QLineEdit, QComboBox, QCheckBox, QPlainTextEdit,
                                  QListWidget, QListWidgetItem, QDialog, QDialogButtonBox, QSizePolicy, QMainWindow,
-                                 QSplitter, QButtonGroup, QRadioButton, QMessageBox, QInputDialog, QFileDialog, QShortcut)
+                                 QSplitter, QButtonGroup, QRadioButton, QMessageBox, QInputDialog, QFileDialog, QShortcut, QStatusBar)
     from PyQt5.QtGui import QColor, QFont, QIcon, QPixmap, QPainter, QPen, QBrush, QKeySequence
     from PyQt5.QtCore import Qt, QTimer, QSize, QObject, pyqtSignal, QSettings, QRectF, QPoint
     QT = 5
