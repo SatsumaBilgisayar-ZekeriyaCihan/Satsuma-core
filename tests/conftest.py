@@ -7,7 +7,13 @@ test sets one explicitly.
 
 Testleri makinenin kendi ağ geçidi ve DNS sunucularından bağımsız tutar.
 """
+import os
+
 import pytest
+
+# Qt tests never need a display; without one QApplication aborts the whole run (CI 2026-11-18).
+# Qt testleri ekran gerektirmez; ekran yokken QApplication tüm koşuyu düşürüyordu.
+os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
 
 @pytest.fixture(autouse=True)
