@@ -92,7 +92,7 @@ def test_logbook_page_lists_colours_and_explains_the_selected_record():
     from PyQt6.QtWidgets import QApplication
     from dashboard_fixture import FakeBackend
     from satsuma.dashboard_qt.panels.logbook import LogbookPanel
-    QApplication.instance() or QApplication([])
+    app = QApplication.instance() or QApplication([])  # kept alive for the whole test
     panel = LogbookPanel(FakeBackend())
     try:
         panel.refresh()
@@ -116,7 +116,7 @@ def test_firewall_and_protection_pages_split_the_cards():
     from PyQt6.QtWidgets import QApplication
     from dashboard_fixture import FakeBackend
     from satsuma.dashboard_qt.panels.protection import ProtectionPanel, FirewallSettingsPanel
-    QApplication.instance() or QApplication([])
+    app = QApplication.instance() or QApplication([])  # kept alive for the whole test
     protection, firewall = ProtectionPanel(FakeBackend()), FirewallSettingsPanel(FakeBackend())
     try:
         protection.reload(); firewall.reload()

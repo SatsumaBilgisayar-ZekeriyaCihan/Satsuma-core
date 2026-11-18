@@ -161,7 +161,7 @@ def test_dashboard_page_sends_the_selection_with_custom_ports(files, monkeypatch
     sys.path.insert(0, str(Path(__file__).parents[1] / 'tools'))
     from dashboard_fixture import FakeBackend
     from satsuma.dashboard_qt.panels.protection import FirewallSettingsPanel as ProtectionPanel
-    QApplication.instance() or QApplication([])
+    app = QApplication.instance() or QApplication([])  # kept alive for the whole test
     panel = ProtectionPanel(FakeBackend())
     acted = []
     panel.act = lambda action, refresh=True: acted.append(action)
