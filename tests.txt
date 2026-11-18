@@ -1,0 +1,130 @@
+..................F............................................................................................................................................................................. [  7%]
+................................................................................................................................................................................................ [ 15%]
+................................................................................................................................................................................................ [ 23%]
+.............................................................................................................................................................................................s.. [ 31%]
+................................................................................................................................................................................................ [ 38%]
+...................................................................................................................................................s.s.......................................... [ 46%]
+................................................................................................................................................................................................ [ 54%]
+.....s..............................................................................................................................................................ssssssss.................... [ 62%]
+................................................................................................................................................................................................ [ 69%]
+................................................................................................................................................................................................ [ 77%]
+.............................................................................s.................................................................................................................. [ 85%]
+................................................................................................................................................................................................ [ 93%]
+.............................sssssss...FFF..FF......................F...FF.............................................................................................                          [100%]
+=============================================================================================== FAILURES ===============================================================================================
+_____________________________________________________________________ test_staged_runtime_contains_ai_memory_schemas_and_native_qt _____________________________________________________________________
+tests/test_ai_package_payload.py:21: in test_staged_runtime_contains_ai_memory_schemas_and_native_qt
+    assert result['status']=='PASS' and result['runtime_imports']['rules']==233
+E   AssertionError: assert ('PASS' == 'PASS'
+E     
+E       PASS and 231 == 233)
+_______________________________________________________________________________ test_successful_activation_and_no_replay _______________________________________________________________________________
+tests/test_tpm_credential_activation.py:68: in test_successful_activation_and_no_replay
+    report, state, capture = prepare(tmp_path)
+                             ^^^^^^^^^^^^^^^^^
+tests/test_tpm_credential_activation.py:61: in prepare
+    assert report['status']=='CHALLENGE_ISSUED', report
+E   AssertionError: {'credential_activation_verified': False, 'ek': {'ek_ak_binding_verified': False, 'ek_certificate_verified': False, 'p...tus': 'EK_EVIDENCE_UNAVAILABLE_OR_INVALID'}, 'ek_ak_binding_verified': False, 'platform_identity_verified': False, ...}
+E   assert 'EK_NOT_VERIFIED' == 'CHALLENGE_ISSUED'
+E     
+E     - CHALLENGE_ISSUED
+E     + EK_NOT_VERIFIED
+_________________________________________________________________________________ test_wrong_secret_consumes_challenge _________________________________________________________________________________
+tests/test_tpm_credential_activation.py:77: in test_wrong_secret_consumes_challenge
+    report,state,capture=prepare(tmp_path)
+                         ^^^^^^^^^^^^^^^^^
+tests/test_tpm_credential_activation.py:61: in prepare
+    assert report['status']=='CHALLENGE_ISSUED', report
+E   AssertionError: {'credential_activation_verified': False, 'ek': {'ek_ak_binding_verified': False, 'ek_certificate_verified': False, 'p...tus': 'EK_EVIDENCE_UNAVAILABLE_OR_INVALID'}, 'ek_ak_binding_verified': False, 'platform_identity_verified': False, ...}
+E   assert 'EK_NOT_VERIFIED' == 'CHALLENGE_ISSUED'
+E     
+E     - CHALLENGE_ISSUED
+E     + EK_NOT_VERIFIED
+_____________________________________________________________________________________________ test_expiry ______________________________________________________________________________________________
+tests/test_tpm_credential_activation.py:86: in test_expiry
+    report,state,capture=prepare(tmp_path)
+                         ^^^^^^^^^^^^^^^^^
+tests/test_tpm_credential_activation.py:61: in prepare
+    assert report['status']=='CHALLENGE_ISSUED', report
+E   AssertionError: {'credential_activation_verified': False, 'ek': {'ek_ak_binding_verified': False, 'ek_certificate_verified': False, 'p...tus': 'EK_EVIDENCE_UNAVAILABLE_OR_INVALID'}, 'ek_ak_binding_verified': False, 'platform_identity_verified': False, ...}
+E   assert 'EK_NOT_VERIFIED' == 'CHALLENGE_ISSUED'
+E     
+E     - CHALLENGE_ISSUED
+E     + EK_NOT_VERIFIED
+__________________________________________________________________________________ test_untrusted_state_dir_rejected ___________________________________________________________________________________
+tests/test_tpm_credential_activation.py:106: in test_untrusted_state_dir_rejected
+    assert r['status']=='CHALLENGE_GENERATION_UNAVAILABLE'
+E   AssertionError: assert 'EK_NOT_VERIFIED' == 'CHALLENGE_GE...N_UNAVAILABLE'
+E     
+E     - CHALLENGE_GENERATION_UNAVAILABLE
+E     + EK_NOT_VERIFIED
+__________________________________________________________________________________ test_symlinked_state_dir_rejected ___________________________________________________________________________________
+tests/test_tpm_credential_activation.py:112: in test_symlinked_state_dir_rejected
+    assert r['status']=='CHALLENGE_GENERATION_UNAVAILABLE'
+E   AssertionError: assert 'EK_NOT_VERIFIED' == 'CHALLENGE_GE...N_UNAVAILABLE'
+E     
+E     - CHALLENGE_GENERATION_UNAVAILABLE
+E     + EK_NOT_VERIFIED
+__________________________________________________________________________ test_real_certificate_chain_but_no_platform_claim ___________________________________________________________________________
+tests/test_tpm_trust_bundle.py:41: in test_real_certificate_chain_but_no_platform_claim
+    assert res['status']=='EK_CERT_CHAIN_AND_PUBLIC_PIN_VERIFIED', res
+E   AssertionError: {'ek_ak_binding_verified': False, 'ek_certificate_verified': False, 'platform_identity_verified': False, 'status': 'EK_EVIDENCE_UNAVAILABLE_OR_INVALID'}
+E   assert 'EK_EVIDENCE_...LE_OR_INVALID' == 'EK_CERT_CHAI..._PIN_VERIFIED'
+E     
+E     - EK_CERT_CHAIN_AND_PUBLIC_PIN_VERIFIED
+E     + EK_EVIDENCE_UNAVAILABLE_OR_INVALID
+_________________________________________________________________________________ test_chain_not_trusted_by_wrong_root _________________________________________________________________________________
+tests/test_tpm_trust_bundle.py:68: in test_chain_not_trusted_by_wrong_root
+    assert verify_ek_certificate(**args)['status']=='EK_CERTIFICATE_CHAIN_REJECTED'
+E   AssertionError: assert 'EK_EVIDENCE_...LE_OR_INVALID' == 'EK_CERTIFICA...HAIN_REJECTED'
+E     
+E     - EK_CERTIFICATE_CHAIN_REJECTED
+E     + EK_EVIDENCE_UNAVAILABLE_OR_INVALID
+_________________________________________________________________________ test_combined_evidence_does_not_infer_ek_ak_binding __________________________________________________________________________
+tests/test_tpm_trust_bundle.py:79: in test_combined_evidence_does_not_infer_ek_ak_binding
+    assert res['status']=='EK_AND_QUOTE_INDEPENDENTLY_VERIFIED_AK_EK_BINDING_MISSING'
+E   AssertionError: assert 'INCOMPLETE_O...CTED_EVIDENCE' == 'EK_AND_QUOTE...NDING_MISSING'
+E     
+E     - EK_AND_QUOTE_INDEPENDENTLY_VERIFIED_AK_EK_BINDING_MISSING
+E     + INCOMPLETE_OR_REJECTED_EVIDENCE
+======================================================================================= short test summary info ========================================================================================
+FAILED tests/test_ai_package_payload.py::test_staged_runtime_contains_ai_memory_schemas_and_native_qt - AssertionError: assert ('PASS' == 'PASS'
+  
+    PASS and 231 == 233)
+FAILED tests/test_tpm_credential_activation.py::test_successful_activation_and_no_replay - AssertionError: {'credential_activation_verified': False, 'ek': {'ek_ak_binding_verified': False, 'ek_certificate_verified': False, 'p...tus': 'EK_EVIDENCE_UNAVAILABLE_OR_INVALID'}, 'ek_ak_binding_verified': False, 'platform_identity_verified': False, ...}
+assert 'EK_NOT_VERIFIED' == 'CHALLENGE_ISSUED'
+  
+  - CHALLENGE_ISSUED
+  + EK_NOT_VERIFIED
+FAILED tests/test_tpm_credential_activation.py::test_wrong_secret_consumes_challenge - AssertionError: {'credential_activation_verified': False, 'ek': {'ek_ak_binding_verified': False, 'ek_certificate_verified': False, 'p...tus': 'EK_EVIDENCE_UNAVAILABLE_OR_INVALID'}, 'ek_ak_binding_verified': False, 'platform_identity_verified': False, ...}
+assert 'EK_NOT_VERIFIED' == 'CHALLENGE_ISSUED'
+  
+  - CHALLENGE_ISSUED
+  + EK_NOT_VERIFIED
+FAILED tests/test_tpm_credential_activation.py::test_expiry - AssertionError: {'credential_activation_verified': False, 'ek': {'ek_ak_binding_verified': False, 'ek_certificate_verified': False, 'p...tus': 'EK_EVIDENCE_UNAVAILABLE_OR_INVALID'}, 'ek_ak_binding_verified': False, 'platform_identity_verified': False, ...}
+assert 'EK_NOT_VERIFIED' == 'CHALLENGE_ISSUED'
+  
+  - CHALLENGE_ISSUED
+  + EK_NOT_VERIFIED
+FAILED tests/test_tpm_credential_activation.py::test_untrusted_state_dir_rejected - AssertionError: assert 'EK_NOT_VERIFIED' == 'CHALLENGE_GE...N_UNAVAILABLE'
+  
+  - CHALLENGE_GENERATION_UNAVAILABLE
+  + EK_NOT_VERIFIED
+FAILED tests/test_tpm_credential_activation.py::test_symlinked_state_dir_rejected - AssertionError: assert 'EK_NOT_VERIFIED' == 'CHALLENGE_GE...N_UNAVAILABLE'
+  
+  - CHALLENGE_GENERATION_UNAVAILABLE
+  + EK_NOT_VERIFIED
+FAILED tests/test_tpm_trust_bundle.py::test_real_certificate_chain_but_no_platform_claim - AssertionError: {'ek_ak_binding_verified': False, 'ek_certificate_verified': False, 'platform_identity_verified': False, 'status': 'EK_EVIDENCE_UNAVAILABLE_OR_INVALID'}
+assert 'EK_EVIDENCE_...LE_OR_INVALID' == 'EK_CERT_CHAI..._PIN_VERIFIED'
+  
+  - EK_CERT_CHAIN_AND_PUBLIC_PIN_VERIFIED
+  + EK_EVIDENCE_UNAVAILABLE_OR_INVALID
+FAILED tests/test_tpm_trust_bundle.py::test_chain_not_trusted_by_wrong_root - AssertionError: assert 'EK_EVIDENCE_...LE_OR_INVALID' == 'EK_CERTIFICA...HAIN_REJECTED'
+  
+  - EK_CERTIFICATE_CHAIN_REJECTED
+  + EK_EVIDENCE_UNAVAILABLE_OR_INVALID
+FAILED tests/test_tpm_trust_bundle.py::test_combined_evidence_does_not_infer_ek_ak_binding - AssertionError: assert 'INCOMPLETE_O...CTED_EVIDENCE' == 'EK_AND_QUOTE...NDING_MISSING'
+  
+  - EK_AND_QUOTE_INDEPENDENTLY_VERIFIED_AK_EK_BINDING_MISSING
+  + INCOMPLETE_OR_REJECTED_EVIDENCE
+9 failed, 2442 passed, 23 skipped, 14 deselected in 104.08s (0:01:44)
