@@ -160,9 +160,11 @@ def test_boot_closes_application_egress_before_clearing_lockdown(monkeypatch):
     from satsuma import loopback_guard
     monkeypatch.setattr(loopback_guard,'setup',lambda:calls.append('loopback'))
     monkeypatch.setattr(network_setup,'setup',lambda:calls.append('ports-ips'))
+    monkeypatch.setattr(network_setup,'restore_blocks',lambda:calls.append('range-blocks'))
     monkeypatch.setattr(network_setup,'remove_lockdown',lambda:calls.append('remove-lockdown'))
     network_setup.main()
-    assert calls==[('apps',True),'loopback','ports-ips','remove-lockdown']
+    # 2.2.47: blocked ranges are back before the lockdown is lifted.
+    assert calls==[('apps',True),'loopback','ports-ips','range-blocks','remove-lockdown']
 
 
 @pytest.mark.parametrize('case',['valid','writable-membership','foreign-owner','changed-executable'])
