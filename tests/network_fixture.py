@@ -23,14 +23,11 @@ def table_json():
         for direction in directions:
             for protocol,setname in [('ip','blocked_ips'),('ip6','blocked_ips_v6')]:
                 expressions.append([match({'payload':{'protocol':protocol,'field':direction}},'@'+setname),{'counter':{'packets':0,'bytes':0}},{'drop':None}])
-        # 2.2.16: DHCP, NTP and remote support accepted outside the queue.
-        for protocol,ports in [('tcp',{'set':[5938,6568]}),('udp',{'set':[67,123,5938]})]:
-            if chain=='output':
-                expressions.append([match({'payload':{'protocol':protocol,'field':'dport'}},ports),{'counter':{}},{'accept':None}])
-            elif chain=='input':
-                expressions.append([match({'ct':{'key':'state'}},'established'),match({'ct':{'key':'direction'}},'reply'),match({'payload':{'protocol':protocol,'field':'sport'}},ports),{'counter':{}},{'accept':None}])
         # 2.2.38: no dnsmasq redirect; DNS goes straight to the pinned resolver.
-        for protocol,ports in [('tcp',{'set':[53,443]}),('udp',53)]:
+        # 2.2.41 (owner: no channel may bypass Suricata): DHCP 67, NTP 123,
+        # TeamViewer 5938 and AnyDesk 6568 are queued with the profile ports;
+        # from 2.2.16 to 2.2.40 they were accepted outside the queue.
+        for protocol,ports in [('tcp',{'set':[53,443,5938,6568]}),('udp',{'set':[53,67,123,5938]})]:
             if chain=='output':
                 expressions.append([match({'payload':{'protocol':protocol,'field':'dport'}},ports),{'counter':{}},{'queue':{'num':100}}])
             elif chain=='input':

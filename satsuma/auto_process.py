@@ -184,7 +184,8 @@ def respond(store, config, finding, response, *, approved_request=None):
         # 2.2.38: RAM-001 on a program installed in a root-only place (JIT) is
         # recorded, not stopped. RAM-001 kurulu güvenilir programda (JIT) kaydedilir.
         exe_for_rwx = evidence_exe(event) or memory_extensions.get('host.exe')
-        kept = enforcement.rwx_kept(finding, exe_for_rwx)
+        kept = enforcement.rwx_kept(finding, exe_for_rwx,
+                                    pid=event.get('pid') or memory_extensions.get('host.pid'))
         if kept:
             record.update(status='report_only', evaluation_only=True, kept=kept,
                           reasons=['trusted_program_jit_memory'],

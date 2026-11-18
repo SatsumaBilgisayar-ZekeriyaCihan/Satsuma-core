@@ -113,7 +113,8 @@ def test_failed_readback_restores_previous_chains_and_files(files):
     runner = FakeNft(profiles.current_ports(), fail_readback=True)
     with pytest.raises(RuntimeError, match='readback'):
         nft.apply_profile({'addons': ['ssh']}, runner=runner)
-    assert runner.ports == {'tcp': (53, 443), 'udp': (53,)}
+    # 2.2.41: the always-open ports are part of every queued set.
+    assert runner.ports == {'tcp': (53, 443, 5938, 6568), 'udp': (53, 67, 123, 5938)}
     assert profiles.load() == profiles.normalize({}) and nft.RULESET.read_text() == before
 
 
@@ -194,25 +195,35 @@ def test_dashboard_page_sends_the_selection_and_shows_open_ports(files, monkeypa
         panel.close()
 
 
-def test_dhcp_ntp_and_remote_support_bypass_the_queue_outbound_only():
-    """2.2.16: address, clock and remote support survive a stopped IPS queue.
+def test_no_channel_bypasses_suricata_in_any_profile():
+    """2.2.41 (owner, 2026-11-18): every open port goes through the Suricata queue.
 
-    2.2.16: adres, saat ve uzaktan destek, IPS kuyruğu dursa da çalışır.
+    DHCP, NTP, TeamViewer and AnyDesk were accepted outside the queue from
+    2.2.16 to 2.2.40. Outside loopback, no rule may accept a packet.
+    Loopback dışında hiçbir kural paketi Suricata'ya uğratmadan kabul edemez.
     """
-    text = nft.render_ruleset()
-    output = text.split('chain output')[1].split('chain forward')[0]
-    incoming = text.split('chain input')[1].split('chain output')[0]
-    assert 'tcp dport { 5938, 6568 } counter accept' in output
-    assert 'udp dport { 67, 123, 5938 } counter accept' in output
-    # Blocked addresses are dropped before anything is accepted.
-    assert output.index('@blocked_ips counter drop') < output.index('tcp dport { 5938, 6568 } counter accept')
-    # Inbound: only replies to those connections, never a new connection.
-    for line in incoming.splitlines():
-        if '5938' in line or '123' in line or ' 67' in line:
-            assert line.strip().startswith('ct state established ct direction reply')
-    rules = nft.expected_rules('output')
-    assert [nft.match({'payload': {'protocol': 'udp', 'field': 'dport'}}, {'set': [67, 123, 5938]}),
-            {'counter': {}}, {'accept': None}] in rules
+    selections = [{}] + [{'addons': [name]} for name in profiles.ADDONS] + [{'addons': sorted(profiles.ADDONS)}]
+    for selection in selections:
+        ports = profiles.ports_for(profiles.normalize(selection)) if hasattr(profiles, 'ports_for') else None
+        text = nft.render_ruleset(ports=ports)
+        for line in text.splitlines():
+            if line.strip().endswith('accept'):
+                assert '"lo"' in line, (selection, line)
+            assert 'bypass' not in line
+        output = text.split('chain output')[1].split('chain forward')[0]
+        incoming = text.split('chain input')[1].split('chain output')[0]
+        assert 'tcp dport { 53, 443, 5938, 6568' in output or '5938, 6568 } counter queue num 100' in output
+        queued = [l for l in output.splitlines() if 'queue num 100' in l]
+        assert any('5938' in l and '6568' in l and l.strip().startswith('tcp') for l in queued)
+        assert any(' 67,' in l and '123' in l and '5938' in l and l.strip().startswith('udp') for l in queued)
+        # Inbound: only replies, and those are queued too.
+        for line in incoming.splitlines():
+            if '5938' in line or '123' in line:
+                assert line.strip().startswith('ct state established ct direction reply') and line.endswith('queue num 100')
+    for chain in ('input', 'output', 'forward'):
+        for rule in nft.expected_rules(chain, ports={'tcp': (53, 443), 'udp': (53,)}):
+            if {'accept': None} in rule:
+                assert any(e.get('match', {}).get('right') == 'lo' for e in rule), (chain, rule)
 
 
 def test_network_service_waits_for_nftables_service():
@@ -225,7 +236,7 @@ def test_network_service_waits_for_nftables_service():
     assert 'After=nftables.service' in unit.splitlines()
 
 
-def test_lockdown_keeps_dhcp_ntp_and_remote_support():
+def test_lockdown_keeps_dhcp_ntp_and_remote_support_only_through_suricata():
     calls = []
 
     def runner(args, **kw):
@@ -235,8 +246,13 @@ def test_lockdown_keeps_dhcp_ntp_and_remote_support():
     script = calls[-1][1]
     output = script.split('chain output')[1].split('chain forward')[0]
     incoming = script.split('chain input')[1].split('chain output')[0]
-    assert 'policy drop' in output and 'tcp dport { 5938, 6568 } accept' in output
-    assert 'udp dport { 67, 123, 5938 } accept' in output
+    assert 'policy drop' in output
+    assert 'tcp dport { 5938, 6568 } queue num 100' in output
+    assert 'udp dport { 67, 123, 5938 } queue num 100' in output
     assert 'tcp dport { 53, 443 }' not in output  # DNS/HTTPS stay closed in lockdown
+    for line in script.splitlines():
+        if line.strip().endswith('accept'):
+            assert '"lo"' in line, line   # 2.2.41: nothing but loopback is accepted
+        assert 'bypass' not in line
     assert all(l.strip().startswith(('ct state established ct direction reply', 'iifname "lo"', 'chain', 'type', '}'))
-               or not l.strip() for l in incoming.splitlines() if 'accept' in l)
+               or not l.strip() for l in incoming.splitlines() if 'queue' in l or 'accept' in l)

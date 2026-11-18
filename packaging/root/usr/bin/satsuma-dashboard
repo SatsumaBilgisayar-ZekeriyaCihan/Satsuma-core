@@ -10,12 +10,35 @@ if [ "$(id -u)" -eq 0 ]; then
 fi
 # Enrollment is automatic for the active local desktop at install time. If
 # installation had no desktop session, request system authorization on launch.
+# 2.2.41 (owner, Fedora Atomic: the window asked for a password and closed):
+# a failed enrollment is shown in a window instead of closing silently.
+# Kayıt başarısız olursa pencere sessizce kapanmaz, nedeni gösterilir.
+show_error() {
+ /usr/bin/python3 -I -c 'import sys
+from PyQt6.QtWidgets import QApplication, QMessageBox
+app = QApplication(sys.argv[:1])
+QMessageBox.critical(None, "Satsuma", sys.argv[1])' "$1" 2>/dev/null \
+  || /usr/bin/notify-send -u critical Satsuma "$1" 2>/dev/null || :
+ echo "$1" >&2
+}
 case " $(id -nG) " in
  *" satsuma-reader "*) ;;
  *)
   case " $(id -nG "$(id -un)") " in
    *" satsuma-reader "*) ;;
-   *) /usr/bin/pkexec /usr/bin/satsuma-enroll-desktop --user "$(id -un)" || exit 1 ;;
+   *)
+    detail=$(/usr/bin/pkexec /usr/bin/satsuma-enroll-desktop --user "$(id -un)" 2>&1)
+    status=$?
+    if [ "$status" -ne 0 ]; then
+     case $status in
+      126) reason='Yetkilendirme iptal edildi.' ;;
+      127) reason='Yetkilendirme reddedildi (parola yanlış ya da yetki yok).' ;;
+      *) reason="Masaüstü kaydı başarısız: ${detail##*$'\n'}" ;;
+     esac
+     show_error "Satsuma paneli açılamadı. $reason
+Ayrıntı için terminalde: satsuma-dashboard"
+     exit 1
+    fi ;;
   esac
   # Refresh supplementary group access without logging out the user's desktop.
   exec /usr/bin/sg satsuma-reader -c 'exec /usr/bin/satsuma-dashboard'

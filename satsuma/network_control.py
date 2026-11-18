@@ -5,10 +5,12 @@ Outbound destination ports come from the egress profile
 Incoming traffic is only ever accepted as established replies. Loopback is
 closed (2.2.13): on lo only replies and the DNS resolver, Satsuma's DNS
 filter and TeamViewer's local daemon pass (LO_TCP, LO_UDP).
-Since 2.2.16 a few outbound ports are accepted directly, outside the queue
-(DIRECT): DHCP and NTP keep the address and the clock, and TeamViewer/AnyDesk
-keep remote support alive even if the Suricata queue consumer stops. Blocked
-IPs are still dropped first and nothing new is accepted inbound.
+From 2.2.16 to 2.2.40 DHCP, NTP, TeamViewer and AnyDesk were accepted
+directly, outside the queue. Since 2.2.41 (owner, 2026-11-18: "no channel may
+bypass Suricata") they go through the Suricata queue like every other port
+(ALWAYS_QUEUED): if Suricata stops, DHCP renewal, NTP and remote support stop
+with it. Loopback never leaves the machine and is not queued. Blocked IPs are
+still dropped first and nothing new is accepted inbound.
 Since 2.2.12 a hand-edited /etc/satsuma-core/nftables.nft no longer stops the
 firewall at boot (which left the emergency DROP and cut the network): the
 edited file is kept as a dated copy and the managed file is written again
@@ -21,10 +23,10 @@ eklentiler) Suricata NFQUEUE 100 üzerinden.
 saklı profil yoksa DNS ve TCP HTTPS'tir. Gelen trafik yalnızca kurulmuş
 bağlantıların yanıtı olarak kabul edilir. Loopback kapalıdır (2.2.13):
 lo üzerinde yalnızca yanıtlar ile DNS çözücüsü, Satsuma DNS filtresi ve
-TeamViewer'ın yerel servisi geçer (LO_TCP, LO_UDP). 2.2.16'dan beri birkaç
-çıkış portu kuyruğa girmeden doğrudan kabul edilir (DIRECT): DHCP ve NTP
-adresi ve saati korur, TeamViewer/AnyDesk Suricata kuyruğu dursa bile uzaktan
-desteği ayakta tutar. Engellenen IP'ler yine önce düşürülür, gelen yeni
+TeamViewer'ın yerel servisi geçer (LO_TCP, LO_UDP). 2.2.41'den beri
+(sahibinin kararı: Suricata'dan geçmeyen kanal kalmayacak) DHCP, NTP,
+TeamViewer ve AnyDesk de Suricata kuyruğundan geçer; Suricata durursa onlar da
+durur. Engellenen IP'ler yine önce düşürülür, gelen yeni
 bağlantı kabul edilmez. 2.2.12'den beri elle
 değiştirilmiş /etc/satsuma-core/nftables.nft güvenlik duvarını açılışta
 durdurmuyor (bu, acil durum kilidini bırakıp ağı kesiyordu): değiştirilmiş
@@ -49,9 +51,11 @@ RULESET = Path('/etc/satsuma-core/nftables.nft')
 # Loopback kapalı; 2.2.38'den beri Satsuma'nın dnsmasq portu 53053 kalıcı olarak kapalı.
 LO_TCP = (53, 5939)
 LO_UDP = (53,)
-# Accepted without the queue (2.2.16): 67 DHCP, 123 NTP, 5938 TeamViewer,
+# Always open, always through the Suricata queue (2.2.41; accepted directly
+# outside the queue from 2.2.16 to 2.2.40): 67 DHCP, 123 NTP, 5938 TeamViewer,
 # 6568 AnyDesk. Outbound only; inbound only as established replies.
-DIRECT = {'tcp': (5938, 6568), 'udp': (67, 123, 5938)}
+# Her zaman açık, her zaman Suricata kuyruğundan geçer.
+ALWAYS_QUEUED = {'tcp': (5938, 6568), 'udp': (67, 123, 5938)}
 
 
 def run(args):
@@ -77,7 +81,9 @@ def _profile_ports(ports):
     if ports is None:
         from .egress_profiles import current_ports
         ports = current_ports()
-    return ports
+    # 2.2.41: the always-open ports join the queued set; nothing is accepted
+    # around Suricata. Her zaman açık portlar kuyruğa girer.
+    return {proto: tuple(sorted(set(ports.get(proto) or ()) | set(ALWAYS_QUEUED[proto]))) for proto in ('tcp', 'udp')}
 
 
 def expected_rules(chain, previous=False, ports=None):
@@ -98,16 +104,6 @@ def expected_rules(chain, previous=False, ports=None):
         for proto, name in (('ip', 'blocked_ips'), ('ip6', 'blocked_ips_v6')):
             rules.append([match({'payload': {'protocol': proto, 'field': direction}}, '@'+name),
                           {'counter': {}}, {'drop': None}])
-    for proto in ('tcp', 'udp'):
-        direct = _port_match(DIRECT[proto])
-        if chain == 'output':
-            rules.append([match({'payload': {'protocol': proto, 'field': 'dport'}}, direct),
-                          {'counter': {}}, {'accept': None}])
-        elif chain == 'input':
-            rules.append([match({'ct': {'key': 'state'}}, 'established'),
-                          match({'ct': {'key': 'direction'}}, 'reply'),
-                          match({'payload': {'protocol': proto, 'field': 'sport'}}, direct),
-                          {'counter': {}}, {'accept': None}])
     for proto, wanted in (('tcp', ports['tcp']), ('udp', ports['udp'])):
         if not wanted:
             continue
@@ -141,11 +137,6 @@ def render_ruleset(include_sets=True, ports=None):
         directions = ('saddr', 'daddr') if chain == 'forward' else ('saddr',) if chain == 'input' else ('daddr',)
         for direction in directions:
             lines += [f'  ip {direction} @blocked_ips counter drop', f'  ip6 {direction} @blocked_ips_v6 counter drop']
-        if chain == 'output':
-            lines += [f'  {proto} dport {_port_text(DIRECT[proto])} counter accept' for proto in ('tcp', 'udp')]
-        elif chain == 'input':
-            lines += [f'  ct state established ct direction reply {proto} sport {_port_text(DIRECT[proto])} counter accept'
-                      for proto in ('tcp', 'udp')]
         if chain == 'output':
             lines += [f'  {proto} dport {_port_text(ports[proto])} counter queue num 100' for proto in ('tcp', 'udp') if ports[proto]]
         elif chain == 'input':
@@ -410,10 +401,11 @@ def unblock(worker, ip, reason, manual=False):
 def lockdown(runner=subprocess.run):
     """On an unrecognized/failed policy, close external traffic in a reserved table.
 
-    DHCP, NTP and TeamViewer/AnyDesk (DIRECT) stay open outbound so the operator
-    can still reach the machine. Tanınmayan ya da başarısız ilkede dış trafik
-    ayrı bir tabloda kapatılır; DHCP, NTP ve TeamViewer/AnyDesk dışarıya açık
-    kalır, böylece operatör makineye yine ulaşabilir.
+    DHCP, NTP and TeamViewer/AnyDesk stay open outbound so the operator can
+    still reach the machine, through the Suricata queue (2.2.41): with Suricata
+    down they are closed too. Tanınmayan ya da başarısız ilkede dış trafik ayrı
+    bir tabloda kapatılır; DHCP, NTP ve TeamViewer/AnyDesk yalnızca Suricata
+    kuyruğundan geçerek açık kalır (2.2.41).
     """
     listed = runner(['nft','-j','list','tables'],capture_output=True,text=True,timeout=10,check=True)
     present = any(e.get('table',{}).get('family')=='inet' and e['table'].get('name')=='satsuma_lockdown'
@@ -424,12 +416,14 @@ def lockdown(runner=subprocess.run):
         script += f' chain {chain} {{ type filter hook {chain} priority -300; policy drop;\n'
         if chain != 'forward':
             script += ('  iifname' if chain=='input' else '  oifname')+' "lo" accept\n'
-        # Address, clock and remote support survive the lockdown (DIRECT, 2.2.16-2).
+        # Address, clock and remote support survive the lockdown only through
+        # Suricata (2.2.41; accepted directly from 2.2.16 to 2.2.40). No bypass flag:
+        # with no queue consumer these packets are dropped.
         for proto in ('tcp', 'udp'):
             if chain == 'output':
-                script += f'  {proto} dport {_port_text(DIRECT[proto])} accept\n'
+                script += f'  {proto} dport {_port_text(ALWAYS_QUEUED[proto])} queue num {QUEUE}\n'
             elif chain == 'input':
-                script += f'  ct state established ct direction reply {proto} sport {_port_text(DIRECT[proto])} accept\n'
+                script += f'  ct state established ct direction reply {proto} sport {_port_text(ALWAYS_QUEUED[proto])} queue num {QUEUE}\n'
         script += ' }\n'
     script += '}\n'
     result=runner(['nft','-f','-'],input=script,capture_output=True,text=True,timeout=10,check=True)

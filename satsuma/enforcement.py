@@ -149,7 +149,7 @@ def exempt(pid, executable, finding=None, proc_root='/proc'):
     return None
 
 
-def rwx_kept(finding, executable):
+def rwx_kept(finding, executable, pid=None):
     """Reason a RAM-001 match is only recorded, or None when the process is stopped.
 
     RAM-001 yalnızca kaydedilir mi: program güvenilir yoldaysa neden, değilse None.
@@ -167,8 +167,14 @@ def rwx_kept(finding, executable):
     # path already without the suffix (process_identity.canonical_exe_path).
     # Güncellemeyle yerine root dosyası gelmiş program kaydedilir; gizlenmek
     # için silinen program yine durdurulur.
-    from .trusted_process import trusted_path
-    return 'trusted_program_jit_memory' if trusted_path(path.removesuffix(' (deleted)')) else None
+    from .trusted_process import trusted_path, trusted_running_program
+    if trusted_path(path.removesuffix(' (deleted)')):
+        return 'trusted_program_jit_memory'
+    # 2.2.41: a sandboxed program (Flatpak) reports a path of its own namespace;
+    # the running file itself is judged (trusted_process.trusted_running_program).
+    if pid is not None and trusted_running_program(pid):
+        return 'trusted_program_jit_memory'
+    return None
 
 
 def apply(store, config):

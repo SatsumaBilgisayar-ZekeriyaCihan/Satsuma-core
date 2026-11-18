@@ -82,6 +82,8 @@ def test_writable_executable_anonymous_memory_stops_the_process(store, code, mon
     # 2.2.38: a program in a root-only place is recorded (JIT); here the program is
     # outside such a place, so it is stopped. Burada program güvenilir yerde değil.
     monkeypatch.setattr('satsuma.trusted_process.trusted_path', lambda value: False)
+    # 2.2.41: the running file is judged too; the test's interpreter is root's.
+    monkeypatch.setattr('satsuma.trusted_process.trusted_running_program', lambda pid: False)
     child = start(code)
     finding, result = detect_and_respond(store, child, 'anonymous_rwx')
     assert finding['rule_id'] == 'SATSUMA-RAM-001'
@@ -144,3 +146,48 @@ def test_ordinary_process_has_no_memory_indicator(store):
     finally:
         child.kill()
         child.wait()
+
+
+# 2.2.41 (owner, Fedora Atomic: RAM-001 still closed applications): sandboxed
+# programs (Flatpak) report /app/... paths of their own mount namespace.
+def test_sandboxed_program_is_judged_by_the_running_file(tmp_path):
+    import os
+    from satsuma import trusted_process
+    if os.geteuid() != 0:
+        import pytest
+        pytest.skip('needs root to own the fixture files')
+    proc = tmp_path / 'proc'
+    system = tmp_path / 'flatpak-app-firefox'
+    system.write_text('elf'); os.chmod(system, 0o755)
+    mine = tmp_path / 'user-flatpak'
+    mine.write_text('elf'); os.chmod(mine, 0o755); os.chown(mine, 65534, 65534)
+    writable = tmp_path / 'writable'
+    writable.write_text('elf'); os.chmod(writable, 0o777)
+    for pid, target in ((100, system), (200, mine), (300, writable)):
+        (proc / str(pid)).mkdir(parents=True)
+        os.symlink(target, proc / str(pid) / 'exe')   # the kernel link opens the running file
+    assert trusted_process.trusted_running_program(100, proc_root=proc)
+    assert not trusted_process.trusted_running_program(200, proc_root=proc)
+    assert not trusted_process.trusted_running_program(300, proc_root=proc)
+    assert not trusted_process.trusted_running_program(999, proc_root=proc)
+    assert not trusted_process.trusted_running_program('x', proc_root=proc)
+
+
+def test_rwx_kept_uses_the_running_file_only_when_the_path_is_not_found(monkeypatch):
+    from satsuma import enforcement
+    seen = []
+    monkeypatch.setattr('satsuma.trusted_process.trusted_path', lambda value: False)
+    monkeypatch.setattr('satsuma.trusted_process.trusted_running_program', lambda pid: seen.append(pid) or pid == 42)
+    ram1 = {'rule_id': 'SATSUMA-RAM-001'}
+    assert enforcement.rwx_kept(ram1, '/app/lib/firefox/firefox', pid=42) == 'trusted_program_jit_memory'
+    assert enforcement.rwx_kept(ram1, '/app/lib/firefox/firefox', pid=7) is None
+    assert enforcement.rwx_kept(ram1, '/app/lib/firefox/firefox') is None          # no pid: path only
+    assert enforcement.rwx_kept(ram1, '/memfd:x', pid=42) is None                  # memfd never
+    assert enforcement.rwx_kept({'rule_id': 'SATSUMA-RAM-002'}, '/app/x', pid=42) is None
+    assert seen == [42, 7]
+
+
+def test_auto_process_passes_the_pid_to_the_keep_decision():
+    from pathlib import Path
+    source = (Path(__file__).parents[1] / 'satsuma/auto_process.py').read_text()
+    assert "pid=event.get('pid') or memory_extensions.get('host.pid')" in source

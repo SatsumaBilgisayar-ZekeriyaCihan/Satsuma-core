@@ -11,10 +11,8 @@ table inet satsuma_core {
   ct state invalid drop
   ip saddr @blocked_ips counter drop
   ip6 saddr @blocked_ips_v6 counter drop
-  ct state established ct direction reply tcp sport { 5938, 6568 } counter accept
-  ct state established ct direction reply udp sport { 67, 123, 5938 } counter accept
-  ct state established ct direction reply tcp sport { 53, 443 } counter queue num 100
-  ct state established ct direction reply udp sport 53 counter queue num 100
+  ct state established ct direction reply tcp sport { 53, 443, 5938, 6568 } counter queue num 100
+  ct state established ct direction reply udp sport { 53, 67, 123, 5938 } counter queue num 100
  }
  chain output { type filter hook output priority 0; policy drop;
   meta nfproto ipv6 counter drop
@@ -25,10 +23,8 @@ table inet satsuma_core {
   ct state invalid drop
   ip daddr @blocked_ips counter drop
   ip6 daddr @blocked_ips_v6 counter drop
-  tcp dport { 5938, 6568 } counter accept
-  udp dport { 67, 123, 5938 } counter accept
-  tcp dport { 53, 443 } counter queue num 100
-  udp dport 53 counter queue num 100
+  tcp dport { 53, 443, 5938, 6568 } counter queue num 100
+  udp dport { 53, 67, 123, 5938 } counter queue num 100
  }
  chain forward { type filter hook forward priority 0; policy drop;
   meta nfproto ipv6 counter drop

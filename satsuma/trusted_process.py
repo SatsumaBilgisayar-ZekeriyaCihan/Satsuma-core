@@ -3,6 +3,7 @@
 Koruma istisnalarını root denetimli dosya yollarına ve sistem cgroup'larına bağla.
 """
 from pathlib import Path
+import os
 import stat
 
 SATSUMA_LAUNCHERS={'satsuma-core','satsuma-run','satsuma-admin','satsuma-reader',
@@ -39,6 +40,27 @@ def trusted_path(value):
         return stat.S_ISREG(path.stat().st_mode)
     except (OSError,ValueError,RuntimeError):
         return False
+
+
+def trusted_running_program(pid, proc_root='/proc'):
+    """The file a process actually runs (/proc/PID/exe) is root's and nobody else can write it.
+
+    2.2.41 (owner, Fedora Atomic, 2026-11-18: RAM-001 still closed applications):
+    Flatpak and other bubblewrap programs report paths of their own mount
+    namespace (/app/lib/...), which trusted_path cannot find on the host, so
+    every sandboxed browser or Electron program was stopped. The kernel's link
+    opens the running file itself, whatever namespace it lives in. A user can
+    neither change a root-owned file nobody else can write nor make a file of
+    their own root's, so the file decides, not the path. A user's own program,
+    a per-user Flatpak, a rootless container image and a memfd stay untrusted.
+    Flatpak gibi korumalı alan programları kendi ad alanlarındaki yolu bildirir;
+    karar yola değil, çekirdeğin çalıştırdığı dosyanın kendisine göre verilir.
+    """
+    try:
+        info=os.stat(f'{proc_root}/{int(pid)}/exe')
+    except (OSError,ValueError,TypeError):
+        return False
+    return stat.S_ISREG(info.st_mode) and info.st_uid==0 and not info.st_mode&0o022
 
 
 def satsuma_entry(executable,cmdline):

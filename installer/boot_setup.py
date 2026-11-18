@@ -53,10 +53,55 @@ def provision():
     return {'status':'APPLICATION_VERIFIED','files':verify()}
 
 
+def ensure_local_group(name, etc_group='/etc/group', etc_gshadow='/etc/gshadow', lib_group='/usr/lib/group',
+                       lock='/etc/.pwd.lock'):
+    """Copy a group kept only in /usr/lib/group into /etc/group before usermod edits it.
+
+    2.2.41 (owner, Fedora Atomic 2026-11-18: the panel asked for a password and
+    closed): rpm-ostree keeps the groups packages create in /usr/lib/group
+    (nss-altfiles); shadow-utils' usermod edits only /etc/group and fails with
+    "group does not exist", so desktop enrollment failed. The line is appended
+    under the same lock shadow-utils takes, in place (the files keep their
+    SELinux labels). Returns 'present', 'copied' or 'absent'.
+    Atomic'te paket grupları /usr/lib/group'tadır; usermod yalnızca /etc/group'u
+    düzenler. Satır usermod'dan önce /etc/group'a kopyalanır.
+    """
+    import fcntl
+    def has(path):
+        try:
+            return any(line.split(':',1)[0]==name for line in Path(path).read_text().splitlines())
+        except FileNotFoundError:
+            return False
+    if has(etc_group):
+        return 'present'
+    try:
+        line=next((l for l in Path(lib_group).read_text().splitlines() if l.split(':',1)[0]==name),None)
+    except FileNotFoundError:
+        line=None
+    if line is None:
+        return 'absent'
+    fd=os.open(lock,os.O_WRONLY|os.O_CREAT|os.O_NOFOLLOW,0o600)
+    try:
+        fcntl.lockf(fd,fcntl.LOCK_EX)
+        for path,entry in ((etc_group,line),(etc_gshadow,name+':!::')):
+            if path==etc_gshadow and not Path(path).exists():
+                continue
+            if has(path):
+                continue
+            with open(path,'r+') as stream:
+                text=stream.read()
+                stream.write(('' if not text or text.endswith('\n') else '\n')+entry+'\n')
+                stream.flush();os.fsync(stream.fileno())
+    finally:
+        os.close(fd)
+    return 'copied'
+
+
 def enroll_user(user, runner=subprocess.run):
     import pwd
     if pwd.getpwnam(user).pw_uid==0:raise ValueError('A normal desktop user is required')
     provision()
+    ensure_local_group('satsuma-reader')
     runner(['/usr/sbin/usermod','-a','-G','satsuma-reader',user],check=True,timeout=60)
     provision()
 
