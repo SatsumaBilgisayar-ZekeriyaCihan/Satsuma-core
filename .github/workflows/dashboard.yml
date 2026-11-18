@@ -1,0 +1,56 @@
+# Opens the Qt panel offscreen inside Fedora 44 with fixture data, saves a
+# screenshot of every page and runs the whole test suite with PyQt6 present.
+# Screenshots and the test summary are pushed to the branch shots/<branch>.
+# Qt paneli Fedora 44 içinde ekransız açar, her sayfanın görüntüsünü alır ve
+# tüm testleri PyQt6 ile çalıştırır; sonuçlar shots/<dal> dalına gönderilir.
+name: dashboard
+
+on:
+  push:
+    branches: ['satsuma-*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  screens:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      image: registry.fedoraproject.org/fedora:44
+    steps:
+      - name: Qt and test tools
+        run: >
+          dnf -y install git python3 python3-pyqt6 python3-pytest python3-pyyaml python3-psutil
+          python3-cryptography python3-jsonschema python3-pydantic google-noto-sans-fonts
+          dejavu-sans-mono-fonts fontconfig mesa-libEGL libxkbcommon findutils procps-ng
+      - uses: actions/checkout@v4
+      - name: Screenshots
+        env:
+          QT_QPA_PLATFORM: offscreen
+          XDG_RUNTIME_DIR: /tmp/runtime
+        run: |
+          mkdir -p /tmp/runtime && chmod 700 /tmp/runtime
+          mkdir -p shots
+          python3 tools/dashboard_screenshots.py shots 2>&1 | tee shots/screenshots.log
+      - name: Tests
+        if: always()
+        env:
+          QT_QPA_PLATFORM: offscreen
+          XDG_RUNTIME_DIR: /tmp/runtime
+        run: |
+          mkdir -p shots
+          COLUMNS=200 python3 -m pytest -q -p no:cacheprovider --continue-on-collection-errors tests --tb=short \
+            -k 'not windows' 2>&1 | tail -400 > shots/tests.txt || true
+          tail -5 shots/tests.txt
+      - name: Publish to shots/<branch>
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd shots
+          git init -q -b main
+          git add -A
+          git -c user.name=satsuma-ci -c user.email=ci@invalid commit -qm "screens for ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/shots/${GITHUB_REF_NAME}"

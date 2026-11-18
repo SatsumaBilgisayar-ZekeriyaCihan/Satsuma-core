@@ -154,7 +154,7 @@ class OperatorController:
         elif method == 'rule_response_set_requirement':
             from .rule_response import set_requirement
             result = set_requirement(self.store, params.get('rule_id'), params.get('minimum_sources'), uid, expected_hash=params.get('detection_sha256'), required_sources=params.get('required_sources'))
-        elif method in ('boot_check','systemd_security','device_inventory','security_scan'):
+        elif method in ('boot_check','systemd_security','device_inventory','security_scan','repair'):
             if method == 'security_scan' and not self.boot_provider().get('response_unlocked'):
                 raise RuntimeError('Tarama başlatılmadan uygulama bütünlüğü doğrulanmalı')
             result = self.jobs.start(method)

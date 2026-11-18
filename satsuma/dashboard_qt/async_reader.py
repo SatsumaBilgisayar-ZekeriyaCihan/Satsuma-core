@@ -68,5 +68,10 @@ class AsyncReader:
             if not self._stop.is_set():
                 self.on_update()
 
+    def invalidate(self):
+        """Forget cached answers after a change, so the next read is fresh (2.2.45)."""
+        with self._lock:
+            self._cache.clear()
+
     def close(self):
         self._stop.set()

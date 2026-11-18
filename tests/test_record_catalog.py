@@ -95,8 +95,9 @@ def test_investigation_findings_carry_the_source_process():
 
 
 def test_records_panel_is_reachable_from_the_sidebar():
+    # 2.2.45: technical tables live under "Uzman görünümü"; Kayıtlar is its first group.
     from satsuma.dashboard_qt.windows.nav import SECTIONS
-    assert ('Kayıtlar', ('records',)) in SECTIONS
+    assert SECTIONS[0][0] == 'Kayıtlar' and 'records' in SECTIONS[0][1]
 
 
 def test_every_finding_names_the_triggering_process_as_the_one_to_stop():

@@ -2198,7 +2198,168 @@ def m_process_approval_notice():
         return {'status': 'UNAVAILABLE', 'enabled': None, 'pending_count': None}
 
 
+def _recent_records(db, kinds, hours, limit):
+    """(created, body) of the newest records of ``kinds`` in the window; bounded."""
+    from .record_catalog import _window_start
+    cutoff = time.time() - max(1, min(24 * 30, float(hours))) * 3600
+    start = _window_start(db, cutoff)
+    marks = ','.join('?' for _ in kinds)
+    result = {kind: [] for kind in kinds}
+    for kind, created, body in db.execute(
+            f'SELECT kind, created, body FROM records WHERE id>=? AND created>=? AND kind IN ({marks}) ORDER BY id DESC LIMIT ?',
+            (start, cutoff, *kinds, max(1, min(20000, int(limit))))):
+        value = _decode(body)
+        if isinstance(value, dict):
+            finding = value.get('finding') if isinstance(value.get('finding'), dict) else value
+            if kind == 'events':
+                meta = value.get('metadata') if isinstance(value.get('metadata'), dict) else {}
+                finding = meta.get('finding') if isinstance(meta.get('finding'), dict) else None
+                if finding is None:
+                    continue
+                kind = 'findings'
+            result.setdefault(kind, []).append((created, finding if kind == 'findings' else value))
+    return result
+
+
+def _home_info():
+    """Evidence for satsuma.home_view, read-only; a missing part stays missing."""
+    from .self_health import read_report
+    info = {'reachable': True}
+    try:
+        info['app'] = __import__('satsuma.app_firewall', fromlist=['status']).status()
+    except Exception as exc:
+        info['app'] = {'status': 'UNAVAILABLE', 'error': str(exc)[:200]}
+    info['health'] = read_report()
+    info['summary'] = m_health_summary()
+    info['approvals'] = m_process_approval_notice()
+    try:
+        info['otx'] = m_otx()
+    except Exception:
+        info['otx'] = {}
+    try:
+        from .dashboard_auth import admin_hash_status
+        info['admin_configured'] = bool(admin_hash_status().get('configured'))
+    except Exception:
+        info['admin_configured'] = None
+    try:
+        with _connect() as db:
+            for key, field, default in (('enforcement_policy', 'enforcement', None), ('interactive_process_test_mode', 'test_mode', False),
+                                        ('dns_policy', 'dns_policy', {}), ('dns_filter_health', 'dns_health', {}),
+                                        ('network_identity', 'network_identity', {}), ('critical_integrity', 'critical_integrity', {})):
+                info[field] = _state(db, key, default)
+    except Exception as exc:
+        info['reachable'] = False
+        info['error'] = str(exc)[:200]
+    if not isinstance(info.get('enforcement'), dict) or type((info.get('enforcement') or {}).get('enabled')) is not bool:
+        info['enforcement'] = {'enabled': True, 'source': 'default'}
+    return info
+
+
+def m_home(params=None):
+    """2.2.45 home page: verdict, what waits for the user, layers, recent activity."""
+    from .home_view import home
+    info = _home_info()
+    records = {'findings': [], 'actions': []}
+    try:
+        with _connect() as db:
+            records = _recent_records(db, ('findings', 'events', 'actions'), 24, 6000)
+    except Exception as exc:
+        info['activity_error'] = str(exc)[:200]
+    result = home(info, records.get('findings', []), records.get('actions', []))
+    result['data_state'] = 'OK' if info.get('reachable') else 'UNKNOWN'
+    result['version'] = __import__('satsuma').__version__
+    return result
+
+
+def m_activity(params=None):
+    """Everything that happened in the window, repeats folded (satsuma.home_view.group_activity)."""
+    from .home_view import group_activity, activity_counts
+    params = params or {}
+    hours = max(1, min(24 * 30, float(params.get('hours', 24) or 24)))
+    try:
+        with _connect() as db:
+            records = _recent_records(db, ('findings', 'events', 'actions'), hours, 20000)
+    except Exception as exc:
+        return {'items': [], 'data_state': 'UNKNOWN', 'error': str(exc)[:300], 'hours': hours}
+    rows = group_activity(records.get('findings', []), records.get('actions', []), limit=int(params.get('limit', 300) or 300))
+    wanted = params.get('outcome')
+    if wanted:
+        rows = [row for row in rows if row['outcome'] == wanted]
+    text = str(params.get('search') or '').strip().lower()
+    if text:
+        rows = [row for row in rows if text in ' '.join(str(row.get(k) or '') for k in ('title', 'subject', 'rule_id', 'ip', 'domain')).lower()]
+    return {'items': rows, 'counts': activity_counts(rows, hours=hours), 'hours': hours, 'data_state': 'OK'}
+
+
+def m_maintenance_report(params=None):
+    """Last maintenance kit report (satsuma.maintenance), read-only."""
+    from .self_health import read_report
+    report = read_report(Path('/var/lib/satsuma-core/maintenance/last.json'))
+    if report.get('status') == 'STALE':
+        report['status'] = 'OLD'   # the kit runs every six hours; older than 15 minutes is normal
+    return report
+
+
+def m_protection(params=None):
+    """Every protection switch and list as it is now, read-only (2.2.45 Koruma page).
+
+    Values the store does not hold stay None, so the panel shows "Bilinmiyor"
+    instead of guessing. Pending process approvals and app rules need the
+    operator lock; only counts are here.
+    """
+    result = {'data_state': 'OK'}
+    try:
+        with _connect() as db:
+            get = lambda key, default=None: _state(db, key, default)
+            enforcement = get('enforcement_policy', None)
+            result['enforcement'] = enforcement.get('enabled') if isinstance(enforcement, dict) and type(enforcement.get('enabled')) is bool else True
+            result['test_mode'] = get('interactive_process_test_mode', False) is True
+            result['auto_network'] = (get('auto_action_policy', {}) or {}).get('network_enabled')
+            lan = (get('satsuma_lan_state', {}) or {}).get('enabled')
+            result['lan_access'] = (not lan) if type(lan) is bool else True
+            result['subnet_protection'] = (get('subnet_protection_policy', {}) or {}).get('enabled')
+            otx = get('operator_otx_policy', {}) or {}
+            result['otx_enabled'] = otx.get('enabled')
+            result['otx_blocker'] = otx.get('blocker_enabled')
+            dns = get('dns_policy', {}) or {}
+            result['dns_filter'] = bool(dns.get('enabled')) if 'enabled' in dns else None
+            result['dns_upstream'] = dns.get('upstream')
+            result['dns_health'] = get('dns_filter_health', {}) or {}
+            result['allowed_domains'] = sorted(get('dns_allowed_domains', []) or [])[:500]
+            result['allow_ips'] = list(get('operator_allow_ips', []) or [])[:500]
+            from .custom_dns_lists import status as list_status
+
+            class _View:
+                def get(self, key, default=None):
+                    return _state(db, key, default)
+            result['custom_lists'] = list_status(_View())
+    except Exception as exc:
+        result.update(data_state='UNKNOWN', error=str(exc)[:300])
+    result['approvals'] = m_process_approval_notice()
+    try:
+        app = __import__('satsuma.app_firewall', fromlist=['status']).status()
+        result['app'] = {'status': app.get('status'), 'enabled': app.get('enabled'), 'pending': app.get('pending') or [],
+                         'rule_count': len(app.get('rules') or {}) + len(app.get('application_rules') or {})}
+    except Exception as exc:
+        result['app'] = {'status': 'UNAVAILABLE', 'error': str(exc)[:200]}
+    try:
+        from .egress_profiles import describe, load
+        result['egress'] = describe(load())
+    except Exception as exc:
+        result['egress'] = {'error': str(exc)[:200]}
+    try:
+        response = m_response(limit=200)
+        result['blocked_ips'] = response.get('blocked_ips') or []
+    except Exception:
+        result['blocked_ips'] = []
+    return result
+
+
 METHODS = {
+    'home': lambda p: m_home(p),
+    'activity': lambda p: m_activity(p),
+    'maintenance_report': lambda p: m_maintenance_report(p),
+    'protection': lambda p: m_protection(p),
     'process_approval_notice': lambda p: m_process_approval_notice(),
     'database_catalog': lambda p: m_database_catalog(),
     'database_page': lambda p: m_database_page(p),

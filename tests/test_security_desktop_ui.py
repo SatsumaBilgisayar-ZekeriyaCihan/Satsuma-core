@@ -43,48 +43,56 @@ def test_healthy_artwork_requires_all_three_successful_checks():
     assert protection_view({'health_summary':healthy,'system':{'critical_integrity':{'status':'CRITICAL'}}})[0]=='critical'
 
 
-def test_sidebar_reaches_every_registered_panel_without_rebuilding_on_refresh(window):
-    assert window.nav.current()=='overview'
+def test_sidebar_reaches_every_registered_panel(window):
+    """2.2.45: five user sections; every older page stays reachable under Uzman görünümü."""
+    assert window.nav.current()=='home'
     from satsuma.dashboard_qt import panels
-    reachable={c.PANEL_ID for group in window.nav._groups for c in group}
+    from satsuma.dashboard_qt.windows.nav import PRIMARY
+    reachable={p for p,_,_ in PRIMARY}|set(window.nav.expert_ids())
     assert set(panels.all_ids())-{'tickets'}<=reachable
-    window.nav.select('otx');item=window.nav.tools.item(0)
-    # 'Ağ güvenliği' is the fourth section since 'Kayıtlar' (2.2.30).
-    assert window.nav._buttons[3].isChecked()
+    window.nav.select('otx')
+    assert window.nav.expert_visible() and not any(b.isChecked() for b in window.nav._buttons.values())
     window.nav.select('network_response')
-    assert window.nav.tools.item(0) is item
     assert window.stack.currentWidget().PANEL_ID=='network_response'
+    window.nav.select('protection')
+    assert window.nav._buttons['protection'].isChecked() and window.nav.tools.currentRow()==-1
 
 
 def test_home_shows_no_zero_counts_or_success_when_reader_has_no_data(window):
-    home=window.stack.currentWidget();home.refresh()
-    assert home.art.tone=='unknown' and 'doğrulanıyor' in home.status.text()
-    assert home.cards['Son 24 saat bulgu'].text()=='—'
-    assert home.cards['Aktif kurallar'].text()=='—'
-    assert all(card.state.text()=='Doğrulanmadı' for card in home.security_cards.values())
+    home=window.stack.currentWidget();home.reload()
+    assert home.art.tone=='unknown' and home.verdict.text()=='Durum alınamıyor'
+    assert all(metric.value.text()=='—' for metric in home.metrics.values())
 
 
-def test_home_shortcuts_open_real_authenticated_application_settings(window):
-    home=window.stack.currentWidget();home._open_apps()
+def test_attention_buttons_open_the_page_that_resolves_them(window):
+    window.open_target('expert:admin',{'section':'apps'})
     panel=window.stack.currentWidget()
     assert panel.PANEL_ID=='admin' and panel.sections.currentRow()==1
     assert not panel.token and all(not button.isEnabled() for button in panel._controls)
+    window.open_target('protection:dns')
+    assert window.stack.currentWidget().PANEL_ID=='protection'
 
 
 def test_desktop_is_native_dark_qt_with_bounded_sidebar_at_small_size(window,app):
-    window.resize(1000,680);window.show();app.processEvents()
+    window.resize(1060,700);window.show();app.processEvents()
     assert window.nav.width()==236 and window.stack.width()<window.width()
-    # Black-and-orange theme (2.2.30): the window background is Colors.BG_DEEP.
-    assert '#050505' in window.styleSheet() and window.stack.currentWidget().scroll.widgetResizable()
-    assert window.stack.currentWidget().inspect_button.isVisible()
-    assert window.stack.currentWidget().scroll.horizontalScrollBar().maximum()==0
+    assert '#050505' in window.styleSheet()
+    page=window.stack.currentWidget().page
+    assert page.scroll.widgetResizable() and page.scroll.horizontalScrollBar().maximum()==0
 
 
-def test_activity_selection_survives_status_only_refresh(window):
-    rows=[{'finding_id':'a','title':'First','timestamp':time.time(),'severity':'info'},{'finding_id':'b','title':'Second','timestamp':time.time(),'severity':'high'}]
-    backend=window.backend;backend.data={'last_findings':rows};home=window.stack.currentWidget();home.refresh();home.table.selectRow(1)
-    backend.data={**backend.data,'health_summary':{'overall':'Sorun var'}};home.refresh()
-    assert home.table.currentRow()==1 and home.art.tone=='warning'
+def test_activity_selection_survives_refresh_and_reordering(window):
+    from satsuma import home_view
+    now=time.time()
+    findings=[(now,{'finding_id':'a','rule_id':'R1','event':{'exe':'/a'},'timestamp':now}),
+              (now-5,{'finding_id':'b','rule_id':'R2','event':{'exe':'/b'},'timestamp':now-5})]
+    rows=home_view.group_activity(findings,[])
+    backend=window.backend
+    backend.call=lambda method,**k:{'items':rows,'counts':{}} if method=='activity' else {}
+    window.nav.select('activity');page=window.stack.currentWidget();page.reload()
+    page.list.setCurrentRow(1);chosen=page.rows[1]['id']
+    rows=list(reversed(rows));page.reload()
+    assert page.rows[page.list.currentRow()]['id']==chosen
 
 
 def test_failed_panel_construction_keeps_previous_screen(window):
@@ -96,7 +104,7 @@ def test_failed_panel_construction_keeps_previous_screen(window):
     placeholder._panel_class = Broken
     window.nav.select('findings')
     assert window.stack.currentWidget() is original
-    assert window.nav.current() == 'overview'
+    assert window.nav.current() == 'home'
 
 
 def test_failed_panel_activation_keeps_previous_screen(window):
@@ -115,7 +123,7 @@ def test_failed_panel_activation_keeps_previous_screen(window):
 def test_navigation_reports_initial_and_subsequent_timings(window):
     window.nav.select('findings')
     panel = window.stack.currentWidget()
-    window.nav.select('overview')
+    window.nav.select('home')
     window.nav.select('findings')
     assert window.stack.currentWidget() is panel
     assert window._panel_timings[('findings', 'initial')] >= 0

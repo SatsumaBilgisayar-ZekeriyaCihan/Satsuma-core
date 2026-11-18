@@ -165,3 +165,56 @@ QTableWidget {{gridline-color:{Colors.BORDER_SOFT};alternate-background-color:#2
 QHeaderView::section {{padding:12px 14px;background:#1c1c1c;color:{Colors.TEXT_MUTED};border:none;border-bottom:1px solid {Colors.BORDER_LIGHT};font-weight:600;}}
 QToolTip {{background:{Colors.BG_ELEVATED};color:{Colors.TEXT_PRIMARY};border:1px solid {Colors.BORDER_LIGHT};padding:8px;}}
 """
+
+# 2.2.45 redesign (owner, 2026-11-18): same black/orange theme, calmer surfaces,
+# larger type for what matters, one accent per view.
+# 2.2.45 yeniden tasarım: aynı siyah-turuncu tema; sakin yüzeyler, önemli olana büyük yazı.
+GLOBAL_QSS += f"""
+QWidget#page {{background:{Colors.BG_DEEP};}}
+QLabel#pageTitle {{font-size:26px;font-weight:700;color:{Colors.TEXT_PRIMARY};}}
+QLabel#pageSubtitle {{font-size:13px;color:{Colors.TEXT_MUTED};}}
+QLabel#sectionTitle {{font-size:15px;font-weight:700;color:{Colors.TEXT_PRIMARY};padding-top:6px;}}
+QLabel#rowTitle {{font-size:13px;font-weight:600;color:{Colors.TEXT_PRIMARY};}}
+QLabel#heroTitle {{font-size:26px;font-weight:700;color:{Colors.TEXT_PRIMARY};}}
+QLabel#heroText {{font-size:14px;color:{Colors.TEXT_SECONDARY};}}
+QLabel#detailTitle {{font-size:17px;font-weight:700;color:{Colors.TEXT_PRIMARY};}}
+QLabel#fieldLabel {{font-size:10px;font-weight:700;letter-spacing:1.4px;color:{Colors.TEXT_MUTED};padding-top:6px;}}
+QLabel#body {{font-size:13px;color:{Colors.TEXT_SECONDARY};}}
+QLabel#mono {{font-family:{FONT_MONO};font-size:12px;color:{Colors.TEXT_MUTED};}}
+QLabel#hint {{font-size:11px;color:{Colors.TEXT_DISABLED};padding:0 0 6px 28px;}}
+QLabel#metricValue {{font-size:28px;font-weight:700;color:{Colors.TEXT_PRIMARY};}}
+QLabel#countBadge {{font-size:11px;font-weight:700;color:{Colors.ACCENT};}}
+QLabel#lockNote {{font-size:12px;color:{Colors.TEXT_MUTED};}}
+QLabel#errorText {{font-size:12px;color:{Colors.STATUS_CRIT};}}
+QLabel#dialogTitle {{font-size:18px;font-weight:700;}}
+QLabel#brandName {{font-size:19px;font-weight:800;letter-spacing:2px;color:{Colors.TEXT_PRIMARY};}}
+QLabel#brandSub {{font-size:9px;letter-spacing:1.7px;color:{Colors.TEXT_MUTED};}}
+QLabel#topTitle {{font-size:15px;font-weight:700;color:{Colors.TEXT_SECONDARY};}}
+QFrame#card,QFrame#listCard,QFrame#detailCard {{background:{Colors.BG_SURFACE};border:1px solid {Colors.BORDER_LIGHT};border-radius:14px;}}
+QFrame#hero {{background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #2a1a0c,stop:1 #171717);border:1px solid #3a2a1c;border-radius:16px;}}
+QFrame#actionRow {{background:{Colors.BG_SURFACE};border:1px solid {Colors.BORDER_LIGHT};border-radius:12px;}}
+QFrame#layerTile {{background:{Colors.BG_SURFACE};border:1px solid {Colors.BORDER_LIGHT};border-radius:12px;}}
+QFrame#layerTile:hover {{border-color:{Colors.ACCENT};background:#1d1814;}}
+QFrame#metric {{background:{Colors.BG_SURFACE};border:1px solid {Colors.BORDER_SOFT};border-radius:12px;}}
+QFrame#empty {{background:transparent;border:1px dashed {Colors.BORDER};border-radius:12px;}}
+QFrame#divider {{background:{Colors.BORDER_SOFT};border:none;}}
+QFrame#settingRow {{background:transparent;border:none;}}
+QFrame#activityLine,QFrame#feedRow {{background:transparent;border:none;}}
+QFrame#topBar {{background:{Colors.BG_DEEP};border-bottom:1px solid {Colors.BORDER_SOFT};}}
+QLineEdit#topSearch {{background:{Colors.BG_SURFACE};border-radius:18px;padding:7px 12px;}}
+QPushButton#topAttention,QPushButton#topLock {{background:{Colors.BG_SURFACE};border:1px solid {Colors.BORDER_LIGHT};border-radius:16px;padding:7px 14px;color:{Colors.TEXT_SECONDARY};}}
+QPushButton#topLock[unlocked="true"] {{border-color:{Colors.ACCENT};color:{Colors.ACCENT};}}
+QPushButton#navExpert {{text-align:left;background:transparent;color:{Colors.TEXT_MUTED};border:none;border-top:1px solid {Colors.BORDER_SOFT};border-radius:0;padding:12px 14px;font-size:12px;font-weight:600;}}
+QPushButton#navExpert:checked {{color:{Colors.TEXT_PRIMARY};}}
+QPushButton#navExpert:hover {{color:{Colors.ACCENT};}}
+QPushButton#chip {{background:transparent;border:1px solid {Colors.BORDER_LIGHT};border-radius:15px;padding:6px 14px;color:{Colors.TEXT_MUTED};font-weight:600;}}
+QPushButton#chip:checked {{background:{Colors.ACCENT_DIM};border-color:{Colors.ACCENT};color:{Colors.ACCENT};}}
+QPushButton#chip:hover {{color:{Colors.TEXT_PRIMARY};}}
+QPushButton#switch {{background:transparent;border:none;padding:0;}}
+QListWidget#feed {{background:{Colors.BG_SURFACE};border:1px solid {Colors.BORDER_LIGHT};border-radius:14px;padding:6px;}}
+QListWidget#feed::item {{border-radius:8px;padding:0;margin:1px 0;}}
+QListWidget#feed::item:selected {{background:#2a1d12;}}
+QListWidget#feed::item:hover {{background:#1d1d1d;}}
+QListWidget#navTools::item:disabled {{color:{Colors.TEXT_DISABLED};font-size:9px;font-weight:700;letter-spacing:1.4px;padding:14px 12px 4px 12px;background:transparent;}}
+QDialog#passwordDialog {{background:{Colors.BG_SURFACE};}}
+"""

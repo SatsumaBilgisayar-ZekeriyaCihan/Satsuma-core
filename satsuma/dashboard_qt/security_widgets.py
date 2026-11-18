@@ -42,6 +42,18 @@ def vector(painter,name,color):
         p=QPainterPath();p.moveTo(5,12);p.lineTo(10,17);p.lineTo(19,7);painter.drawPath(p)
     elif name=='warning':
         p=QPainterPath();p.moveTo(12,3);p.lineTo(22,21);p.lineTo(2,21);p.closeSubpath();painter.drawPath(p);painter.drawLine(12,9,12,14);painter.drawEllipse(QRectF(11.4,17,1.2,1.2))
+    elif name=='pulse':
+        p=QPainterPath();p.moveTo(12,20);p.cubicTo(4,14,2,10,4,6.5);p.cubicTo(6,3.5,10,3.5,12,7);p.cubicTo(14,3.5,18,3.5,20,6.5);p.cubicTo(22,10,20,14,12,20)
+        p.moveTo(3,12);p.lineTo(8,12);p.lineTo(10,9);p.lineTo(13,15);p.lineTo(15,12);p.lineTo(21,12);painter.drawPath(p)
+    elif name=='code':
+        p=QPainterPath();p.moveTo(8,7);p.lineTo(3,12);p.lineTo(8,17);p.moveTo(16,7);p.lineTo(21,12);p.lineTo(16,17);p.moveTo(14,5);p.lineTo(10,19);painter.drawPath(p)
+    elif name=='bell':
+        p=QPainterPath();p.moveTo(6,17);p.lineTo(6,11);p.cubicTo(6,7,8.5,5,12,5);p.cubicTo(15.5,5,18,7,18,11);p.lineTo(18,17);p.lineTo(20,19);p.lineTo(4,19);p.lineTo(6,17)
+        p.moveTo(10,21);p.lineTo(14,21);painter.drawPath(p)
+    elif name=='search':
+        painter.drawEllipse(QRectF(4,4,12,12));painter.drawLine(15,15,20,20)
+    elif name=='unlock':
+        painter.drawRoundedRect(QRectF(5,10,14,12),2,2);painter.drawArc(QRectF(8,2,8,14),40*16,140*16);painter.drawLine(12,15,12,18)
     else:
         painter.drawEllipse(QRectF(3,3,18,18));painter.drawLine(12,7,12,12);painter.drawLine(12,12,16,14)
 

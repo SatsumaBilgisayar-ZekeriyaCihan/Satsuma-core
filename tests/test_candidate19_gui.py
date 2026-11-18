@@ -22,8 +22,9 @@ def test_security_home_opens_and_application_management_controls_are_real_widget
         def close(self): pass
     window = MainWindow(Backend())
     try:
-        assert window.nav.current() == 'overview'
-        assert window.stack.currentWidget().PANEL_ID == 'overview'
+        # 2.2.45: the panel opens on "Durum"; the old management page is under Uzman görünümü.
+        assert window.nav.current() == 'home'
+        assert window.stack.currentWidget().PANEL_ID == 'home'
         assert not hasattr(window.stack.currentWidget(), '_panel_class')
         window.nav.select('admin')
         panel = window.stack.currentWidget()
@@ -38,26 +39,26 @@ def test_security_home_opens_and_application_management_controls_are_real_widget
         window.close()
 
 
-def test_health_check_banner_running_and_degraded():
+def test_attention_strip_follows_what_waits_for_the_user_outside_home():
+    """2.2.45: the strip under the top bar names what waits; it hides on Durum and when nothing waits."""
     app=QApplication.instance() or QApplication([])
     class Backend:
         updates=ReaderUpdates();client=None;db_path='test'
-        state='RUNNING'
-        def call(self,*a,**k):return {'status':self.state}
+        items=[{'tone':'warning','title':'DNS filtresi çalışmıyor','actions':[]}]
+        def call(self,method,**k):return {'attention':self.items} if method=='home' else {}
         def version(self):return '19.1'
         def is_connected(self):return False
-        def system_health(self):return {}
-        def overview(self):return {}
         def close(self):pass
     backend=Backend();window=MainWindow(backend)
     try:
-        window._refresh_self_health()
-        assert 'Sağlık kontrol ediliyor' in window.health_notice.text()
+        window.nav.select('settings');window._refresh_attention()
+        assert 'DNS filtresi çalışmıyor' in window.health_notice.text()
         assert not window.health_notice.isHidden()
-        backend.state='DEGRADED';window._refresh_self_health()
-        assert 'sorun buldu' in window.health_notice.text()
-        backend.state='PASSED';window._refresh_self_health()
+        assert window.topbar.attention.text().strip()=='1'
+        window.nav.select('home');window._refresh_attention()
         assert window.health_notice.isHidden()
+        backend.items=[];window.nav.select('settings');window._refresh_attention()
+        assert window.health_notice.isHidden() and window.topbar.attention.text()==''
     finally:window.close()
 
 

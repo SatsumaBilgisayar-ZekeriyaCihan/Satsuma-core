@@ -42,6 +42,10 @@ class MaintenanceJobs:
         if operation=='boot_check':
             # Same serialized pipeline as the periodic check: verdict, report and DB.
             command=['/usr/bin/systemctl','start','--wait','satsuma-integrity-check.service']
+        elif operation=='repair':
+            # 2.2.45: the panel's "Onar" button runs the maintenance kit (satsuma.maintenance),
+            # the same bounded repairs as the six-hourly timer. Panelin "Onar" düğmesi bakım kitini çalıştırır.
+            command=['/usr/bin/systemctl','start','--wait','satsuma-maintenance.service']
         elif operation=='security_scan':
             command=['/usr/bin/systemctl','start','--wait','satsuma-core-security-scan-now.service']
         elif operation in ('systemd_security', 'device_inventory'):

@@ -26,6 +26,14 @@ def disabled_dns_check(policy):
 
 
 ROOT=Path('/var/lib/satsuma-core/self-health')
+# Plain names of the functional checks (panel and notices). İşlev kontrollerinin adları.
+CHECK_LABELS={'services':'Servisler','services_after_repair':'Onarım sonrası servisler',
+        'integrity':'Uygulama bütünlüğü','response_integrity':'Müdahale için bütünlük doğrulaması',
+        'modem_reference':'Modem/ağ geçidi onayı',
+        'worker_heartbeats':'Takım çalışma kayıtları','packet_drop':'Paket engelleme testi',
+        'production_incoming_rules':'Gelen trafik kuralları','app_control':'Uygulama internet filtresi',
+        'nfqueue_consumers':'Ağ kuyruğu servisleri','dns_filter':'DNS filtresi',
+        'dns_policy':'DNS yapılandırması','dns_resolver_alignment':'Sistem DNS sunucusu','competing_ips':'Çakışan Suricata servisi','subnet_protection':'Alt ağ engelleyici','integrity_monitor':'Bütünlük izleyici','core_state':'Core durumuna erişim'}
 
 
 def notice_text(result):
@@ -42,13 +50,7 @@ def notice_text(result):
     if status=='PASSED':return ''
     text=messages.get(status,'Sağlık durumu doğrulanamadı; Sistem Sağlığı bölümünü inceleyin.')
     if status not in ('DEGRADED','FAILED'):return text
-    labels={'services':'Servisler','services_after_repair':'Onarım sonrası servisler',
-        'integrity':'Uygulama bütünlüğü','response_integrity':'Müdahale için bütünlük doğrulaması',
-        'modem_reference':'Modem/ağ geçidi onayı',
-        'worker_heartbeats':'Takım çalışma kayıtları','packet_drop':'Paket engelleme testi',
-        'production_incoming_rules':'Gelen trafik kuralları','app_control':'Uygulama internet filtresi',
-        'nfqueue_consumers':'Ağ kuyruğu servisleri','dns_filter':'DNS filtresi',
-        'dns_policy':'DNS yapılandırması','dns_threat_lists':'Malware/fidye yazılımı DNS listeleri','core_state':'Core durumuna erişim'}
+    labels=CHECK_LABELS
     failures=[]
     checks=result.get('checks') or {}
     for name,check in checks.items():
