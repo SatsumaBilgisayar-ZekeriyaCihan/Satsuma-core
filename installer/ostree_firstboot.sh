@@ -23,6 +23,13 @@ run_step() {  # run_step TAG NAME
 }
 date -u +"== %Y-%m-%dT%H:%M:%SZ ostree ilk acilis" >> "$LOG"
 run_step PREIN pre
+# 2.2.40 (field log 2026-11-18): after an update the enabled Satsuma units start
+# at boot against the previous image, fail to verify and hit their start limit;
+# %posttrans then could not start them ("start of the service was attempted too
+# often"). Their failure state is cleared before %posttrans starts them again.
+# Güncellemeden sonra açılışta eski imaja karşı düşen birimlerin başlatma sınırı
+# %posttrans onları başlatmadan önce sıfırlanır.
+[ "$failed" -eq 0 ] && { systemctl reset-failed 'satsuma-*' >/dev/null 2>&1 || :; }
 [ "$failed" -eq 0 ] && run_step POSTTRANS posttrans
 if [ "$failed" -eq 0 ]; then printf "%s" "$version" > "$STATE/.ostree-installed"; echo "TAMAM: kurulum islendi ($version)" >> "$LOG"; exit 0; fi
 echo "SORUN: kurulum tamamlanamadi; bir sonraki acilista yeniden denenir. Gunluk: $LOG" >&2

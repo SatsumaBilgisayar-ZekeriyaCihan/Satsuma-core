@@ -205,3 +205,44 @@ def test_cli_and_timer_are_wired():
     timer = (ROOT / 'systemd/satsuma-maintenance.timer').read_text()
     assert 'OnBootSec=15min' in timer and 'Unit=satsuma-maintenance.service' in timer
     assert 'systemctl enable --now satsuma-maintenance.timer' in SPEC
+
+
+def test_a_unit_whose_condition_does_not_hold_is_not_a_problem(env):
+    # Field log 2026-11-18: quarantine-rollback has ConditionDirectoryNotEmpty=
+    # and nothing pending; "başlatılamadı: inactive" was a false alarm.
+    systemd = Systemd({'satsuma-quarantine-rollback.service': {
+        'Type': 'oneshot', 'RemainAfterExit': 'yes', 'ActiveState': 'inactive',
+        'ConditionResult': 'no', 'ConditionTimestampMonotonic': '123456'}})
+    summary = kit(env, systemd, ['satsuma-quarantine-rollback.service']).check()
+    assert not any(r['name'] == 'Birim satsuma-quarantine-rollback.service' for r in summary['rows'])
+    assert not systemd.acted('start', 'satsuma-quarantine-rollback.service')
+
+
+def test_condition_checked_again_after_a_start(env):
+    systemd = Systemd({'satsuma-quarantine-rollback.service': {
+        'Type': 'oneshot', 'RemainAfterExit': 'yes', 'ActiveState': 'inactive', 'ConditionResult': 'no',
+        'ConditionTimestampMonotonic': '0'}})
+    original = systemd.__call__
+
+    def runner(argv, **kwargs):
+        result = original(argv, **kwargs)
+        if argv[1:2] == ['start']:   # systemd evaluates the condition and leaves it inactive
+            systemd.units[argv[-1]].update(ActiveState='inactive', ConditionTimestampMonotonic='999')
+        return result
+    summary = kit(env, runner, ['satsuma-quarantine-rollback.service']).check()
+    row = next(r for r in summary['rows'] if r['name'] == 'Birim satsuma-quarantine-rollback.service')
+    assert row['ok'] and 'koşulu' in row['detail']
+
+
+def test_a_failed_unit_outside_the_enabled_list_is_repaired(env):
+    systemd = Systemd({'satsuma-core-dns.service': {'ActiveState': 'failed', 'UnitFileState': 'enabled'}})
+    summary = kit(env, systemd, ['satsuma-core-dns.service']).check()
+    assert systemd.acted('reset-failed', 'satsuma-core-dns.service') and systemd.acted('start', 'satsuma-core-dns.service')
+    assert next(r for r in summary['rows'] if r['name'] == 'Birim satsuma-core-dns.service')['repaired']
+
+
+def test_first_boot_clears_start_limits_before_posttrans():
+    script = (ROOT / 'installer/ostree_firstboot.sh').read_text()
+    reset = script.index("systemctl reset-failed 'satsuma-*'")
+    assert script.index('run_step PREIN pre') < reset < script.index('run_step POSTTRANS posttrans')
+    subprocess.run(['sh', '-n', str(ROOT / 'installer/ostree_firstboot.sh')], check=True)

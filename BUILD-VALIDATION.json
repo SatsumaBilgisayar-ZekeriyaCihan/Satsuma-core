@@ -1,5 +1,5 @@
 {
-  "version": "2.2.39",
+  "version": "2.2.40",
   "release": "1.fc44",
   "status": "SOURCE_CANDIDATE",
   "base": "satsuma-core-2.2.37-duzeltilmis archive of 2026-11-18 (no git history, docs and release/ folder in the archive)",
@@ -10,7 +10,7 @@
   "target_device_verified": false,
   "ostree_device_verified": false,
   "publisher_signature": "unavailable; package built locally and not signed",
-  "behavior_changes": "See docs/RELEASE-2.2.38.md: account-file writes judged by what they changed; account guard covers empty/DES hashes, a second UID 0, 65534 and dynamic users; deep engine starts and connects; reader reads before any writer opens the database and restarts at the end of installation; operator device decision and IP unblock no longer crash; rpm-ostree paths (kargs, /etc sysctl overrides, packaged definitions, rpm-ostree as package manager, no USB kernel argument on ostree); script file modes fixed in the spec; maintenance kit (satsuma-admin bakim, satsuma-maintenance.timer, tam-kontrol covers the whole product); 2.2.39: integrity and quarantine walks follow only links root alone could have placed (Fedora Atomic /opt, /home, /root, /usr/local), quarantine accepts the /var roots of Atomic",
+  "behavior_changes": "See docs/RELEASE-2.2.38.md: account-file writes judged by what they changed; account guard covers empty/DES hashes, a second UID 0, 65534 and dynamic users; deep engine starts and connects; reader reads before any writer opens the database and restarts at the end of installation; operator device decision and IP unblock no longer crash; rpm-ostree paths (kargs, /etc sysctl overrides, packaged definitions, rpm-ostree as package manager, no USB kernel argument on ostree); script file modes fixed in the spec; maintenance kit (satsuma-admin bakim, satsuma-maintenance.timer, tam-kontrol covers the whole product); 2.2.39: integrity and quarantine walks follow only links root alone could have placed (Fedora Atomic /opt, /home, /root, /usr/local), quarantine accepts the /var roots of Atomic; 2.2.40: ostree first boot clears Satsuma start limits before %posttrans; maintenance kit accepts units whose condition does not hold and reports failed units outside the enabled list",
   "rollback": "the 2.2.37 archive is unchanged",
-  "ostree_field_report": "2.2.38 on Fedora Atomic: integrity check failed with NotADirectoryError opt; every self-verifying service was down; fixed in 2.2.39, not yet re-run on the device"
+  "ostree_field_report": "2.2.39 on Fedora Atomic: integrity verified (536 files), core services running; first boot needed four attempts (start limits), self-health DEGRADED on satsuma-core-dns and a competing suricata.service"
 }

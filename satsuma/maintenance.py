@@ -78,6 +78,15 @@ def row(name, ok, detail, severity=None, repaired=None, repair=None):
             'repaired': repaired, 'repair': repair}
 
 
+def condition_unmet(props):
+    """True when systemd evaluated the unit's Condition*= and it did not hold.
+
+    ConditionResult is "no" also for a unit never started; the timestamp tells
+    an evaluated condition apart.
+    """
+    return props.get('ConditionResult') == 'no' and props.get('ConditionTimestampMonotonic', '0') not in ('', '0')
+
+
 class Kit:
     def __init__(self, runner=subprocess.run, repair=True, state=STATE, clock=time.time, unit_dir=UNIT_DIR,
                  store=None, verify=None, reader_ping=None, data=DATA, modes=MODES, identities=IDENTITIES,
@@ -158,7 +167,8 @@ class Kit:
 
     def show(self, unit):
         code, out, _ = self.run([SYSTEMCTL, 'show', unit, '-p',
-                                 'ActiveState,SubState,UnitFileState,Type,RemainAfterExit,Result,LoadState'])
+                                 'ActiveState,SubState,UnitFileState,Type,RemainAfterExit,Result,LoadState,'
+                                 'ConditionResult,ConditionTimestampMonotonic'])
         props = dict(line.split('=', 1) for line in out.splitlines() if '=' in line)
         return props if code == 0 else {}
 
@@ -197,6 +207,12 @@ class Kit:
                                    '); günlük: journalctl -u ' + unit))
                 continue
             if wanted and active != 'active':
+                if condition_unmet(props):
+                    continue   # e.g. quarantine-rollback with nothing pending: inactive by design
+                bad.append(self.start(unit, active))
+            elif not wanted and active == 'failed':
+                # 2.2.40: a failed unit the package does not enable at install
+                # (satsuma-core-dns after setup) was not reported at all.
                 bad.append(self.start(unit, active))
         if bad:
             self.rows.extend(bad)
@@ -210,7 +226,10 @@ class Kit:
         self.run([SYSTEMCTL, 'reset-failed', unit])
         verb = 'restart' if active == 'active' else 'start'
         code, _, err = self.run([SYSTEMCTL, verb, unit], timeout=120)
-        after = self.show(unit).get('ActiveState', '')
+        shown = self.show(unit)
+        after = shown.get('ActiveState', '')
+        if code == 0 and after == 'inactive' and condition_unmet(shown):
+            return row('Birim ' + unit, True, 'Başlatma koşulu sağlanmıyor; birimin çalışmaması beklenen durum')
         fixed = code == 0 and after in ('active', 'activating')
         return row('Birim ' + unit, fixed, (reason or ('Durumu ' + (active or 'bilinmiyor'))) + (
             '; yeniden başlatıldı' if fixed else '; başlatılamadı: ' + (err[-200:] or after)),
