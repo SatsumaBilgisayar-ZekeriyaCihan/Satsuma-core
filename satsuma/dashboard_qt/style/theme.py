@@ -191,6 +191,7 @@ QLabel#brandName {{font-size:19px;font-weight:800;letter-spacing:2px;color:{Colo
 QLabel#brandSub {{font-size:9px;letter-spacing:1.7px;color:{Colors.TEXT_MUTED};}}
 QLabel#topTitle {{font-size:15px;font-weight:700;color:{Colors.TEXT_SECONDARY};}}
 QFrame#card,QFrame#listCard,QFrame#detailCard {{background:{Colors.BG_SURFACE};border:1px solid {Colors.BORDER_LIGHT};border-radius:14px;}}
+QScrollArea#detailScroll,QScrollArea#detailScroll > QWidget,QScrollArea#detailScroll > QWidget > QWidget {{background:transparent;border:none;}}
 QFrame#hero {{background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #2a1a0c,stop:1 #171717);border:1px solid #3a2a1c;border-radius:16px;}}
 QFrame#actionRow {{background:{Colors.BG_SURFACE};border:1px solid {Colors.BORDER_LIGHT};border-radius:12px;}}
 QFrame#layerTile {{background:{Colors.BG_SURFACE};border:1px solid {Colors.BORDER_LIGHT};border-radius:12px;}}

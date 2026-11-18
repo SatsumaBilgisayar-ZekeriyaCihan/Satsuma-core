@@ -140,7 +140,14 @@ class ReadOnlyModulePanel(BasePanel):
         self.detail_view.setTextFormat(enum(_Qt, 'TextFormat', 'RichText'))
         self.detail_view.setTextInteractionFlags(enum(_Qt, 'TextInteractionFlag', 'TextSelectableByMouse'))
         self.detail_view.setAlignment(enum(_Qt, 'AlignmentFlag', 'AlignTop'))
-        box.addWidget(self.detail_view, 1)
+        # 2.2.47: a long record (ClamAV files, warning lines) scrolls instead of being cut off.
+        from ..qt import QScrollArea
+        detail_scroll = QScrollArea()
+        detail_scroll.setObjectName('detailScroll')
+        detail_scroll.setWidgetResizable(True)
+        detail_scroll.setFrameShape(QFrame.Shape.NoFrame if hasattr(QFrame, 'Shape') else QFrame.NoFrame)
+        detail_scroll.setWidget(self.detail_view)
+        box.addWidget(detail_scroll, 1)
         details_button=QPushButton('Teknik ayrıntıları göster')
         details_button.setObjectName('quiet')
         self.details=QPlainTextEdit();self.details.setReadOnly(True);self.details.setObjectName('technical');self.details.hide()

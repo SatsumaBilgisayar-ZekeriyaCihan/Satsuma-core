@@ -66,16 +66,20 @@ class ScannersPanel(ReadOnlyModulePanel):
         scan=QPushButton('Taramayı başlat');scan.setObjectName('primary')
         scan.clicked.connect(lambda:operator_request(self,'security_scan',{}))
         actions.addWidget(scan)
-        for text,handler in (('Seçili bulguyu karantinaya al',self.quarantine),('Karantinadan geri koy',self.restore),
-                             ('Program denetimi önerileri',self.quarantine_proposal),('SSH anahtarları',self.ssh_decision),
-                             ('SSH sunucusunu kapat',self.ssh_server_off)):
-            button=QPushButton(text);button.setObjectName('quiet');button.clicked.connect(handler);actions.addWidget(button)
         actions.addStretch()
+        caption=QLabel('Göster');caption.setObjectName('secondary');actions.addWidget(caption)
         self.tool=QComboBox()
         for text,value in TOOLS:self.tool.addItem(text,value)
         self.tool.currentIndexChanged.connect(self._filter_changed)
         actions.addWidget(self.tool)
-        holder=QWidget();holder.setLayout(actions)
+        tools=QHBoxLayout();tools.setSpacing(6)
+        for text,handler in (('Seçili bulguyu karantinaya al',self.quarantine),('Karantinadan geri koy',self.restore),
+                             ('Program denetimi önerileri',self.quarantine_proposal),('SSH anahtarları',self.ssh_decision),
+                             ('SSH sunucusunu kapat',self.ssh_server_off)):
+            button=QPushButton(text);button.setObjectName('quiet');button.clicked.connect(handler);tools.addWidget(button)
+        tools.addStretch()
+        holder=QWidget();box=QVBoxLayout(holder);box.setContentsMargins(0,0,0,0);box.setSpacing(6)
+        box.addLayout(actions);box.addLayout(tools)
         self._layout.insertWidget(4,holder)
         self.manual_after_scan=QCheckBox('Tarama bitince bulunan dosyalar için karantina önerisi göster')
         self.manual_after_scan.toggled.connect(self._toggle_manual_after_scan)

@@ -30,7 +30,7 @@ def detail_html(item):
         return ('<p style="margin:0 0 10px 0"><span style="color:#8a8a8a;font-size:11px">%s</span><br>%s</p>'
                 % (html.escape(caption), html.escape(str(text)).replace('\n', '<br>')))
     parts = [block('Ne oldu', item.get('text') or '—')]
-    if item.get('detail'):
+    if item.get('detail') and item['detail'] != '—':
         parts.append(block('Ayrıntı', item['detail']))
     when = timestamp(item.get('created'))
     if item.get('repeat'):
@@ -141,12 +141,19 @@ class LogbookPanel(ReadOnlyModulePanel):
                 cell.setForeground(QColor(color))
         self.older.setEnabled(bool(data.get('has_more')))
         errors = data.get('errors') or {}
-        text = self.status.text().replace(' kayıt', ' kayıt gösteriliyor', 1)
+        state = {'OK': 'Veri alındı', 'NO_DATA': 'Bu dönemde kayıt yok', 'DEGRADED': 'Kısmen alındı'}.get(data.get('data_state'), 'Veri alınamadı')
+        text = '%s · %d satır gösteriliyor' % (state, len(self._rows))
+        repeats = sum(item.get('repeat', 1) for item in self._rows)
+        if repeats > len(self._rows):
+            text += ' (%d kayıt; tekrarlar tek satırda)' % repeats
         if self._before is not None:
             text += ' · ' + timestamp(self._before) + ' öncesi'
         if errors:
             text += ' · Okunamayan veritabanı: ' + ', '.join(errors)
         self.status.setText(text)
+
+    def _rows_from(self, data):
+        return [{**item, 'detail': item.get('detail') or '—'} for item in super()._rows_from(data) if isinstance(item, dict)]
 
     def _show_details(self):
         super()._show_details()
