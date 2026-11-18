@@ -14,11 +14,11 @@ except ImportError:
 @register
 class IntegrityPanel(ReadOnlyModulePanel):
     PANEL_ID = 'integrity'
-    PANEL_TITLE = 'BÜTÜNLÜK'
+    PANEL_TITLE = 'Dosya bütünlüğü'
     PANEL_ICON = '🔐'
     PANEL_ORDER = 13
     PANEL_GROUP = 'security'
-    PANEL_SUBTITLE = 'MANIFEST · DOĞRULAMA · UYARI/BAŞARISIZ'
+    PANEL_SUBTITLE = 'Satsuma dosyalarının ve yapılandırmasının imzalı referansla son karşılaştırması.'
     METHOD = 'integrity'
     KEY = 'items'
     COLUMNS = (

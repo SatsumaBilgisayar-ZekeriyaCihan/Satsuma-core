@@ -27,7 +27,7 @@ OUTCOMES = {
     'reported': 'Bildirildi',
 }
 OUTCOME_RANK = {'stopped': 0, 'quarantined': 1, 'blocked': 2, 'cut': 3, 'waiting': 4, 'not_stopped': 5, 'reported': 6}
-BLOCK_ACTIONS = ('suricata.network_block', 'otx.indicator_block', 'incoming_block', 'network.block', 'ip_block')
+BLOCK_ACTIONS = ('suricata.network_block', 'otx.indicator_block', 'incoming_block', 'network.block', 'ip_block', 'network_range_block')
 
 
 def _text(value, limit=200):
@@ -161,7 +161,7 @@ def group_activity(findings, actions, limit=200):
         key, sentence = outcome(action)
         if key not in ('blocked', 'cut', 'quarantined'):
             continue
-        target = _text(action.get('ip') or action.get('target') or action.get('path') or action.get('domain'), 160)
+        target = _text(action.get('ip') or action.get('network') or action.get('target') or action.get('path') or action.get('domain'), 160)
         stamp = _num(action.get('timestamp')) or _num(created)
         reason = _text(action.get('reason') or action.get('source'), 200)
         title = {'blocked': 'Şüpheli adres engellendi', 'cut': 'Şüpheli bağlantı kesildi',
@@ -171,6 +171,7 @@ def group_activity(findings, actions, limit=200):
             'subject': target, 'rule_id': action.get('rule_id'), 'severity': 'medium', 'severity_label': 'Orta',
             'finding_id': None, 'what_happened': reason or title, 'what_satsuma_did': sentence,
             'recommendation': '', 'ip': _text(action.get('ip'), 64) or None, 'domain': _text(action.get('domain'), 253) or None,
+            'network': _text(action.get('network'), 64) or None,
         }, stamp)
     rows = sorted(groups.values(), key=lambda g: -g['last_at'])[:max(1, int(limit))]
     for row in rows:
@@ -182,15 +183,17 @@ def group_activity(findings, actions, limit=200):
 def available_actions(row):
     """What the user can do about one feed row; operator methods, never shell."""
     actions = []
+    if row.get('network') and row['outcome'] == 'blocked':
+        actions.append({'label': 'Aralığın engelini kaldır', 'method': 'unblock_network', 'params': {'network': row['network']}, 'weakens': True})
     if row.get('ip') and row['outcome'] == 'blocked':
         actions.append({'label': 'Engeli kaldır', 'method': 'unblock', 'params': {'ip': row['ip']}, 'weakens': True})
         actions.append({'label': 'Bu adrese hep izin ver', 'method': 'allow_ip', 'params': {'ip': row['ip']}, 'weakens': True})
     if row.get('domain'):
         actions.append({'label': 'Bu alan adına izin ver', 'method': 'allow_domain', 'params': {'domain': row['domain']}, 'weakens': True})
     if row['outcome'] == 'waiting':
-        actions.append({'label': 'Onay bekleyenleri aç', 'open': 'protection:process'})
+        actions.append({'label': 'Onay bekleyenleri aç', 'open': 'process_approvals'})
     if row.get('finding_id'):
-        actions.append({'label': 'Teknik ayrıntı', 'open': 'expert:findings', 'finding_id': row['finding_id']})
+        actions.append({'label': 'Teknik ayrıntı', 'open': 'findings', 'finding_id': row['finding_id']})
     return actions
 
 
@@ -239,7 +242,7 @@ def layers(info):
                              'Ağ denetiminin bir parçası çalışmıyor; Sağlık bölümünde onarabilirsiniz.', 'health'))
     elif fresh and checks:
         result.append(_layer('network', 'Ağ ve trafik denetimi', 'on', 'Açık',
-                             'Tüm trafik Suricata denetiminden geçiyor; dışarıdan yeni bağlantı kabul edilmiyor.', 'protection:network'))
+                             'Tüm trafik Suricata denetiminden geçiyor; dışarıdan yeni bağlantı kabul edilmiyor.', 'firewall_settings'))
     else:
         result.append(_layer('network', 'Ağ ve trafik denetimi', 'unknown', 'Doğrulanmadı',
                              'Sağlık kontrolü güncel değil.', 'health'))
@@ -327,7 +330,7 @@ def attention(info):
         count = approvals['pending_count']
         items.append(_item('approvals', 'warning', '%d program durdurulmak için onayınızı bekliyor' % count,
                            '"Durdurmadan önce bana sor" açık; siz karar verene kadar bu programlar çalışıyor.',
-                           [{'label': 'İncele', 'open': 'protection:process'}]))
+                           [{'label': 'İncele', 'open': 'process_approvals'}]))
     for request in (info.get('app') or {}).get('pending') or []:
         application = request.get('application') or {}
         program = _text(application.get('executable'), 120) or 'Bir uygulama'

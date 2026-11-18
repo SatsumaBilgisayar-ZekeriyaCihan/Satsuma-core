@@ -1,42 +1,67 @@
-"""Sidebar of the 2.2.45 panel: five user sections and an optional expert view.
+"""Sidebar of the panel: nine sections, every page a tab inside one of them (2.2.47).
 
-Owner's decision 2026-11-18 ("Baştan tasarım", "kullanıcı tabanlı"): Durum,
-Olanlar, Koruma, Sağlık and Ayarlar are the panel. Every technical table of
-earlier versions stays reachable under "Uzman görünümü", which can be hidden.
-Ctrl+1…5 open the sections.
+Owner, 2026-11-18: "delete the old design and bring the old menus into the new
+one, one by one", "do not add the old design again", and "antivirus scanning,
+the firewall and application control each in its own area; all logs in a
+separate, easily readable section". There is no expert view; every earlier
+page is a tab of one section. Ctrl+1…9 open the sections.
 
-2.2.45 kenar çubuğu: beş kullanıcı bölümü ve gizlenebilir uzman görünümü.
-Önceki sürümlerin her teknik tablosu "Uzman görünümü" altında durur.
+Kenar çubuğu: dokuz bölüm; her sayfa bunlardan birinin sekmesi. Antivirüs,
+güvenlik duvarı ve uygulama denetimi ayrı bölümlerdir; bütün kayıtlar
+Kayıtlar bölümündedir. Uzman görünümü yoktur.
 """
-from ..qt import (QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QListWidget, QListWidgetItem, QSize, QSettings,
-                  pyqtSignal, USER_ROLE, NO_ITEM_FLAGS, POINTING, NO_SCROLL)
+from ..qt import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QSize, pyqtSignal, POINTING
 from .. import panels as registry
 from ..security_widgets import icon
 from ..style.theme import Colors
 
-PRIMARY = (('home', 'Durum', 'home'), ('activity', 'Olanlar', 'activity'), ('protection', 'Koruma', 'shield'),
-           ('health', 'Sağlık', 'pulse'), ('settings', 'Ayarlar', 'settings'))
+# (section id, title, icon, ((tab id, tab title), ...)); the first tab opens with the section.
 SECTIONS = (
-    ('Kayıtlar', ('records', 'events', 'database')),
-    ('Koruma ayrıntıları', ('findings', 'auto_actions', 'stopped_processes', 'process_approvals', 'investigation', 'rules',
-                            'memory_defense', 'scanners', 'host_provenance', 'deepseek')),
-    ('Ağ ayrıntıları', ('network_response', 'network_devices', 'network_defense', 'dns', 'suricata', 'otx', 'vpn_proxy')),
-    ('Sistem ayrıntıları', ('system_health', 'services', 'workers', 'integrity', 'audit', 'errors')),
-    ('Önceki görünüm', ('overview', 'welcome', 'admin')),
+    ('home', 'Durum', 'home', (('home', 'Durum'),)),
+    ('activity', 'Olanlar', 'activity', (
+        ('activity', 'Akış'), ('findings', 'Bulgular'), ('stopped_processes', 'Durdurulan programlar'),
+        ('auto_actions', 'Satsuma’nın işlemleri'), ('investigation', 'İnceleme'), ('deepseek', 'Araştırma stüdyosu'))),
+    ('antivirus', 'Antivirüs', 'bug', (
+        ('scanners', 'Taramalar ve karantina'), ('memory_defense', 'Bellek savunması'), ('integrity', 'Dosya bütünlüğü'))),
+    ('firewall', 'Güvenlik duvarı', 'firewall', (
+        ('firewall_settings', 'Ayarlar'), ('blocks', 'Engeller'), ('network_response', 'Engel geçmişi'), ('network_defense', 'Ağ bulguları'),
+        ('network_devices', 'Cihazlar'), ('dns', 'DNS sorguları'), ('suricata', 'Trafik analizi'),
+        ('otx', 'Tehdit istihbaratı'), ('vpn_proxy', 'VPN ve proxy'))),
+    ('apps', 'Uygulama denetimi', 'app', (('apps', 'Uygulama izinleri'), ('process_approvals', 'Onay bekleyenler'))),
+    ('protection', 'Koruma', 'shield', (('protection', 'Ayarlar'), ('rules', 'Kurallar'))),
+    ('health', 'Sağlık', 'pulse', (
+        ('health', 'Genel'), ('services', 'Servisler'), ('workers', 'Bileşenler'),
+        ('host_provenance', 'Açılış, TPM ve paketler'), ('system_health', 'Ayrıntılı kontroller'))),
+    ('logs', 'Kayıtlar', 'logs', (
+        ('logbook', 'Tüm kayıtlar'), ('records', 'Türlere göre'), ('events', 'Olay geçmişi'),
+        ('audit', 'Sistem denetimi'), ('errors', 'Hatalar'), ('database', 'Ham veritabanı'))),
+    ('settings', 'Ayarlar', 'settings', (('settings', 'Genel'), ('welcome', 'Kurulum ve hesap'))),
 )
-TITLES = {
-    'home': 'Durum', 'activity': 'Olanlar', 'protection': 'Koruma', 'health': 'Sağlık', 'settings': 'Ayarlar',
-    'overview': 'Eski güvenlik merkezi', 'records': 'Veritabanında ne var?', 'welcome': 'Kurulum ve hesap',
-    'findings': 'Tehdit bulguları', 'scanners': 'Antivirüs ve rootkit taraması', 'network_devices': 'Ağ keşfi ve cihazlar',
-    'auto_actions': 'Güvenlik aksiyonları', 'stopped_processes': 'Durdurulan işlemler', 'database': 'Sınıflandırılmış veriler',
-    'events': 'Olay geçmişi', 'investigation': 'İnceleme', 'deepseek': 'DeepSeek araştırma stüdyosu', 'rules': 'Güvenlik kuralları',
-    'memory_defense': 'Bellek savunması', 'network_response': 'Ağ koruması ve engeller', 'network_defense': 'Ağ etkinliği',
-    'dns': 'DNS sorguları', 'suricata': 'Trafik analizi (Suricata)', 'otx': 'Tehdit istihbaratı (OTX)', 'vpn_proxy': 'VPN / proxy göstergeleri',
-    'system_health': 'Ayrıntılı sistem sağlığı', 'services': 'Servisler', 'workers': 'Arka plan bileşenleri', 'audit': 'Sistem denetimi',
-    'integrity': 'Dosya bütünlüğü', 'errors': 'Hata kayıtları', 'admin': 'Gelişmiş yönetim', 'process_approvals': 'Test modu onayları',
-    'host_provenance': 'Paket kökeni ve risk',
-}
-SETTINGS = ('SatsumaBilgisayar', 'Satsuma Internet Security')
+# Section ids of earlier 2.2.47 builds and links stored in findings.
+ALIASES = {'network': 'firewall', 'scan': 'scanners', 'quarantine': 'scanners', 'logs_all': 'logbook'}
+PRIMARY = tuple((section, title, symbol) for section, title, symbol, _ in SECTIONS)
+TABS = {section: tabs for section, _, _, tabs in SECTIONS}
+SECTION_OF = {tab: section for section, _, _, tabs in SECTIONS for tab, _ in tabs}
+TITLES = {tab: title for _, _, _, tabs in SECTIONS for tab, title in tabs}
+SECTION_TITLES = {section: title for section, title, _, _ in SECTIONS}
+
+
+def resolve(panel_id):
+    """(section, tab) for a section id or a tab id; (None, None) when unknown."""
+    panel_id = ALIASES.get(panel_id, panel_id)
+    if panel_id in TABS:
+        return panel_id, TABS[panel_id][0][0]
+    section = SECTION_OF.get(panel_id)
+    return (section, panel_id) if section else (None, None)
+
+
+def title_of(panel_id):
+    section, tab = resolve(panel_id)
+    if section is None:
+        return 'Satsuma'
+    if len(TABS[section]) == 1 or tab == TABS[section][0][0]:
+        return SECTION_TITLES[section]
+    return SECTION_TITLES[section] + '  ·  ' + TITLES[tab]
 
 
 class NavigationBar(QFrame):
@@ -66,7 +91,7 @@ class NavigationBar(QFrame):
         layout.addLayout(brand)
         layout.addSpacing(22)
         self._buttons = {}
-        for index, (panel_id, title, symbol) in enumerate(PRIMARY):
+        for index, (section, title, symbol) in enumerate(PRIMARY):
             item = QPushButton('  ' + title)
             item.setObjectName('navPrimary')
             item.setCheckable(True)
@@ -76,109 +101,35 @@ class NavigationBar(QFrame):
             item.setMinimumHeight(44)
             item.setAccessibleName(title)
             item.setToolTip('%s  (Ctrl+%d)' % (title, index + 1))
-            item.clicked.connect(lambda checked=False, p=panel_id: self.select(p))
+            item.clicked.connect(lambda checked=False, s=section: self.select(s))
             layout.addWidget(item)
-            self._buttons[panel_id] = item
-        self.badge = {}
-        layout.addSpacing(16)
-        self.expert_button = QPushButton('  Uzman görünümü')
-        self.expert_button.setObjectName('navExpert')
-        self.expert_button.setCheckable(True)
-        self.expert_button.setCursor(POINTING)
-        self.expert_button.setIcon(icon('code'))
-        self.expert_button.setIconSize(QSize(18, 18))
-        self.expert_button.setToolTip('Teknik tablolar: bulgular, Suricata, DNS sorguları, denetim, kurallar…')
-        self.expert_button.clicked.connect(lambda checked: self.set_expert(checked, remember=True))
-        layout.addWidget(self.expert_button)
-        self.tools = QListWidget()
-        self.tools.setObjectName('navTools')
-        self.tools.setWordWrap(True)
-        self.tools.setHorizontalScrollBarPolicy(NO_SCROLL)
-        self.tools.currentItemChanged.connect(self._tool_changed)
-        layout.addWidget(self.tools, 1)
-        self.spacer = QLabel('')
-        layout.addWidget(self.spacer, 1)
+            self._buttons[section] = item
+        layout.addStretch(1)
         self.connection = QLabel('○  Okuyucu bekleniyor')
         self.connection.setObjectName('secondary')
         layout.addWidget(self.connection)
         self._current = None
         self._known = set()
-        self._expert = False
 
-    # -- construction
     def build(self):
-        available = {c.PANEL_ID: c for c in registry.all_panels()}
-        self._known = set(available)
-        self.tools.blockSignals(True)
-        self.tools.clear()
-        listed = {p for p, _, _ in PRIMARY}
-        groups = [(title, [p for p in ids if p in available]) for title, ids in SECTIONS]
-        listed.update(p for _, ids in groups for p in ids)
-        rest = sorted(p for p in available if p not in listed and p != 'tickets')
-        if rest:
-            groups.append(('Diğer', rest))
-        for title, ids in groups:
-            if not ids:
-                continue
-            header = QListWidgetItem(title.upper())
-            header.setFlags(NO_ITEM_FLAGS)
-            header.setData(USER_ROLE, None)
-            self.tools.addItem(header)
-            for panel_id in ids:
-                item = QListWidgetItem(TITLES.get(panel_id, getattr(available[panel_id], 'PANEL_TITLE', panel_id)))
-                item.setData(USER_ROLE, panel_id)
-                self.tools.addItem(item)
-        self.tools.blockSignals(False)
-        for panel_id, item in self._buttons.items():
-            item.setVisible(panel_id in available)
-        self.set_expert(bool(QSettings(*SETTINGS).value('expert_view', False, type=bool)))
-        self.select('home' if 'home' in available else next(iter(available), None))
-
-    def expert_ids(self):
-        return [self.tools.item(i).data(USER_ROLE) for i in range(self.tools.count()) if self.tools.item(i).data(USER_ROLE)]
-
-    def expert_visible(self):
-        return self._expert
-
-    def set_expert(self, visible, remember=False):
-        self._expert = bool(visible)
-        self.expert_button.setChecked(self._expert)
-        self.tools.setVisible(self._expert)
-        self.spacer.setVisible(not self._expert)
-        if remember:
-            QSettings(*SETTINGS).setValue('expert_view', self._expert)
-        if not self._expert and self._current in self.expert_ids():
-            self.select('home')
-
-    # -- selection
-    def _tool_changed(self, item, previous=None):
-        panel_id = item.data(USER_ROLE) if item else None
-        if panel_id and panel_id != self._current:
-            self.select(panel_id)
+        self._known = {c.PANEL_ID for c in registry.all_panels()}
+        self.select('home')
 
     def select(self, panel_id):
-        if not panel_id or (self._known and panel_id not in self._known):
+        """Open a section (its first tab) or a tab by id; unknown ids are ignored."""
+        section, tab = resolve(panel_id)
+        if section is None or (self._known and tab not in self._known):
             return
-        expert = panel_id not in self._buttons
-        if expert and not self._expert:
-            self.set_expert(True)
         for key, item in self._buttons.items():
-            item.setChecked(key == panel_id)
-        self.tools.blockSignals(True)
-        if expert:
-            for index in range(self.tools.count()):
-                if self.tools.item(index).data(USER_ROLE) == panel_id:
-                    self.tools.setCurrentRow(index)
-                    break
-        else:
-            self.tools.setCurrentRow(-1)
-            self.tools.clearSelection()
-        self.tools.blockSignals(False)
-        self._current = panel_id
-        self.panel_selected.emit(panel_id)
+            item.setChecked(key == section)
+        self._current = tab
+        self.panel_selected.emit(tab)
 
     def current(self):
         return self._current
+
+    def current_section(self):
+        return resolve(self._current)[0] if self._current else None
 
     def handle_key(self, key, ctrl=False):
         if ctrl and 0x31 <= key < 0x31 + len(PRIMARY):
@@ -186,11 +137,10 @@ class NavigationBar(QFrame):
             return True
         return False
 
-    def set_count(self, panel_id, count):
-        item = self._buttons.get(panel_id)
+    def set_count(self, section, count):
+        item = self._buttons.get(section)
         if item is not None:
-            title = next(t for p, t, _ in PRIMARY if p == panel_id)
-            item.setText('  ' + title + ('   %d' % count if count else ''))
+            item.setText('  ' + SECTION_TITLES[section] + ('   %d' % count if count else ''))
 
     def set_connected(self, connected):
         self.connection.setText('●  Yerel okuyucu bağlı' if connected else '○  Okuyucu bağlantısı bekleniyor')

@@ -5,7 +5,6 @@ pytest.importorskip('PyQt6')
 from PyQt6.QtWidgets import QApplication
 from satsuma.dashboard_qt.panels.events import EventsPanel
 from satsuma.dashboard_qt.panels.findings import FindingsPanel
-from satsuma.dashboard_qt.panels.admin import AdminPanel
 
 
 def test_desktop_tables_show_priority_date_process_and_pid():
@@ -15,7 +14,7 @@ def test_desktop_tables_show_priority_date_process_and_pid():
     class Backend:
         def rows(self, *a, **k): return rows
         def call(self, *a, **k): return {'items': rows, 'data_state': 'OK'}
-    events = EventsPanel(Backend()); findings = FindingsPanel(Backend()); admin = AdminPanel(Backend())
+    events = EventsPanel(Backend()); findings = FindingsPanel(Backend())
     try:
         events.refresh(); findings.refresh()
         for panel in (events, findings):
@@ -25,7 +24,5 @@ def test_desktop_tables_show_priority_date_process_and_pid():
             assert '1970' in panel.table.item(0, 2).text()
             assert panel.table.item(0, 3).text() == 'criticalproc'
             assert panel.table.item(0, 4).text() == '42'
-        assert admin.dns_upstream.placeholderText()
-        assert all(not button.isEnabled() for button in admin._controls)
     finally:
-        events.close(); findings.close(); admin.close()
+        events.close(); findings.close()

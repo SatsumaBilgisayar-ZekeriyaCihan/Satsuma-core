@@ -7,7 +7,6 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 from satsuma.dashboard_qt.backend import ReaderUpdates
 from satsuma.dashboard_qt.windows.main_window import MainWindow
-from satsuma.dashboard_qt.panels.overview import protection_view
 
 @pytest.fixture(scope="module")
 def app():
@@ -34,50 +33,55 @@ def window(app):
     value.close()
 
 
-def test_healthy_artwork_requires_all_three_successful_checks():
-    assert protection_view({})[0]=='unknown'
-    assert protection_view({'health_summary':{'overall':'Sağlıklı'}})[0]=='unknown'
-    healthy={'overall':'Sağlıklı','files':'Sağlıklı','configuration':'Sağlıklı','protection':'Sağlıklı'}
-    assert protection_view({'health_summary':healthy})[0]=='healthy'
-    assert protection_view({'health_summary':{**healthy,'inconsistent':True}})[0]=='warning'
-    assert protection_view({'health_summary':healthy,'system':{'critical_integrity':{'status':'CRITICAL'}}})[0]=='critical'
-
-
-def test_sidebar_reaches_every_registered_panel(window):
-    """2.2.45: five user sections; every older page stays reachable under Uzman görünümü."""
+def test_sidebar_has_six_sections_and_every_page_is_a_tab(window):
+    """2.2.47: no expert view; antivirus, firewall, application control and logs are sections of their own."""
     assert window.nav.current()=='home'
     from satsuma.dashboard_qt import panels
-    from satsuma.dashboard_qt.windows.nav import PRIMARY
-    reachable={p for p,_,_ in PRIMARY}|set(window.nav.expert_ids())
-    assert set(panels.all_ids())-{'tickets'}<=reachable
+    from satsuma.dashboard_qt.windows.nav import PRIMARY, SECTION_OF
+    assert [s for s,_,_ in PRIMARY]==['home','activity','antivirus','firewall','apps','protection','health','logs','settings']
+    assert set(panels.all_ids())-{'tickets'}==set(SECTION_OF)
+    assert not hasattr(window.nav,'tools') and not hasattr(window.nav,'set_expert')
     window.nav.select('otx')
-    assert window.nav.expert_visible() and not any(b.isChecked() for b in window.nav._buttons.values())
-    window.nav.select('network_response')
-    assert window.stack.currentWidget().PANEL_ID=='network_response'
-    window.nav.select('protection')
-    assert window.nav._buttons['protection'].isChecked() and window.nav.tools.currentRow()==-1
+    assert window.nav._buttons['firewall'].isChecked() and window.current_panel().PANEL_ID=='otx'
+    assert window.sections['firewall'].buttons['otx'].isChecked()
+    window.nav.select('scanners')
+    assert window.nav._buttons['antivirus'].isChecked()
+    window.nav.select('logs')
+    assert window.current_panel().PANEL_ID=='logbook'
+    window.nav.select('host_provenance')
+    assert window.nav._buttons['health'].isChecked() and 'TPM' in window.topbar.title.text()
+    window.nav.select('network')                      # section id of earlier builds
+    assert window.current_panel().PANEL_ID=='firewall_settings'
+
+
+def test_old_pages_are_gone():
+    from pathlib import Path
+    root=Path(__file__).parents[1]/'satsuma'/'dashboard_qt'/'panels'
+    assert not (root/'admin.py').exists() and not (root/'overview.py').exists()
 
 
 def test_home_shows_no_zero_counts_or_success_when_reader_has_no_data(window):
-    home=window.stack.currentWidget();home.reload()
+    home=window.current_panel();home.reload()
     assert home.art.tone=='unknown' and home.verdict.text()=='Durum alınamıyor'
     assert all(metric.value.text()=='—' for metric in home.metrics.values())
 
 
-def test_attention_buttons_open_the_page_that_resolves_them(window):
-    window.open_target('expert:admin',{'section':'apps'})
-    panel=window.stack.currentWidget()
-    assert panel.PANEL_ID=='admin' and panel.sections.currentRow()==1
-    assert not panel.token and all(not button.isEnabled() for button in panel._controls)
-    window.open_target('protection:dns')
-    assert window.stack.currentWidget().PANEL_ID=='protection'
+def test_links_open_the_page_that_resolves_them(window):
+    window.open_target('expert:admin',{'section':'apps'})      # a link from before 2.2.47 goes nowhere harmful
+    assert window.current_panel().PANEL_ID=='home'
+    window.open_target('apps')
+    assert window.current_panel().PANEL_ID=='apps' and window.nav._buttons['apps'].isChecked()
+    window.open_target('protection:dns')                # the DNS card moved to the firewall settings
+    assert window.current_panel().PANEL_ID=='firewall_settings'
+    window.open_target('protection:process')
+    assert window.current_panel().PANEL_ID=='protection'
 
 
 def test_desktop_is_native_dark_qt_with_bounded_sidebar_at_small_size(window,app):
     window.resize(1060,700);window.show();app.processEvents()
     assert window.nav.width()==236 and window.stack.width()<window.width()
     assert '#050505' in window.styleSheet()
-    page=window.stack.currentWidget().page
+    page=window.current_panel().page
     assert page.scroll.widgetResizable() and page.scroll.horizontalScrollBar().maximum()==0
 
 
@@ -89,43 +93,47 @@ def test_activity_selection_survives_refresh_and_reordering(window):
     rows=home_view.group_activity(findings,[])
     backend=window.backend
     backend.call=lambda method,**k:{'items':rows,'counts':{}} if method=='activity' else {}
-    window.nav.select('activity');page=window.stack.currentWidget();page.reload()
+    window.nav.select('activity');page=window.current_panel();page.reload()
     page.list.setCurrentRow(1);chosen=page.rows[1]['id']
     rows=list(reversed(rows));page.reload()
     assert page.rows[page.list.currentRow()]['id']==chosen
 
 
-def test_failed_panel_construction_keeps_previous_screen(window):
-    original = window.stack.currentWidget()
-    placeholder = window._panels['findings']
+def test_failed_panel_construction_keeps_previous_screen(window,monkeypatch):
+    from satsuma.dashboard_qt import panels
+    original = window.current_panel()
     class Broken:
         def __init__(self, backend):
             raise RuntimeError('fixture construction failure')
-    placeholder._panel_class = Broken
+    real=panels.get_panel
+    monkeypatch.setattr(panels,'get_panel',lambda pid: Broken if pid=='findings' else real(pid))
     window.nav.select('findings')
-    assert window.stack.currentWidget() is original
-    assert window.nav.current() == 'home'
+    assert window.current_panel() is original
+    assert window.nav.current() == 'home' and window.nav._buttons['home'].isChecked()
+    assert 'fixture construction failure' in window.feedback.text.text()
 
 
-def test_failed_panel_activation_keeps_previous_screen(window):
-    original = window.stack.currentWidget()
+def test_failed_panel_activation_keeps_previous_screen(window,monkeypatch):
+    from satsuma.dashboard_qt import panels
     from PyQt6.QtWidgets import QWidget
+    original = window.current_panel()
     class Broken(QWidget):
         def __init__(self, backend):
             super().__init__()
         def on_activate(self):
             raise RuntimeError('fixture activation failure')
-    window._panels['findings']._panel_class = Broken
+    real=panels.get_panel
+    monkeypatch.setattr(panels,'get_panel',lambda pid: Broken if pid=='findings' else real(pid))
     window.nav.select('findings')
-    assert window.stack.currentWidget() is original
+    assert window.current_panel() is original
 
 
 def test_navigation_reports_initial_and_subsequent_timings(window):
     window.nav.select('findings')
-    panel = window.stack.currentWidget()
+    panel = window.current_panel()
     window.nav.select('home')
     window.nav.select('findings')
-    assert window.stack.currentWidget() is panel
+    assert window.current_panel() is panel
     assert window._panel_timings[('findings', 'initial')] >= 0
     assert window._panel_timings[('findings', 'subsequent')] >= 0
 

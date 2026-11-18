@@ -48,7 +48,7 @@ def weakens(method, params):
         return True  # Explicit password for every decision and mode change.
     if method == 'rule_response_set_requirement':
         return True  # Per-rule evidence-policy edits require fresh administrator authentication.
-    if method in ('integrity_rebaseline', 'allow_ip', 'allow_domain', 'unblock'):
+    if method in ('integrity_rebaseline', 'allow_ip', 'allow_domain', 'unblock', 'unblock_network'):
         return True
     if method == 'lan_access':
         return enabled is True
@@ -405,6 +405,13 @@ class OperatorController:
             current.add(ip) if method == 'allow_ip' else current.discard(ip)
             self.store.set('operator_allow_ips', sorted(current))
             result = {'ok': True, 'allow_ips': sorted(current)}
+        elif method in ('block_network', 'unblock_network'):
+            # 2.2.47 (owner, 2026-11-18): block a whole range such as 192.168.0.0/16 (satsuma.net_blocks).
+            from . import net_blocks
+            if method == 'block_network':
+                result = net_blocks.add(self.store, params.get('network', ''), params.get('reason', ''), uid, self.runner)
+            else:
+                result = net_blocks.remove(self.store, params.get('network', ''), self.runner)
         elif method == 'unblock':
             config = {**self.config, 'response_enabled': True}
             result = ResponseWorker(self.store, config).unblock_ip(str(ipaddress.ip_address(params.get('ip', ''))), 'Yönetici kaldırdı', manual=True)

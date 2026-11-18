@@ -162,8 +162,12 @@ def _result(tool, command, runner=bounded_run, now=time.time, archive=None):
             try:files.append({**inspect_target(path),'signature':signature})
             except (OSError,ValueError) as exc:
                 files.append({'path':path,'signature':signature,'unavailable_reason':str(exc)[:250]})
+    summary={}
+    if tool=='clamav':
+        from .scan_view import clam_summary
+        summary=clam_summary(text)
     return {'timestamp':started,'completed_at':now(),'tool':tool,'status':status,'exit_code':exit_code,
-            'findings':findings,'command':command[0],'output_excerpt':text,'output_bytes':total,
+            'findings':findings,'summary':summary,'command':command[0],'output_excerpt':text,'output_bytes':total,
             'output_sha256':digest.hexdigest(),'truncated':total>OUTPUT_LIMIT,'error':error,'files':files,
             **({'finding_kinds':details['kinds'],'finding_lines':details['lines'],
                 'incomplete':details['incomplete'],'permission_denied':details['permission_denied']}

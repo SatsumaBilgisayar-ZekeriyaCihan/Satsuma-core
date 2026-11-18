@@ -218,3 +218,23 @@ QListWidget#feed::item:hover {{background:#1d1d1d;}}
 QListWidget#navTools::item:disabled {{color:{Colors.TEXT_DISABLED};font-size:9px;font-weight:700;letter-spacing:1.4px;padding:14px 12px 4px 12px;background:transparent;}}
 QDialog#passwordDialog {{background:{Colors.BG_SURFACE};}}
 """
+
+# 2.2.47: section tabs and the shared table page (every earlier page now uses them).
+# 2.2.47: bölüm sekmeleri ve ortak tablo sayfası.
+GLOBAL_QSS += f"""
+QFrame#tabBar {{background:{Colors.BG_DEEP};border-bottom:1px solid {Colors.BORDER_SOFT};}}
+QPushButton#sectionTab {{background:transparent;border:none;border-bottom:2px solid transparent;border-radius:0;
+  padding:10px 12px;color:{Colors.TEXT_MUTED};font-size:13px;font-weight:600;}}
+QPushButton#sectionTab:hover {{color:{Colors.TEXT_PRIMARY};}}
+QPushButton#sectionTab:checked {{color:{Colors.ACCENT};border-bottom:2px solid {Colors.ACCENT};}}
+QFrame#summaryCard {{background:{Colors.BG_SURFACE};border:1px solid {Colors.BORDER_SOFT};border-radius:12px;}}
+QLabel#summaryText {{font-size:13px;color:{Colors.TEXT_SECONDARY};}}
+QTableWidget#dataTable {{background:{Colors.BG_SURFACE};border:1px solid {Colors.BORDER_LIGHT};border-radius:12px;
+  gridline-color:transparent;selection-background-color:#2a1d12;selection-color:{Colors.TEXT_PRIMARY};font-size:12px;}}
+QTableWidget#dataTable::item {{padding:4px 8px;border-bottom:1px solid {Colors.BORDER_SOFT};}}
+QTableWidget#dataTable QHeaderView::section {{background:{Colors.BG_SURFACE};color:{Colors.TEXT_MUTED};border:none;
+  border-bottom:1px solid {Colors.BORDER_LIGHT};padding:8px;font-size:11px;font-weight:700;}}
+QPlainTextEdit#technical {{background:{Colors.BG_DEEP};border:1px solid {Colors.BORDER_SOFT};border-radius:8px;
+  font-family:{FONT_MONO};font-size:11px;color:{Colors.TEXT_MUTED};}}
+QSplitter#dataSplit::handle {{background:transparent;width:12px;}}
+"""

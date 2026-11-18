@@ -28,7 +28,7 @@ def display_rows(rows):
 
 @register
 class NetworkResponsePanel(ReadOnlyModulePanel):
-    PANEL_ID='network_response';PANEL_TITLE='Ağ Koruması ve Engellenen IP’ler'
+    PANEL_ID='network_response';PANEL_TITLE='Engel geçmişi'
     PANEL_ORDER=12;PANEL_GROUP='system'
     PANEL_SUBTITLE=('Satsuma’nın engellediği adresler. Ağ korumasını güvenlik duvarı, Suricata alarmları, alt ağ '
                     'engelleyici (aynı /24 içinde 10 farklı IP) ve PTR kuralı yapar; bunlar OTX anahtarı olmadan çalışır. '

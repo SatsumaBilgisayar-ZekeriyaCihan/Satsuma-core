@@ -47,7 +47,7 @@ class ErrorsPanel(BasePanel):
 
     def _build(self):
         # Buyuk bold turuncu baslik
-        title = self.make_title(f'{self.PANEL_ICON}  {self.PANEL_TITLE}')
+        title = self.make_title(self.PANEL_TITLE)
         self._layout.addWidget(title)
 
         # Ince turuncu ayrac

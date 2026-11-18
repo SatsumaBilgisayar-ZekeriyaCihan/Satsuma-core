@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Satsuma Internet Security main window (2.2.45 redesign).
+"""Satsuma Internet Security main window (2.2.45 redesign, 2.2.47 sections).
 
-Layout: sidebar (Durum, Olanlar, Koruma, Sağlık, Ayarlar, optional Uzman
-görünümü) | top bar (title, search, waiting count, lock) + feedback line +
-page stack. Pages are created when first opened and refresh only while
-visible. One administrator lock (OperatorSession) serves every page.
+Layout: sidebar (Durum, Olanlar, Koruma, Ağ, Sağlık, Ayarlar) | top bar
+(title, search, waiting count, lock) + feedback line + the section's tabs and
+page. Pages are created when first opened and refresh only while visible.
+One administrator lock (OperatorSession) serves every page.
 
 Ana pencere: kenar çubuğu | üst çubuk + geri bildirim + sayfa yığını. Sayfalar
 ilk açıldığında oluşturulur ve yalnızca görünürken yenilenir. Tek yönetici kilidi
@@ -16,20 +16,20 @@ import sys
 from ..qt import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QStatusBar, QLabel, QTimer, Qt,
                   QKeySequence, QShortcut, QT as QT_VERSION, enum)
 from ..style.theme import Colors, GLOBAL_QSS, FONT_MONO
-from .nav import NavigationBar, TITLES, PRIMARY
+from .nav import NavigationBar, PRIMARY, SECTIONS, resolve, title_of
+from .section import SectionPage
 from .topbar import TopBar, Feedback
 from .. import panels as panel_registry
 from ..session import OperatorSession
 
-UI_VERSION = '2.0.0'
+UI_VERSION = '2.1.0'
 
 
 class MainWindow(QMainWindow):
     def __init__(self, backend, parent=None, session=None):
         super().__init__(parent)
         self.backend = backend
-        self._panels = {}
-        self._stack_index = {}
+        self.sections = {}
         self._timers = {}
         self.setWindowTitle('Satsuma Internet Security')
         self.resize(1320, 860)
@@ -109,87 +109,84 @@ class MainWindow(QMainWindow):
 
     # -- pages
     def _load_panels(self):
-        for cls in panel_registry.all_panels():
-            placeholder = QWidget()
-            placeholder._panel_class = cls
-            self._stack_index[cls.PANEL_ID] = self.stack.addWidget(placeholder)
-            self._panels[cls.PANEL_ID] = placeholder
+        """One SectionPage per sidebar section; their pages are made when first opened."""
+        self.sections = {}
+        for section, _, _, tabs in SECTIONS:
+            page = SectionPage(section, tabs, self.backend, self)
+            self.sections[section] = page
+            self.stack.addWidget(page)
         self.nav.build()
         self.nav.set_connected(self.backend.is_connected())
+
+    @property
+    def _panels(self):
+        """Every page made so far, by id (older code and tests look pages up here)."""
+        return {tab: page for section in self.sections.values() for tab, page in section.panels.items()}
 
     def _on_panel_selected(self, panel_id):
         if getattr(self, '_restoring_navigation', False):
             return
         import time
         started = time.perf_counter()
-        current = self._current_panel_id()
-        panel = self._panels.get(panel_id)
-        if panel is None:
+        section_id, tab = resolve(panel_id)
+        if section_id is None:
             return
-        created = hasattr(panel, '_panel_class')
-        candidate = panel
+        previous_id = getattr(self, '_shown', None)
+        previous = self.current_panel()
+        section = self.sections[section_id]
         try:
-            if created:
-                candidate = panel._panel_class(self.backend)
-                candidate._main_window = self
-            candidate.on_activate()
+            page, created = section.show_tab(tab)
         except Exception as exc:
-            if created and candidate is not panel:
-                candidate.deleteLater()
             self.feedback.show_message('error', f'Sayfa açılamadı: {exc}')
-            if current and current != panel_id:
+            if previous_id and previous_id != tab:
                 self._restoring_navigation = True
                 try:
-                    self.nav.select(current)
+                    self.nav.select(previous_id)
                 finally:
                     self._restoring_navigation = False
             return
-        if current and current != panel_id and hasattr(self._panels[current], 'on_deactivate'):
+        if previous is not None and previous is not page and hasattr(previous, 'on_deactivate'):
             try:
-                self._panels[current].on_deactivate()
+                previous.on_deactivate()
             except Exception:
                 pass
-        index = self._stack_index[panel_id]
-        if created:
-            self.stack.removeWidget(panel)
-            index = self.stack.insertWidget(index, candidate)
-            self._stack_index[panel_id] = index
-            self._panels[panel_id] = candidate
-            panel.deleteLater()
-            self._sync_admin(candidate)
-        self.stack.setCurrentIndex(index)
-        self.topbar.set_page(TITLES.get(panel_id, getattr(candidate, 'PANEL_TITLE', 'Satsuma')))
-        self._restart_timer(panel_id)
+        self.stack.setCurrentWidget(section)
+        self._shown = tab
+        self.topbar.set_page(title_of(tab))
+        self._restart_timer(tab)
         if not hasattr(self, '_panel_timings'):
             self._panel_timings = {}
-        self._panel_timings[(panel_id, 'initial' if created else 'subsequent')] = time.perf_counter() - started
+        self._panel_timings[(tab, 'initial' if created else 'subsequent')] = time.perf_counter() - started
 
     def _current_panel_id(self):
-        index = self.stack.currentIndex()
-        return next((pid for pid, sidx in self._stack_index.items() if sidx == index), None)
+        return getattr(self, '_shown', None)
 
     def current_panel(self):
-        return self._panels.get(self._current_panel_id())
+        section = self.stack.currentWidget()
+        return section.current_panel() if isinstance(section, SectionPage) else None
 
     def open_target(self, target, context=None):
-        """'home', 'protection:dns', 'settings:modem', 'expert:findings', 'activity' (+ row)."""
+        """'home', 'protection:dns', 'settings:modem', 'blocks', 'activity' (+ row or search)."""
         context = context or {}
-        page, _, part = str(target or 'home').partition(':')
-        if page == 'expert':
-            page, part = part, ''
-        self.nav.select(page)
-        panel = self._panels.get(page)
-        if panel is None or hasattr(panel, '_panel_class'):
+        page_id, _, part = str(target or 'home').partition(':')
+        if page_id == 'expert':          # links written before 2.2.47
+            page_id, part = part, ''
+        # 2.2.47: the firewall and application cards left the Koruma page.
+        if page_id == 'protection' and part in ('network', 'dns', 'intel'):
+            page_id = 'firewall_settings'
+        elif page_id == 'protection' and part == 'apps':
+            page_id, part = 'apps', ''
+        self.nav.select(page_id)
+        panel = self.current_panel()
+        if panel is None or getattr(panel, 'PANEL_ID', None) != resolve(page_id)[1]:
             return
         if part and hasattr(panel, 'scroll_to'):
             QTimer.singleShot(50, lambda: panel.scroll_to(part))
-        if page == 'activity' and context.get('row') and hasattr(panel, 'focus_row'):
+        if page_id == 'activity' and context.get('row') and hasattr(panel, 'focus_row'):
             panel.focus_row(context['row'])
-        if page == 'activity' and context.get('search') is not None and hasattr(panel, 'search'):
+        if page_id == 'activity' and context.get('search') is not None and hasattr(panel, 'search'):
             panel.search.setText(context['search'])
             panel.reload()
-        if page == 'admin' and context.get('section') == 'apps' and hasattr(panel, 'sections'):
-            panel.sections.setCurrentRow(1)
 
     def _search(self, text):
         self.open_target('activity', {'search': text})
@@ -203,30 +200,7 @@ class MainWindow(QMainWindow):
 
     def _lock_changed(self, unlocked):
         self.topbar.set_locked(not unlocked)
-        admin = self._panels.get('admin')
-        if admin is not None and not hasattr(admin, '_panel_class'):
-            self._sync_admin(admin)
         self._reload_current()
-
-    def _sync_admin(self, panel):
-        """The advanced management page uses the same lock as the rest of the panel."""
-        if getattr(panel, 'PANEL_ID', None) != 'admin':
-            return
-        if not getattr(panel, '_session_bound', False):
-            panel._session_bound = True
-            panel.completed.connect(lambda method, result: self.session.adopt(panel.token) if method in ('login', 'logout') else None)
-            # Its own "Yönetici oturumu aç" button opens the shared lock instead of a second login.
-            from ..qt import QPushButton
-            for child in panel.findChildren(QPushButton):
-                if child.text() == 'Yönetici oturumu aç':
-                    try:
-                        child.clicked.disconnect()
-                    except TypeError:
-                        pass
-                    child.clicked.connect(lambda checked=False: self.session.unlock(self))
-        panel.token = self.session.token
-        if hasattr(panel, '_set_enabled'):
-            panel._set_enabled()
 
     # -- timers
     def _start_timers(self):
@@ -241,8 +215,8 @@ class MainWindow(QMainWindow):
         self._timers['_attention'] = self._attention_timer
 
     def _restart_timer(self, panel_id):
-        panel = self._panels.get(panel_id)
-        interval = getattr(getattr(panel, '_panel_class', panel), 'REFRESH_MS', 5000) if panel is not None else 5000
+        panel = self.current_panel()
+        interval = getattr(panel, 'REFRESH_MS', 5000) if panel is not None else 5000
         self._page_timer.stop() if hasattr(self, '_page_timer') else None
         if hasattr(self, '_page_timer') and interval > 0:
             self._page_timer.setInterval(interval)
@@ -250,8 +224,8 @@ class MainWindow(QMainWindow):
 
     def _refresh_current(self):
         panel_id = self._current_panel_id()
-        panel = self._panels.get(panel_id)
-        if panel is None or hasattr(panel, '_panel_class') or self.isMinimized():
+        panel = self.current_panel()
+        if panel is None or self.isMinimized():
             return
         try:
             panel.refresh()

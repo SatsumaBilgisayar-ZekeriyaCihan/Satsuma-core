@@ -17,19 +17,24 @@ from ...critical_guardian import failure_text
 @register
 class WelcomePanel(BasePanel):
     PANEL_ID = 'welcome'
-    PANEL_TITLE = 'Karşılama ve kurulum durumu'
+    PANEL_TITLE = 'Kurulum ve hesap'
     PANEL_ORDER = 0
     REFRESH_MS = 3000
 
     def _build(self):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        self._layout.setContentsMargins(0, 0, 0, 0)
         body = QWidget()
+        body.setObjectName('transparent')
         content = QVBoxLayout(body)
+        content.setSpacing(14)
+        content.setContentsMargins(32, 24, 32, 24)
         scroll.setWidget(body)
         self._layout.addWidget(scroll)
-        content.addWidget(self.make_title('Satsuma Core’a hoş geldiniz'))
-        intro = QLabel('Koruma durumunu aşağıdan kontrol edin. Yönetim işlemleri için kendi yönetici parolanızla giriş yapın.')
+        content.addWidget(self.make_title('Kurulum ve hesap'))
+        intro = QLabel('Kurulumun durumu, yönetici parolası ve modem. Ayarları değiştirmek için sağ üstteki kilidi açın.')
+        intro.setObjectName('pageSubtitle')
         intro.setWordWrap(True)
         content.addWidget(intro)
         self.readiness = QLabel('Servislerden veri bekleniyor; koruma henüz doğrulanmadı.')
@@ -52,9 +57,11 @@ class WelcomePanel(BasePanel):
         content.addWidget(self.policy)
         row = QHBoxLayout()
         self.buttons = {}
-        for title, panel_id in [('Genel bakış', 'overview'), ('Servisleri incele', 'system_health'), ('Yönetici girişi', 'admin')]:
+        from ..links import open_target
+        for title, panel_id in [('Durum', 'home'), ('Servisleri incele', 'services'), ('Yönetici kilidi', 'settings')]:
             button = QPushButton(title)
-            button.clicked.connect(lambda checked, pid=panel_id: self.window().nav.select(pid))
+            button.setObjectName('quiet')
+            button.clicked.connect(lambda checked, pid=panel_id: open_target(self, pid))
             self.buttons[panel_id] = button
             row.addWidget(button)
         content.addLayout(row)
@@ -72,10 +79,8 @@ class WelcomePanel(BasePanel):
         self.password_dialog.show()
 
     def _open_permissions(self):
-        try:
-            self.window().nav.select("admin")
-        except OSError as exc:
-            self.readiness.setText("İnternet izin paneli açılamadı: " + str(exc))
+        from ..links import open_target
+        open_target(self, 'apps')
 
     def refresh(self):
         try:
@@ -88,9 +93,9 @@ class WelcomePanel(BasePanel):
             self.readiness.setText('Core: ' + str(core or 'Doğrulanmadı') + '\nBütünlük: ' +
                 ('; '.join(failure_text(f) for f in failures) if failures else
                  'Güncel denetim sağlıklı' if fresh and critical.get('status') == 'HEALTHY' else 'Güncel denetim doğrulanmadı') +
-                '\nSensörler ve ayrıntılı servis durumu için “Servisleri incele”yi açın.')
+                '\nAyrıntılı servis durumu için “Servisleri incele”yi açın.')
             credential = health.get('admin_credential') or {}
-            self.account.setText('Yönetici parolası: ' + ('Hazır — Yönetici girişi ile devam edin.' if credential.get('configured') is True else
+            self.account.setText('Yönetici parolası: ' + ('Hazır — sağ üstteki kilitten açabilirsiniz.' if credential.get('configured') is True else
                 'Oluşturulmamış veya doğrulanamıyor — ilk parola düğmesini kullanın.'))
             self.policy.setText('Uygulama filtresi yapılandırması: ' + self._app_state(health) +
                 '\nTemel ağ politikası: dışarı TCP 53/443 ve UDP 53; yeni dış girişler kapalı.\n'

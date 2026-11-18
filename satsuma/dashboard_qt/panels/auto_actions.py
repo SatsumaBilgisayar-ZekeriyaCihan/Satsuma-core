@@ -5,7 +5,7 @@ from ...presentation import action_view
 @register
 class AutoActionsPanel(ReadOnlyModulePanel):
     PANEL_ID = 'auto_actions'
-    PANEL_TITLE = 'Otomatik Aksiyonlar'
+    PANEL_TITLE = 'Satsuma’nın işlemleri'
     PANEL_ORDER = 3
     METHOD = 'rows'
     PARAMS = {'kind': 'actions', 'limit': 200}

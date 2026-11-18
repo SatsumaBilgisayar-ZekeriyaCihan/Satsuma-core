@@ -11,11 +11,11 @@ except ImportError:
 @register
 class WorkersPanel(ReadOnlyModulePanel):
     PANEL_ID = 'workers'
-    PANEL_TITLE = 'Arka Plan Bileşenleri'
+    PANEL_TITLE = 'Bileşenler'
     PANEL_ICON = '⚙'
     PANEL_ORDER = 6
     PANEL_GROUP = 'system'
-    PANEL_SUBTITLE = 'Çalışma durumu ve iş üretimi ayrı değerlendirilir'
+    PANEL_SUBTITLE = 'Satsuma’nın arka plan bileşenleri: çalışıyor mu, en son ne zaman iş üretti.'
     METHOD = 'workers'
     KEY = 'items'
     COLUMNS = (

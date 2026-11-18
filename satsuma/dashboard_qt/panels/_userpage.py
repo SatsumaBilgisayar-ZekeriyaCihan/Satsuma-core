@@ -46,14 +46,12 @@ class UserPage(BasePanel):
 
     # -- window services
     def main_window(self):
-        """The main window, also while the page is being activated before it is placed in the stack."""
-        window = getattr(self, '_main_window', None) or self.window()
-        return None if window is self else window
+        from ..links import main_window
+        return main_window(self)
 
     def session(self):
-        from ..session import OperatorSession
-        value = getattr(self.main_window(), 'session', None)
-        return value if isinstance(value, OperatorSession) else None
+        from ..links import session
+        return session(self)
 
     def act(self, action, refresh=True):
         """Run an action dict from the view model: {'method', 'params'} or {'open': target}."""

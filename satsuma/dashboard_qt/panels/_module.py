@@ -61,14 +61,23 @@ class ReadOnlyModulePanel(BasePanel):
     FILTERS = ()
 
     def _build(self):
+        """2.2.47 design: title, one-line summary card, quiet table, readable detail beside it.
+
+        2.2.47 tasarımı: başlık, özet kartı, sade tablo ve yanında okunur ayrıntı.
+        """
         if not self.METHOD:
             raise ValueError(f'{self.__class__.__name__}: METHOD tanimli degil')
+        from ..qt import QFrame, QSplitter, Qt as _Qt, enum
         self._layout.addWidget(self.make_title(self.PANEL_TITLE))
-        self._layout.addWidget(self.make_subtitle(self.PANEL_SUBTITLE or 'SALT OKUNUR'))
+        if self.PANEL_SUBTITLE:
+            self._layout.addWidget(self.make_subtitle(self.PANEL_SUBTITLE))
         filter_row = QHBoxLayout()
+        filter_row.setSpacing(10)
         self._filter_widgets = {}
-        for field, label, values in self.FILTERS:
-            filter_row.addWidget(QLabel(label))
+        for field, caption_text, values in self.FILTERS:
+            caption = QLabel(caption_text)
+            caption.setObjectName('secondary')
+            filter_row.addWidget(caption)
             if values:
                 widget = QComboBox()
                 widget.addItem('Tümü', '')
@@ -76,47 +85,98 @@ class ReadOnlyModulePanel(BasePanel):
                     widget.addItem(str(item), str(item))
             else:
                 widget = QLineEdit()
-                widget.setPlaceholderText('Filtre')
+                widget.setPlaceholderText('Ara')
+                widget.setClearButtonEnabled(True)
             widget.currentTextChanged.connect(self.refresh) if isinstance(widget, QComboBox) else widget.returnPressed.connect(self.refresh)
             self._filter_widgets[field] = widget
             filter_row.addWidget(widget)
         refresh_btn = QPushButton('Yenile')
+        refresh_btn.setObjectName('quiet')
         refresh_btn.clicked.connect(self.refresh)
         filter_row.addStretch()
         filter_row.addWidget(refresh_btn)
         self._layout.addLayout(filter_row)
 
+        self.summary_card = QFrame()
+        self.summary_card.setObjectName('summaryCard')
+        summary = QVBoxLayout(self.summary_card)
+        summary.setContentsMargins(18, 12, 18, 12)
         self.status = QLabel('Veri bekleniyor')
         self.status.setWordWrap(True)
-        self.status.setMinimumHeight(60)
-        self.status.setStyleSheet(
-            f'color:{Colors.TEXT_MUTED}; font-family:{FONT_MONO}; font-size:11px;'
-        )
-        self._layout.addWidget(self.status)
+        self.status.setObjectName('summaryText')
+        self.status.setTextInteractionFlags(enum(_Qt, 'TextInteractionFlag', 'TextSelectableByMouse'))
+        summary.addWidget(self.status)
+        self._layout.addWidget(self.summary_card)
 
         self.table = QTableWidget()
+        self.table.setObjectName('dataTable')
         self.table.setColumnCount(len(self.COLUMNS))
         self.table.setHorizontalHeaderLabels([c[0] for c in self.COLUMNS])
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers if QT_VERSION == 6 else QTableWidget.NoEditTriggers)
         self._last_render = None
-        self.table.setAlternatingRowColors(True)
+        self.table.setAlternatingRowColors(False)
+        self.table.setShowGrid(False)
+        self.table.setWordWrap(False)
         self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setDefaultSectionSize(38)
         self.table.horizontalHeader().setStretchLastSection(True)
         if QT_VERSION == 6:
             self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         else:
             self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self._layout.addWidget(self.table, 1)
         self._rows=[]
-        details_button=QPushButton('Teknik ayrıntılar / seçili kayıt')
-        self.details=QPlainTextEdit();self.details.setReadOnly(True);self.details.setMaximumHeight(180);self.details.hide()
-        details_button.clicked.connect(lambda:self.details.setVisible(self.details.isHidden()))
+        detail = QFrame()
+        detail.setObjectName('detailCard')
+        detail.setMinimumWidth(300)
+        box = QVBoxLayout(detail)
+        box.setContentsMargins(18, 16, 18, 16)
+        box.setSpacing(8)
+        heading = QLabel('Seçili kayıt')
+        heading.setObjectName('fieldLabel')
+        box.addWidget(heading)
+        self.detail_view = QLabel('Ayrıntısını görmek için tablodan bir kayıt seçin.')
+        self.detail_view.setObjectName('body')
+        self.detail_view.setWordWrap(True)
+        self.detail_view.setTextFormat(enum(_Qt, 'TextFormat', 'RichText'))
+        self.detail_view.setTextInteractionFlags(enum(_Qt, 'TextInteractionFlag', 'TextSelectableByMouse'))
+        self.detail_view.setAlignment(enum(_Qt, 'AlignmentFlag', 'AlignTop'))
+        box.addWidget(self.detail_view, 1)
+        details_button=QPushButton('Teknik ayrıntıları göster')
+        details_button.setObjectName('quiet')
+        self.details=QPlainTextEdit();self.details.setReadOnly(True);self.details.setObjectName('technical');self.details.hide()
+        def toggle():
+            self.details.setVisible(self.details.isHidden())
+            details_button.setText('Teknik ayrıntıları gizle' if self.details.isVisible() else 'Teknik ayrıntıları göster')
+        details_button.clicked.connect(toggle)
+        box.addWidget(details_button)
+        box.addWidget(self.details, 2)
+        split = QSplitter(enum(_Qt, 'Orientation', 'Horizontal'))
+        split.setObjectName('dataSplit')
+        split.setChildrenCollapsible(False)
+        split.addWidget(self.table)
+        split.addWidget(detail)
+        split.setStretchFactor(0, 3)
+        split.setStretchFactor(1, 2)
         self.table.itemSelectionChanged.connect(self._show_details)
-        self._layout.addWidget(details_button);self._layout.addWidget(self.details)
+        self._layout.addWidget(split, 1)
 
     def _show_details(self):
+        import html
         row=self.table.currentRow()
-        self.details.setPlainText(json.dumps(self._rows[row],ensure_ascii=False,indent=2,default=str) if 0<=row<len(self._rows) else 'Bir kayıt seçin.')
+        if not 0<=row<len(self._rows):
+            self.details.setPlainText('Bir kayıt seçin.')
+            self.detail_view.setText('Ayrıntısını görmek için tablodan bir kayıt seçin.')
+            return
+        item=self._rows[row]
+        self.details.setPlainText(json.dumps(item,ensure_ascii=False,indent=2,default=str))
+        lines=[]
+        for caption,key in self.COLUMNS:
+            value=item.get(key)
+            is_time=key in ('timestamp','created','added_at','expires_at','last_run','last_successful_event','last_verification','last_successful_update','last_attempt')
+            text=timestamp(value) if is_time else _fmt(value)
+            lines.append('<p style="margin:0 0 8px 0"><span style="color:#8a8a8a;font-size:11px">%s</span><br>%s</p>'
+                         % (html.escape(str(caption)), html.escape(str(text))))
+        self.detail_view.setText(''.join(lines))
 
     @staticmethod
     def _row_key(item):
@@ -175,7 +235,7 @@ class ReadOnlyModulePanel(BasePanel):
             for r,item in enumerate(self._rows):
                 for c,(_,key) in enumerate(self.COLUMNS):
                     value=item.get(key)
-                    is_time=key in ('timestamp','added_at','expires_at','last_run','last_successful_event','last_verification','last_successful_update','last_attempt')
+                    is_time=key in ('timestamp','created','added_at','expires_at','last_run','last_successful_event','last_verification','last_successful_update','last_attempt')
                     cell=QTableWidgetItem(timestamp(value) if is_time else ('Hata kaydı yok' if key=='last_error' and not value else _fmt(value)))
                     self.table.setItem(r,c,cell)
                 if selected and self._row_key(item)==selected:self.table.selectRow(r)
@@ -192,4 +252,5 @@ class ReadOnlyModulePanel(BasePanel):
         self._show_details()
         state = data.get('data_state') if isinstance(data, dict) else 'OK'
         count = data.get('count') if isinstance(data, dict) else len(rows)
-        self.status.setText(f'{_fmt(state)} · Kayıt: {len(rows) if count is None else count}'+(' · Henüz kayıt yok; boş tablo korumanın çalıştığını doğrulamaz.' if not rows else ''))
+        state_text={'OK':'Veri alındı','UNKNOWN':'Veri alınamadı','NO_DATA':'Henüz veri yok','STALE':'Veri eski'}.get(state,_fmt(state))
+        self.status.setText(f'{state_text} · {len(rows) if count is None else count} kayıt'+(' · Henüz kayıt yok; boş tablo korumanın çalıştığını doğrulamaz.' if not rows else ''))

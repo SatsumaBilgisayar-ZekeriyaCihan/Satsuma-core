@@ -35,19 +35,13 @@ def test_failed_data_cannot_reuse_healthy_summary(panel):
     assert any(row.get('value')=='reader unavailable' for row in rows)
 
 
-def test_detail_failure_prevents_healthy_overview_until_successful_refresh(panel):
-    from satsuma.dashboard_qt.panels.overview import presentation_health,protection_view
-    healthy={'health_summary':{'overall':'Sağlıklı','files':'Sağlıklı','configuration':'Sağlıklı','protection':'Sağlıklı'}}
+def test_detail_failure_is_reported_until_a_successful_refresh(panel):
     panel.backend.call=lambda *a,**k:(_ for _ in ()).throw(RuntimeError('reader unavailable'))
     panel.refresh()
     assert 'integrity' in panel.backend.presentation_errors
-    displayed=presentation_health(healthy,panel.backend.presentation_errors)
-    assert protection_view(displayed)[0]=='unknown'
-    assert healthy['health_summary']['files']=='Sağlıklı'  # No server evidence mutation.
     panel.backend.call=lambda *a,**k:{'summary':{'overall':'Sağlıklı'},'data_state':'OK'}
     panel.refresh()
     assert panel.backend.presentation_errors=={}
-    assert protection_view(presentation_health(healthy,{}))[0]=='healthy'
 
 
 def test_repeated_render_error_cannot_be_cleared_by_render_cache(panel,monkeypatch):

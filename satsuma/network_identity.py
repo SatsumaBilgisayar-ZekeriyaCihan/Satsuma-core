@@ -148,7 +148,7 @@ def classify_change(result):
     status=result.get('status')
     if status=='MODEM_APPROVAL_REQUIRED':
         return ('MODEM_APPROVAL_REQUIRED','warning','Modem henüz onaylanmadı; ağ geçidi değişiklikleri karşılaştırılamıyor',
-                'Yönetim → Ağ koruması bölümünden kendi modeminizi seçip onaylayın.')
+                'Ayarlar → Modem onayı bölümünden kendi modeminizi seçip onaylayın.')
     reference=result.get('reference') or {}
     others=result.get('additional_gateway_candidates') or []
     same_address=[c for c in others if c.get('gateway')==reference.get('gateway')
@@ -158,7 +158,7 @@ def classify_change(result):
                 'Modeminizin donanım adresi (MAC) değişti: '+str(reference.get('gateway_mac'))+' → '
                 +', '.join(str(c.get('gateway_mac')) for c in same_address)+'. ARP sahteciliği (ortadaki adam) olabilir.',
                 'Modeminizi değiştirmediyseniz ağ bağlantısını kesip modemin arkasındaki cihazları kontrol edin. '
-                'Modemi siz değiştirdiyseniz yeni modemi Yönetim → Ağ koruması bölümünden onaylayın.')
+                'Modemi siz değiştirdiyseniz yeni modemi Ayarlar → Modem onayı bölümünden onaylayın.')
     if others:
         return ('ADDITIONAL_GATEWAY','high','Onaylı modem dışında ağ geçidi görünüyor: '
                 +', '.join(str(c.get('gateway'))+' ('+str(c.get('gateway_mac'))+')' for c in others),

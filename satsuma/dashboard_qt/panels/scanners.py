@@ -5,58 +5,117 @@ from ...status_view import label, timestamp
 
 
 def operator_request(panel, method, params):
-    window=panel.window()
-    window.nav.select('admin')
-    admin=window.stack.currentWidget()
-    if not admin.token:
-        admin.status.setText('Bu işlem için yönetici oturumu açın; ardından tekrar seçin.')
-        return
-    admin._send(method,params)
+    """Through the panel's one administrator lock (2.2.47); the page refreshes when the answer comes."""
+    from ..links import run
+    if not run(panel, method, params, then=lambda *args: panel.refresh()):
+        panel.status.setText('Bu işlem için Satsuma panelinin ana penceresi gerekli.')
+
+
+ENGINE_NAMES={'clamav':'ClamAV · virüs ve zararlı yazılım','rkhunter':'rkhunter · rootkit denetimi','chkrootkit':'chkrootkit · rootkit denetimi'}
+TOOLS=(('Tüm motorlar',''),('ClamAV','clamav'),('rkhunter','rkhunter'),('chkrootkit','chkrootkit'),('Gizli süreç (unhide)','unhide'))
+
+
+def engine_text(name, engine):
+    """Card text for one engine: installed, last result, what ClamAV scanned (2.2.47)."""
+    from ...scan_view import summary_of, problem_text, files_text
+    last=engine.get('last_result') or {}
+    if engine.get('installed') is False:
+        return 'Kurulu değil.'+(' sudo rpm-ostree install '+name if name!='clamav' else ' sudo rpm-ostree install clamav clamd clamav-update')
+    if not last:
+        return ('Kurulu' if engine.get('installed') else 'Durum alınamadı')+' · henüz tarama yok'
+    lines=[label(last.get('status'))+' · '+timestamp(last.get('completed_at') or last.get('timestamp'))]
+    summary=summary_of(last)
+    if name=='clamav':
+        if 'scanned_files' in summary:
+            lines.append(f"Taranan: {summary['scanned_files']:,} dosya".replace(',','.')+(' · '+summary['data_scanned'] if summary.get('data_scanned') else '')
+                         +(' · '+summary['duration'].split(' (')[0] if summary.get('duration') else ''))
+        found=files_text(last)
+        lines.append(('Bulunan: '+str(len(found))+' dosya') if found else ('Zararlı dosya bulunmadı' if last.get('status')=='COMPLETED' else 'Bulgu: '+str(last.get('findings',0))))
+    else:
+        lines.append('Uyarı: '+str(last.get('findings',0)))
+    problem=problem_text(last)
+    if problem!='—':lines.append(problem)
+    return '\n'.join(lines)
 
 
 @register
 class ScannersPanel(ReadOnlyModulePanel):
     PANEL_ID='scanners'
-    PANEL_TITLE='ANTİVİRÜS VE ROOTKİT TARAMALARI'
+    PANEL_TITLE='Antivirüs taramaları'
     PANEL_GROUP='system'
     PANEL_ORDER=14
     METHOD='security_scanners'
     KEY='items'
-    PANEL_SUBTITLE='ClamAV · rkhunter · chkrootkit — yerel tarama, bulgular ve eksik ön koşullar'
-    COLUMNS=(('Zaman','timestamp'),('Motor','tool'),('Durum','status'),('Bulgu','findings'),('Hata','error'))
+    PANEL_SUBTITLE='ClamAV ile virüs taraması, rkhunter ve chkrootkit ile rootkit denetimi; bulunan dosyalar ve karantina.'
+    COLUMNS=(('Zaman','timestamp'),('Motor','tool'),('Sonuç','_result'),('Taranan','_scanned'),('Bulgu','findings'),('Not','_problem'))
 
     def _build(self):
+        from ..qt import QFrame, QVBoxLayout, QWidget, QComboBox, QCheckBox
         super()._build()
-        self.engines=QLabel('Motor durumları bekleniyor')
-        self.engines.setWordWrap(True)
-        self._layout.insertWidget(2,self.engines)
-        button=QPushButton('Üç motorla yerel taramayı başlat')
-        button.clicked.connect(lambda:operator_request(self,'security_scan',{}))
-        self._layout.insertWidget(3,button)
-        self.manual_after_scan=QPushButton('Tarama sonrası manuel karantina önerilerini göster: KAPALI')
-        self.manual_after_scan.setCheckable(True)
+        cards=QWidget();row=QHBoxLayout(cards);row.setContentsMargins(0,0,0,0);row.setSpacing(12)
+        self.cards={}
+        for name in ('clamav','rkhunter','chkrootkit'):
+            card=QFrame();card.setObjectName('summaryCard');box=QVBoxLayout(card);box.setContentsMargins(16,12,16,12);box.setSpacing(4)
+            title=QLabel(ENGINE_NAMES[name]);title.setObjectName('fieldLabel');box.addWidget(title)
+            text=QLabel('Veri bekleniyor');text.setWordWrap(True);text.setObjectName('body');box.addWidget(text);box.addStretch()
+            self.cards[name]=text;row.addWidget(card,2 if name=='clamav' else 1)
+        self._layout.insertWidget(2,cards)
+        self.engines=QLabel('');self.engines.setWordWrap(True);self.engines.setObjectName('secondary')
+        self._layout.insertWidget(3,self.engines)
+        actions=QHBoxLayout();actions.setSpacing(8)
+        scan=QPushButton('Taramayı başlat');scan.setObjectName('primary')
+        scan.clicked.connect(lambda:operator_request(self,'security_scan',{}))
+        actions.addWidget(scan)
+        for text,handler in (('Seçili bulguyu karantinaya al',self.quarantine),('Karantinadan geri koy',self.restore),
+                             ('Program denetimi önerileri',self.quarantine_proposal),('SSH anahtarları',self.ssh_decision),
+                             ('SSH sunucusunu kapat',self.ssh_server_off)):
+            button=QPushButton(text);button.setObjectName('quiet');button.clicked.connect(handler);actions.addWidget(button)
+        actions.addStretch()
+        self.tool=QComboBox()
+        for text,value in TOOLS:self.tool.addItem(text,value)
+        self.tool.currentIndexChanged.connect(self._filter_changed)
+        actions.addWidget(self.tool)
+        holder=QWidget();holder.setLayout(actions)
+        self._layout.insertWidget(4,holder)
+        self.manual_after_scan=QCheckBox('Tarama bitince bulunan dosyalar için karantina önerisi göster')
         self.manual_after_scan.toggled.connect(self._toggle_manual_after_scan)
-        self._layout.insertWidget(4,self.manual_after_scan)
+        self._layout.insertWidget(5,self.manual_after_scan)
         self._last_manual_prompt_scan=None
-        quarantine=QPushButton('Seçili ClamAV bulgusundaki dosyayı karantinaya al')
-        quarantine.clicked.connect(self.quarantine)
-        self._layout.insertWidget(5,quarantine)
-        propose=QPushButton('Program denetiminin önerdiği dosyayı karantinaya al (açılmazsa geri alınır)')
-        propose.clicked.connect(self.quarantine_proposal)
-        self._layout.insertWidget(6,propose)
-        restore=QPushButton('Karantinadaki bir dosyayı geri koy')
-        restore.clicked.connect(self.restore)
-        self._layout.insertWidget(7,restore)
-        ssh=QPushButton('Onay bekleyen SSH anahtarları: tanıyorum / karantinaya al')
-        ssh.clicked.connect(self.ssh_decision)
-        self._layout.insertWidget(8,ssh)
-        sshd=QPushButton('SSH sunucusunu kapat (dışarıdan girişi durdurur)')
-        sshd.clicked.connect(self.ssh_server_off)
-        self._layout.insertWidget(9,sshd)
+        self.table.setMinimumHeight(320)
+
+    def _filter_changed(self,*args):
+        self._last_render=None
+        self.refresh()
+
+    def _rows_from(self, data):
+        from ...scan_view import scanned_text, problem_text
+        rows=[]
+        wanted=self.tool.currentData() if hasattr(self,'tool') else ''
+        for item in super()._rows_from(data):
+            if not isinstance(item,dict) or (wanted and item.get('tool')!=wanted):continue
+            rows.append({**item,'_result':label(item.get('status')),'_scanned':scanned_text(item),'_problem':problem_text(item)})
+        return rows
+
+    def _show_details(self):
+        super()._show_details()
+        import html
+        from ...scan_view import files_text, summary_of
+        row=self.table.currentRow()
+        if not 0<=row<len(self._rows):return
+        item=self._rows[row];extra=[]
+        summary=summary_of(item)
+        for key,caption in (('scanned_directories','Taranan klasör'),('data_scanned','Taranan veri'),('duration','Süre')):
+            if summary.get(key) is not None:extra.append((caption,str(summary[key])))
+        found=files_text(item)
+        if found:extra.append(('Bulunan dosyalar','\n'.join(found)))
+        lines=[str(x) for x in (item.get('finding_lines') or [])][:12]
+        if lines:extra.append(('Uyarı satırları','\n'.join(lines)))
+        if extra:
+            self.detail_view.setText(self.detail_view.text()+''.join(
+                '<p style="margin:0 0 8px 0"><span style="color:#8a8a8a;font-size:11px">%s</span><br>%s</p>'
+                %(html.escape(c),html.escape(v).replace('\n','<br>')) for c,v in extra))
 
     def _toggle_manual_after_scan(self, enabled):
-        state='AÇIK' if enabled else 'KAPALI'
-        self.manual_after_scan.setText('Tarama sonrası manuel karantina önerilerini göster: '+state)
         if enabled:
             self._offer_manual_quarantine()
 
@@ -154,19 +213,12 @@ class ScannersPanel(ReadOnlyModulePanel):
         super().refresh(*args)
         self._offer_manual_quarantine()
         data=self._last_render[1] if self._last_render else {}
+        engines=data.get('engines') or {}
+        for name,widget in self.cards.items():
+            widget.setText(engine_text(name,engines.get(name) or {}) if engines else 'Veri alınamadı')
         lines=[]
-        for name in ('clamav','rkhunter','chkrootkit'):
-            engine=(data.get('engines') or {}).get(name) or {}
-            last=engine.get('last_result') or {}
-            installed='Kurulu' if engine.get('installed') is True else 'Kurulu değil' if engine.get('installed') is False else 'Durum alınamadı'
-            line=name+' · '+installed+' · Son sonuç: '+label(last.get('status'))+' · '+timestamp(last.get('completed_at'))
-            if last.get('error'):line+='\n    Hata: '+str(last['error'])
-            if last.get('fallback_from'):line+='\n    clamd cevap vermedi; tarama clamscan ile yapıldı.'
-            quarantined=[q for q in last.get('quarantine') or [] if q.get('status')=='quarantined']
-            failed=[q for q in last.get('quarantine') or [] if q.get('status')!='quarantined']
-            if quarantined:line+=f'\n    Otomatik karantinaya alınan dosya: {len(quarantined)}'
-            for q in failed:line+='\n    Karantinaya alınamadı: '+str(q.get('source'))+' · '+str(q.get('reason'))
-            lines.append(line)
+        if data.get('quarantine'):
+            lines.append(f"Karantinada {len(data['quarantine'])} dosya var.")
         if data.get('ssh_pending'):
             lines.append(f"SSH: bilginiz dahilinde olup olmadığı sorulan {len(data['ssh_pending'])} anahtar var.")
         if data.get('sshd_open'):
@@ -175,24 +227,21 @@ class ScannersPanel(ReadOnlyModulePanel):
         if mitm.get('updated_at'):
             counts=mitm.get('counts') or {}
             found=', '.join(f"{name} {counts[key]}" for key,name in (('critical','kritik'),('high','yüksek'),('medium','orta')) if counts.get(key))
-            lines.append('Ortadaki adam izleyicisi (DNS, rota, profil, çekirdek, uzak erişim) · '+timestamp(mitm['updated_at'])
-                         +' · '+(('Bulgu: '+found) if found else 'Sorun yok')+' · DNS üst sunucusu: '+str(mitm.get('upstream') or 'yok'))
-            kernel=mitm.get('kernel') or {}
-            if kernel.get('restored'):lines.append(f"    Geri yazılan çekirdek ağ ayarı: {kernel['restored']}")
+            lines.append('Ortadaki adam izleyicisi · '+timestamp(mitm['updated_at'])+' · '+(('Bulgu: '+found) if found else 'Sorun yok'))
         lines.append(data.get('scope') or 'Kapsam bilgisi bekleniyor')
         if data.get('error'):lines.append('Sonuçlar okunamadı: '+data['error'])
-        self.engines.setText('\n'.join(lines))
+        self.engines.setText(' · '.join(lines))
 
 
 @register
 class NetworkDevicesPanel(ReadOnlyModulePanel):
     PANEL_ID='network_devices'
-    PANEL_TITLE='AĞ KEŞFİ VE CİHAZ İNCELEMESİ'
+    PANEL_TITLE='Ağdaki cihazlar'
     PANEL_GROUP='system'
     PANEL_ORDER=14
     METHOD='network_defense'
     KEY='devices'
-    PANEL_SUBTITLE='Yeni cihazlar · ajan gereksinimi · inceleme sonrası engelle veya izin ver'
+    PANEL_SUBTITLE='Ağda görülen cihazlar; yeni cihazı inceledikten sonra engelleyin ya da izin verin.'
     COLUMNS=(('IP','ip'),('MAC','mac'),('Arayüz','interface'),('Tarama','scan_status'),('Karar','decision'),('Açıklama','message'))
 
     def _build(self):

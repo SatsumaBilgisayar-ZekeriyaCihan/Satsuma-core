@@ -96,11 +96,11 @@ class DefensePanel(ReadOnlyModulePanel):
 class MemoryDefensePanel(DefensePanel):
     METHOD='memory_defense'
     PANEL_ID='memory_defense'
-    PANEL_TITLE='RAM / BELLEK SAVUNMASI'
+    PANEL_TITLE='Bellek savunması'
     PANEL_ICON='◈'
     PANEL_ORDER=13
     PANEL_GROUP='system'
-    PANEL_SUBTITLE='RAM kod bütünlüğü · canlı doğrulama · politika ile otomatik süreç sonlandırma'
+    PANEL_SUBTITLE='Bellekte yazılabilir ve çalıştırılabilir alan taşıyan programlar; doğrulama ve otomatik durdurma kararı.'
     PREFIXES=('SATSUMA-RAM-','SATSUMA-MEM-','SATSUMA-FILELESS-')
     COLUMNS=DefensePanel.COLUMNS+(('Süreç takibi','process_state'),('Müdahale kararı','process_decision'),('İlişkili süreç','related_processes'))
     def _build(self):
@@ -152,11 +152,11 @@ class MemoryDefensePanel(DefensePanel):
 class NetworkDefensePanel(DefensePanel):
     METHOD='network_defense'
     PANEL_ID='network_defense'
-    PANEL_TITLE='AĞ SAVUNMASI / BULGULAR'
+    PANEL_TITLE='Ağ bulguları'
     PANEL_ICON='🛡'
     PANEL_ORDER=14
     PANEL_GROUP='system'
-    PANEL_SUBTITLE='Ağ, sızdırma ve yanal hareket göstergeleri · koruma ayarları Yönetim bölümünde'
+    PANEL_SUBTITLE='Ağ, veri sızdırma ve yanal hareket göstergeleri. Ağ ayarları Koruma bölümündedir.'
     PREFIXES=('SATSUMA-NET-','SATSUMA-C2-','SATSUMA-EXFIL-','SATSUMA-LAT-')
     SOURCES=('suricata','dns','network')
 
@@ -166,8 +166,8 @@ class NetworkDefensePanel(DefensePanel):
             from PyQt6.QtWidgets import QPushButton,QPlainTextEdit
         except ImportError:
             from PyQt5.QtWidgets import QPushButton,QPlainTextEdit
-        button=QPushButton('Ağ koruması ayarları')
-        button.clicked.connect(lambda:self.window().nav.select('admin'))
+        button=QPushButton('Ağ koruması ayarları  →');button.setObjectName('quiet')
+        button.clicked.connect(lambda:__import__('satsuma.dashboard_qt.links',fromlist=['open_target']).open_target(self,'firewall_settings'))
         self._layout.insertWidget(2,button)
         self.discovery=QPlainTextEdit()
         self.discovery.setReadOnly(True)

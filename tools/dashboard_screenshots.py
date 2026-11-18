@@ -39,32 +39,37 @@ def main(out):
         window.resize(1400, 900)
         window.show()
         pump(0.8)
-        pages = ['home', 'activity', 'protection', 'health', 'settings'] if state == 'sorunlu' else ['home']
-        for page in pages:
+        from satsuma.dashboard_qt.windows.nav import SECTIONS
+        # 2.2.47: every tab of every section (problem state); the healthy state shows Durum only.
+        pages = [tab for _, _, _, tabs in SECTIONS for tab, _ in tabs] if state == 'sorunlu' else ['home']
+        for index, page in enumerate(pages):
             try:
                 window.nav.select(page)
-                pump(0.6)
+                pump(0.5)
                 window._refresh_all()
-                pump(0.6)
-                window.grab().save(str(out / f'{state}-{page}.png'))
+                pump(0.5)
+                if window.current_panel() is None or window.current_panel().PANEL_ID != page:
+                    raise RuntimeError('page did not open: ' + window.feedback.text.text())
+                window.grab().save(str(out / f'{state}-{index:02d}-{page}.png'))
                 panel = window.current_panel()
                 body = panel.page.scroll.widget() if hasattr(panel, 'page') else None
                 if body is not None and body.height() > panel.height():
-                    body.grab().save(str(out / f'{state}-{page}-tam.png'))
+                    body.grab().save(str(out / f'{state}-{index:02d}-{page}-tam.png'))
                 print('saved', state, page, 'ok')
             except Exception as exc:
                 import traceback
                 traceback.print_exc()
                 failures.append((state, page, repr(exc)))
         if state == 'sorunlu':
-            for expert in ('findings', 'admin', 'records'):
-                try:
-                    window.nav.select(expert)
-                    pump(0.6)
-                    window.grab().save(str(out / f'uzman-{expert}.png'))
-                    print('saved expert', expert)
-                except Exception as exc:
-                    failures.append(('expert', expert, repr(exc)))
+            # The antivirus page with the ClamAV scan selected, and the log with a record chosen.
+            for page in ('scanners', 'logbook'):
+                window.nav.select(page)
+                pump(0.4)
+                panel = window.current_panel()
+                if panel.table.rowCount():
+                    panel.table.selectRow(2 if page == 'scanners' else 0)
+                pump(0.3)
+                window.grab().save(str(out / f'secili-{page}.png'))
             # The activity page with a row chosen and the lock open.
             session.token = 't' * 32
             session.changed.emit(True)

@@ -23,11 +23,13 @@ SIMPLE = {
     'egress_profile': 'İnternet trafiği ayarı uygulandı.', 'process_approval_decide': 'Kararınız uygulandı.',
     'integrity_rebaseline': 'Yeni dosya referansı kaydedildi.', 'quarantine_restore': 'Dosya karantinadan geri yüklendi.',
     'modem_inventory': 'Modem adayları listelendi.',
+    'block_network': 'Aralık engellendi; bu adreslere giden ve gelen her bağlantı düşürülüyor.',
+    'unblock_network': 'Aralığın engeli kaldırıldı.',
 }
 JOBS = {
     'repair': 'Bakım kiti çalışıyor; sorunlar onarılıyor. Sonuç Sağlık bölümünde görünecek.',
     'boot_check': 'Doğrulama başladı; birkaç dakika sürebilir.',
-    'security_scan': 'Antivirüs ve rootkit taraması başladı; sonuç Uzman görünümündeki taramalarda.',
+    'security_scan': 'Antivirüs ve rootkit taraması başladı; sonuç Antivirüs bölümündeki Taramalar sekmesinde.',
     'systemd_security': 'Servis güvenliği denetimi başladı.', 'device_inventory': 'Aygıt envanteri çıkarılıyor.',
 }
 ERRORS = {

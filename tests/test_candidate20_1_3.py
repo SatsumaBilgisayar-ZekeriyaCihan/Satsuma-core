@@ -81,22 +81,6 @@ def test_choices_preserve_selection_and_do_not_retarget_removed_request(qt):
     update_choices(widget,[('Three','c')]);assert widget.currentIndex()==-1
 
 
-def test_admin_pages_keep_text_focus_scroll_and_selection(qt):
-    from satsuma.dashboard_qt.panels.admin import AdminPanel
-    panel=AdminPanel(object());panel.resize(1000,600);panel.show()
-    titles=[panel.sections.item(i).text() for i in range(panel.sections.count())]
-    assert titles==['Genel durum','Uygulama izinleri','Ağ koruması','İnternet trafiği','DNS ve tehdit listeleri','Servisler','Yönetici erişimi ve doğrulama','VPN / Proxy']
-    panel.sections.setCurrentRow(4);panel.dns_upstream.setText('192.0.2.53');panel.dns_upstream.setFocus();qt.processEvents()
-    scroll=panel.pages.currentWidget().verticalScrollBar();scroll.setValue(50);before=scroll.value()
-    result={'app_control':{'pending':[{'id':'a','application':{'executable':'/bin/brave','uid':1000},'destination':'1.1.1.1:443'}]}}
-    panel._done('status',result);panel.app_requests.setCurrentIndex(0)
-    panel._done('status',result)
-    assert panel.dns_upstream.text()=='192.0.2.53' and panel.dns_upstream.hasFocus()
-    assert scroll.value()==before and panel.app_requests.currentData()=='a'
-    assert panel.sections.currentRow()==4
-    panel.close()
-
-
 def test_permission_window_freezes_application_and_waits_for_applied(qt):
     from satsuma.dashboard_qt.app_notifications import AppNotifications
     class Backend:
@@ -178,13 +162,15 @@ def test_action_filter_refreshes_when_backend_data_is_unchanged(qt):
     panel.close()
 
 
-def test_old_status_reply_cannot_unlock_or_overwrite_active_mutation(qt):
-    from satsuma.dashboard_qt.panels.admin import AdminPanel
-    panel=AdminPanel(object());panel.token='session';panel._busy=True;panel._reading_status=True
-    panel.status.setText('Karar uygulanıyor');panel._mutation_serial=2
-    panel._done('status',{'_ui_generation':1,'app_control':{}})
-    assert panel._busy and panel.status.text()=='Karar uygulanıyor' and not panel._reading_status
-    panel._busy=False
-    panel._done('status',{'_ui_generation':1,'app_control':{}})
-    assert panel.status.text()=='Karar uygulanıyor'
+def test_protection_page_keeps_typed_text_and_scroll_across_refresh(qt):
+    """2.2.47: the settings that lived on the management page keep what the user typed while data refreshes."""
+    import sys
+    sys.path.insert(0,str(Path(__file__).parents[1]/'tools'))
+    from dashboard_fixture import FakeBackend
+    from satsuma.dashboard_qt.panels.protection import FirewallSettingsPanel as ProtectionPanel
+    panel=ProtectionPanel(FakeBackend());panel.resize(1000,600);panel.show();panel.reload()
+    panel.domain.setText('ornek.com');panel.domain.setFocus();qt.processEvents()
+    bar=panel.page.scroll.verticalScrollBar();bar.setValue(80);before=bar.value()
+    panel.reload();qt.processEvents()
+    assert panel.domain.text()=='ornek.com' and bar.value()==before
     panel.close()

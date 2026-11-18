@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""DNS modülü — DNS kayıtları, istek/cevap ve anomali özeti."""
+"""DNS sorguları modülü — DNS kayıtları, istek/cevap ve anomali özeti."""
 try:
     from ._module import ReadOnlyModulePanel
     from . import register
@@ -15,7 +15,7 @@ class DnsPanel(ReadOnlyModulePanel):
     PANEL_ICON = '🌐'
     PANEL_ORDER = 4
     PANEL_GROUP = 'main'
-    PANEL_SUBTITLE = 'DNS KAYITLARI · İSTEK/CEVAP · RESOLVER · SONUÇ IP'
+    PANEL_SUBTITLE = 'Bu bilgisayarın sorduğu alan adları ve aldığı yanıtlar.'
     METHOD = 'dns'
     KEY = 'items'
     PARAMS = {'limit': 500}

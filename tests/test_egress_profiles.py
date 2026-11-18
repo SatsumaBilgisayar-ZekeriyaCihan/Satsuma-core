@@ -153,44 +153,34 @@ def test_narrowing_does_not_ask_for_the_password(files):
     assert not weakens('egress_profile', {'action': 'status'})
 
 
-def test_dashboard_page_sends_the_selection_and_shows_open_ports(files, monkeypatch):
-    import time
+def test_dashboard_page_sends_the_selection_with_custom_ports(files, monkeypatch):
+    """2.2.47: the egress choice lives on Koruma → Ayarlar; custom ports are checked before sending."""
+    import sys
+    from pathlib import Path
     from PyQt6.QtWidgets import QApplication
-    from satsuma.dashboard_qt.panels.admin import AdminPanel
-    from satsuma.dashboard_qt.panels import admin as admin_module
-    app = QApplication.instance() or QApplication([])
-    sent = []
-
-    class Client:
-        def __init__(self, *a, **k):
-            pass
-
-        def call(self, method, **params):
-            sent.append((method, params))
-            return {'ok': True, 'profile': profiles.describe(params.get('selection') or {})}
-    monkeypatch.setattr(admin_module, 'ReaderClient', Client)
-    panel = AdminPanel(NS(call=lambda *a, **k: {}))
+    sys.path.insert(0, str(Path(__file__).parents[1] / 'tools'))
+    from dashboard_fixture import FakeBackend
+    from satsuma.dashboard_qt.panels.protection import FirewallSettingsPanel as ProtectionPanel
+    QApplication.instance() or QApplication([])
+    panel = ProtectionPanel(FakeBackend())
+    acted = []
+    panel.act = lambda action, refresh=True: acted.append(action)
     try:
-        titles = [panel.sections.item(i).text() for i in range(panel.sections.count())]
-        assert 'İnternet trafiği' in titles
-        assert titles[titles.index('Ağ koruması') + 1] == 'İnternet trafiği'
-        panel.token = 'session'
-        panel.egress_addons['remote_support'].setChecked(True)
+        panel.reload()
+        assert set(panel.egress_boxes) >= {'http', 'mail', 'quic'}
+        panel.egress_boxes['mail'].setChecked(True)
         panel.egress_tcp.setText('8443, 9000')
-        panel.ask_password = lambda method: PASSWORD
-        panel._send('egress_profile', {'action': 'set'})
-        for _ in range(50):
-            app.processEvents(); time.sleep(0.02)
-            if sent and 'TCP' in panel.egress_state.text():
-                break
-        method, params = sent[0]
-        assert method == 'egress_profile' and params['password'] == PASSWORD
-        assert params['selection'] == {'addons': ['remote_support'], 'custom': {'tcp': [8443, 9000], 'udp': []}}
-        assert '5938' in panel.egress_state.text() and 'kapalıdır' in panel.egress_state.text()
+        panel.egress_udp.setText('')
+        panel._apply_egress()
+        assert acted[-1] == {'method': 'egress_profile', 'params': {'action': 'set', 'selection': {
+            'addons': ['http', 'mail'], 'custom': {'tcp': [8443, 9000], 'udp': []}}}}
+        acted.clear()
         panel.egress_tcp.setText('22a')
-        sent.clear()
-        panel._send('egress_profile', {'action': 'set'})
-        assert sent == [] and 'sayılar' in panel.status.text()
+        panel._apply_egress()
+        assert acted == [] and 'sayılar' in panel.egress_error.text()
+        panel.egress_tcp.setText('70000')
+        panel._apply_egress()
+        assert acted == []
     finally:
         panel.close()
 

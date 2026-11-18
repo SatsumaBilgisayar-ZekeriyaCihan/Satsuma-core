@@ -17,7 +17,7 @@ def test_otx_worker_may_write_the_dns_filter():
 
 def test_otx_dns_status_counts_only_live_otx_domains(tmp_path):
     from satsuma.otx import dns_status
-    from satsuma.dashboard_qt.panels.admin import otx_dns_text
+    from satsuma.dashboard_qt.panels.protection import otx_dns_text
     store = Store(tmp_path, test=True)
     store.set('dns_blocked_domains', {'bad.example': {'source': 'otx', 'expires_at': 200},
                                       'old.example': {'source': 'otx', 'expires_at': 50},

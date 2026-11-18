@@ -21,7 +21,7 @@ from ...operator_service import SOCKET_PATH
 @register
 class ProcessApprovalsPanel(BasePanel):
     PANEL_ID = 'process_approvals'
-    PANEL_TITLE = 'Test Modu — Süreç ve Kural İnceleme'
+    PANEL_TITLE = 'Onay bekleyenler'
     PANEL_ORDER = 4
     PANEL_GROUP = 'security'
     PANEL_SUBTITLE = 'Süreç müdahalesi onayları ve derin kural doğruluk etiketleri; derin kural etiketi sistem müdahalesi yapmaz.'

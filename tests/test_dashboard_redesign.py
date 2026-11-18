@@ -150,37 +150,35 @@ def test_search_in_the_top_bar_filters_the_activity(make, app):
     assert page.rows and all('mount_' in r['subject'] for r in page.rows)
 
 
-def test_every_user_page_and_expert_page_opens(make, app):
+def test_every_tab_of_every_section_opens(make, app):
+    """2.2.47: each earlier menu is a tab; all of them open with the fixture reader."""
+    from satsuma.dashboard_qt.windows.nav import SECTIONS
     window, _, _ = make()
-    for panel_id in ('home', 'activity', 'protection', 'health', 'settings', 'findings', 'admin', 'records', 'system_health'):
-        window.nav.select(panel_id)
-        app.processEvents()
-        assert window.current_panel().PANEL_ID == panel_id, panel_id
+    for section, _, _, tabs in SECTIONS:
+        for tab, title in tabs:
+            window.nav.select(tab)
+            app.processEvents()
+            assert window.current_panel().PANEL_ID == tab, (section, tab, window.feedback.text.text())
 
 
-def test_expert_view_can_be_hidden_and_comes_back_when_asked_for(make, app):
-    window, _, _ = make()
-    window.nav.set_expert(False)
-    assert window.nav.tools.isHidden()
-    window.open_target('expert:suricata')
-    assert window.nav.expert_visible() and window.current_panel().PANEL_ID == 'suricata'
-
-
-def test_advanced_management_page_shares_the_lock(make, app):
+def test_range_block_field_sends_the_range_and_refuses_bad_input(make, app):
     window, session, operator = make(passwords=['dogru'])
+    window.nav.select('blocks')
+    page = window.current_panel()
+    page.network.setText('192.168.0.0/16')
+    page.reason.setText('deneme')
+    page._block()
+    assert wait(app, lambda: ('block_network', {'network': '192.168.0.0/16', 'reason': 'deneme'}) in operator.calls)
+    page.network.setText('0.0.0.0/2')
+    page._block()
+    assert '/8' in page.hint.text() and sum(1 for c in operator.calls if c[0] == 'block_network') == 1
+
+
+def test_deepseek_uses_the_shared_lock(make, app):
+    window, session, operator = make(passwords=['dogru'])
+    window.nav.select('deepseek')
+    page = window.current_panel()
+    assert page._token() is None
     session.unlock(window)
     assert wait(app, session.unlocked)
-    window.nav.select('admin')
-    assert window.current_panel().token == session.token
-    session.lock()
-    assert window.current_panel().token is None
-
-
-def test_old_management_login_button_opens_the_shared_lock(make, app):
-    from PyQt6.QtWidgets import QPushButton
-    window, session, operator = make(passwords=['dogru'])
-    window.nav.select('admin')
-    access = next(b for b in window.current_panel().findChildren(QPushButton) if b.text() == 'Yönetici oturumu aç')
-    access.click()
-    assert wait(app, session.unlocked)
-    assert session.asked == ['Yönetici kilidini aç'] and window.current_panel().token == session.token
+    assert page._token() == session.token

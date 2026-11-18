@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""AUDIT modülü — güvenlikle ilgili olaylar, ayrıcalık gözlemleri."""
+"""Sistem denetimi modülü — güvenlikle ilgili olaylar, ayrıcalık gözlemleri."""
 try:
     from ._module import ReadOnlyModulePanel
     from . import register
@@ -15,7 +15,7 @@ class AuditPanel(ReadOnlyModulePanel):
     PANEL_ICON = '🧾'
     PANEL_ORDER = 10
     PANEL_GROUP = 'system'
-    PANEL_SUBTITLE = 'AYRICALIK GÖZLEMLERİ · DOSYA/SÜREÇ KANITI · KORELASYON'
+    PANEL_SUBTITLE = 'Çekirdek denetim kayıtlarından ayrıcalık ve hassas dosya olayları.'
     METHOD = 'audit'
     KEY = 'recent_events'
     COLUMNS = (

@@ -2,11 +2,11 @@
 try:
     from PyQt6.QtWidgets import QWidget,QFrame,QLabel,QVBoxLayout,QHBoxLayout,QPushButton
     from PyQt6.QtGui import QPainter,QPainterPath,QPen,QColor,QPixmap,QIcon,QBrush
-    from PyQt6.QtCore import Qt,QRectF,QSize
+    from PyQt6.QtCore import Qt,QRectF,QSize,QPointF
 except ImportError:
     from PyQt5.QtWidgets import QWidget,QFrame,QLabel,QVBoxLayout,QHBoxLayout,QPushButton
     from PyQt5.QtGui import QPainter,QPainterPath,QPen,QColor,QPixmap,QIcon,QBrush
-    from PyQt5.QtCore import Qt,QRectF,QSize
+    from PyQt5.QtCore import Qt,QRectF,QSize,QPointF
 from .style.theme import Colors
 
 
@@ -52,6 +52,15 @@ def vector(painter,name,color):
         p.moveTo(10,21);p.lineTo(14,21);painter.drawPath(p)
     elif name=='search':
         painter.drawEllipse(QRectF(4,4,12,12));painter.drawLine(15,15,20,20)
+    elif name=='bug':
+        painter.drawEllipse(QRectF(7.5,8,9,12));painter.drawLine(12,8,12,20);painter.drawArc(QRectF(9,4,6,6),0,180*16)
+        for y in (11,14.5,18):painter.drawLine(QPointF(7.5,y),QPointF(3.5,y-1.5));painter.drawLine(QPointF(16.5,y),QPointF(20.5,y-1.5))
+    elif name=='firewall':
+        painter.drawRoundedRect(QRectF(3,5,18,15),1.5,1.5)
+        for y in (10,15):painter.drawLine(QPointF(3,y),QPointF(21,y))
+        for x,y0,y1 in ((9,5,10),(15,5,10),(6,10,15),(12,10,15),(18,10,15),(9,15,20),(15,15,20)):painter.drawLine(QPointF(x,y0),QPointF(x,y1))
+    elif name=='logs':
+        for y in (6,12,18):painter.drawEllipse(QRectF(3.2,y-1,2,2));painter.drawLine(QPointF(8,y),QPointF(21,y))
     elif name=='unlock':
         painter.drawRoundedRect(QRectF(5,10,14,12),2,2);painter.drawArc(QRectF(8,2,8,14),40*16,140*16);painter.drawLine(12,15,12,18)
     else:

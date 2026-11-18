@@ -61,7 +61,7 @@ class RecordsPanel(BasePanel):
         self._overview, self._selected, self._page = None, None, None
         head = QHBoxLayout()
         text = QVBoxLayout()
-        text.addWidget(self.make_title('Veritabanında ne var?'))
+        text.addWidget(self.make_title('Kayıtlar: veritabanında ne var?'))
         self.total = self.make_subtitle('Kayıtlar okunuyor…')
         text.addWidget(self.total)
         head.addLayout(text, 1)

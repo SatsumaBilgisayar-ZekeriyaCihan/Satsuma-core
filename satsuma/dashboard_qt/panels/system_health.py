@@ -42,7 +42,7 @@ GROUPS={
     'traffic':('Trafik engelleme',('packet_drop','production_incoming_rules','subnet_protection','nfqueue_consumers','app_control','competing_ips'),
         'Zararlı adreslere giden trafik durdurulamayabilir.','Yukarıdaki adımı uygulayın; çözülmezse Teknik ayrıntıları bana gönderin.'),
     'dns':('DNS',('dns_filter','dns_policy','dns_resolver_alignment','dns_threat_lists'),
-        'Ad sorguları beklenmeyen bir sunucuya gidebilir ya da zararlı adlar engellenmeyebilir.','Yönetim → DNS bölümünde kullandığınız sunucuyu kontrol edin.'),
+        'Ad sorguları beklenmeyen bir sunucuya gidebilir ya da zararlı adlar engellenmeyebilir.','Güvenlik duvarı → Ayarlar → DNS filtresi kartından durumu kontrol edin.'),
     'events':('Olay işleme',('worker_heartbeats','core_state'),
         'Olaylar geç değerlendirilir; uyarılar gecikebilir.','Arka plan bileşenleri sayfasında "Sorunlu" görünen bileşene bakın.'),
 }
@@ -64,7 +64,7 @@ def card_model(key,report,checks):
         return model
     failed=[(n,c) for n,c in present if c.get('ok') is False]
     if key=='dns' and not any(n!='dns_filter' for n,_ in failed) and (checks.get('dns_filter') or {}).get('status') in ('DISABLED','NOT_CONFIGURED'):
-        model.update(tone='info',summary='DNS filtresi kapalı; bu sonuç ad çözümlemesinin çalıştığını tek başına kanıtlamaz. Açmak için: Yönetim → DNS.')
+        model.update(tone='info',summary='DNS filtresi kapalı; bu sonuç ad çözümlemesinin çalıştığını tek başına kanıtlamaz. Açmak için: Güvenlik duvarı → Ayarlar → DNS filtresi.')
         return model
     if not failed:
         model.update(tone='ok',summary='Denetlenen: '+', '.join(CHECK_LABELS.get(n,n) for n,_ in present)+'.')
@@ -128,7 +128,7 @@ class HealthCard(QFrame):
 
 @register
 class SystemHealthPanel(BasePanel):
-    PANEL_ID='system_health';PANEL_TITLE='Sistem Sağlığı';PANEL_ORDER=14;PANEL_GROUP='security'
+    PANEL_ID='system_health';PANEL_TITLE='Ayrıntılı kontroller';PANEL_ORDER=14;PANEL_GROUP='security'
     def _build(self):
         self._layout.addWidget(self.make_title(self.PANEL_TITLE))
         hero=QFrame();hero.setObjectName('securityCard');top=QHBoxLayout(hero);top.setContentsMargins(22,16,22,16);top.setSpacing(22)

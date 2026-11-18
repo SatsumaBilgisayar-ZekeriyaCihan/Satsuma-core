@@ -22,19 +22,14 @@ def test_security_home_opens_and_application_management_controls_are_real_widget
         def close(self): pass
     window = MainWindow(Backend())
     try:
-        # 2.2.45: the panel opens on "Durum"; the old management page is under Uzman görünümü.
+        # 2.2.47: the panel opens on "Durum"; application control is its own section.
         assert window.nav.current() == 'home'
-        assert window.stack.currentWidget().PANEL_ID == 'home'
-        assert not hasattr(window.stack.currentWidget(), '_panel_class')
-        window.nav.select('admin')
-        panel = window.stack.currentWidget()
-        assert panel.PANEL_ID == 'admin'
-        assert panel.app_requests.count() == 0
-        assert panel.app_rules.count() == 0
-        assert panel.app_duration.count() == 3
-        assert all(not button.isEnabled() for button in panel._controls)
-        panel._done('application_control', {'ok': True, 'application_control': {'enabled': False}})
-        assert 'False' in panel.status.text()
+        assert window.current_panel().PANEL_ID == 'home'
+        window.nav.select('apps')
+        panel = window.current_panel()
+        assert panel.PANEL_ID == 'apps' and window.nav._buttons['apps'].isChecked()
+        assert panel.duration.count() == 3 and panel.duration.currentData() == 'application'
+        assert panel.switch.switch.known is False      # no reader: state unknown, not "off"
     finally:
         window.close()
 
@@ -86,21 +81,20 @@ def test_welcome_setup_shows_plan_before_yes_and_detailed_has_no_preselection():
     finally:widget.close()
 
 
-def test_custom_malware_feed_field_is_connected_to_management_widgets():
+def test_custom_malware_feed_field_is_on_the_protection_page():
+    """2.2.47: user lists are added on Güvenlik duvarı → Ayarlar → DNS filtresi, through the shared lock."""
+    import sys
+    from pathlib import Path
     app=QApplication.instance() or QApplication([])
-    class Backend:
-        updates=ReaderUpdates();client=None;db_path='test'
-        def version(self):return 'test'
-        def is_connected(self):return False
-        def system_health(self):return {}
-        def overview(self):return {}
-        def close(self):pass
-    window=MainWindow(Backend())
+    sys.path.insert(0,str(Path(__file__).parents[1]/'tools'))
+    from dashboard_fixture import FakeBackend
+    window=MainWindow(FakeBackend())
     try:
-        window.nav.select('admin');panel=window.stack.currentWidget()
-        assert 'https://' in panel.custom_list_url.placeholderText()
-        panel._done('custom_list_update',{'ok':True,'active':False,'custom_lists':{'sources':[{'url':'https://feed.example/hosts','count':12}]}})
-        assert '12' in panel.custom_list_status.text() and 'aktif değil' in panel.custom_list_status.text()
-        panel._done('custom_list_update',{'ok':True,'active':True,'custom_lists':{'sources':[{'url':'https://feed.example/hosts','count':12}]}})
-        assert 'uygulandı' in panel.custom_list_status.text()
+        window.nav.select('firewall_settings');panel=window.current_panel();panel.reload()
+        assert 'https://' in panel.list_url.placeholderText()
+        texts=[panel.lists_box.itemAt(i).layout().itemAt(0).widget().text() for i in range(panel.lists_box.count()) if panel.lists_box.itemAt(i).layout()]
+        assert 'https://lists.example.org/malware.txt' in texts
+        acted=[];panel.act=lambda action,refresh=True:acted.append(action)
+        panel.list_url.setText('https://feed.example/hosts');panel._add_list()
+        assert acted==[{'method':'custom_list_update','params':{'url':'https://feed.example/hosts'}}]
     finally:window.close()

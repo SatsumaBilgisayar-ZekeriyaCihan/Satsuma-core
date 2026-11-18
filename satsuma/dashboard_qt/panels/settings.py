@@ -22,7 +22,7 @@ class SettingsPanel(UserPage):
     PANEL_TITLE = 'Ayarlar'
     PANEL_ORDER = 4
     PAGE_TITLE = 'Ayarlar'
-    PAGE_SUBTITLE = 'Yönetici kilidi, modem, VPN, anahtarlar ve panel görünümü.'
+    PAGE_SUBTITLE = 'Yönetici kilidi, modem, VPN ve anahtarlar.'
     REFRESH_MS = 8000
 
     def build(self, content):
@@ -58,6 +58,16 @@ class SettingsPanel(UserPage):
         card.body.addWidget(self.modem_approve)
         self.modem_result = label('', 'secondary')
         card.body.addWidget(self.modem_result)
+        from ..qt import QPlainTextEdit
+        self.modem_tables = QPlainTextEdit()
+        self.modem_tables.setReadOnly(True)
+        self.modem_tables.setObjectName('technical')
+        self.modem_tables.setMaximumHeight(180)
+        self.modem_tables.hide()
+        self.modem_tables_button = button('Teknik ayrıntılar: yönlendirme tabloları', self._toggle_tables, 'quiet')
+        self.modem_tables_button.hide()
+        card.body.addWidget(self.modem_tables_button)
+        card.body.addWidget(self.modem_tables)
         manual = QHBoxLayout()
         self.modem_mac = QLineEdit()
         self.modem_mac.setPlaceholderText('Ya da modemin MAC adresini yazın, ör. a8:9a:93:12:34:56')
@@ -85,23 +95,17 @@ class SettingsPanel(UserPage):
         imp.addWidget(self.vpn_name, 1)
         imp.addWidget(button('Dosyadan içe aktar…', self._import_wireguard))
         card.body.addLayout(imp)
-        card.body.addWidget(button('VPN ve proxy göstergeleri  →', lambda: self.open('expert:vpn_proxy'), 'quiet'))
+        card.body.addWidget(button('VPN ve proxy göstergeleri  →', lambda: self.open('vpn_proxy'), 'quiet'))
 
         card = _card(content, 'keys', 'Anahtarlar ve araştırma',
                      'Anahtarlar panelden değil, uçbirimden root olarak girilir; panele hiçbir zaman gelmezler.', self.cards)
         card.body.addWidget(label('OTX tehdit istihbaratı:  sudo satsuma-admin set-otx-key', 'mono', selectable=True))
         card.body.addWidget(label('Ücretsiz anahtar: otx.alienvault.com → hesap → API Integration.', 'secondary', selectable=True))
-        card.body.addWidget(button('DeepSeek araştırma stüdyosu  →', lambda: self.open('expert:deepseek'), 'quiet'))
-
-        card = _card(content, 'view', 'Görünüm', 'Panelin size nasıl görüneceği.', self.cards)
-        self.expert_toggle = QCheckBox('Uzman görünümünü kenar çubuğunda göster (Suricata, DNS sorguları, denetim, kurallar ve diğer teknik tablolar)')
-        self.expert_toggle.toggled.connect(self._expert)
-        card.body.addWidget(self.expert_toggle)
+        card.body.addWidget(button('Araştırma stüdyosu (DeepSeek)  →', lambda: self.open('deepseek'), 'quiet'))
 
         card = _card(content, 'about', 'Hakkında', '', self.cards)
         self.about = label('', 'secondary', selectable=True)
         card.body.addWidget(self.about)
-        card.body.addWidget(button('Gelişmiş yönetim (tüm eski ayarlar)  →', lambda: self.open('expert:admin'), 'quiet'))
         content.addStretch()
 
     # -- lock
@@ -123,6 +127,10 @@ class SettingsPanel(UserPage):
     def _modems(self, method, params, result):
         data = (result or {}).get('modem_inventory') or {}
         self._fingerprint = data.get('route_fingerprint')
+        from ..detail_sanitizer import detail_lines
+        self.modem_tables.setPlainText(detail_lines({'tables': data.get('tables', []), 'routes': data.get('routes', []),
+                                                     'rules': data.get('rules', [])}))
+        self.modem_tables_button.show()
         self.modem_choices.clear()
         for item in data.get('candidates') or []:
             self.modem_choices.addItem('%s · ağ geçidi %s · MAC %s' % (item.get('interface'), item.get('gateway'), item.get('gateway_mac')), item.get('id'))
@@ -135,6 +143,9 @@ class SettingsPanel(UserPage):
         else:
             reasons = '; '.join('%s: %s' % (r.get('dev'), r.get('reason')) for r in data.get('rejected') or [])
             self.modem_result.setText('Modem bulunamadı. ' + (reasons or 'Bu bilgisayarda varsayılan rota yok.'))
+
+    def _toggle_tables(self):
+        self.modem_tables.setVisible(self.modem_tables.isHidden())
 
     def _approve_modem(self):
         if not self.modem_confirm.isChecked():
@@ -193,13 +204,6 @@ class SettingsPanel(UserPage):
         self.vpn_state.setText('; '.join(item['name'] + (' bağlı' if item.get('active') else ' bağlı değil') for item in wg.get('profiles') or [])
                                or 'İçe aktarılmış profil yok.')
 
-    # -- view
-    def _expert(self, value):
-        QSettings('SatsumaBilgisayar', 'Satsuma Internet Security').setValue('expert_view', bool(value))
-        window = self.main_window()
-        if hasattr(window, 'nav'):
-            window.nav.set_expert(bool(value))
-
     def scroll_to(self, key):
         card = self.cards.get(key)
         if card is not None:
@@ -210,11 +214,6 @@ class SettingsPanel(UserPage):
         unlocked = bool(session and session.unlocked())
         self.lock_state.set('Kilit açık' if unlocked else 'Kilitli', 'ok' if unlocked else 'unknown')
         self.lock_button.setText('Kilitle' if unlocked else 'Kilidi aç')
-        window = self.main_window()
-        if hasattr(window, 'nav'):
-            self.expert_toggle.blockSignals(True)
-            self.expert_toggle.setChecked(window.nav.expert_visible())
-            self.expert_toggle.blockSignals(False)
         if unlocked and self.changed('unlocked', True):
             session.run('status', {}, self, then=self._operator_status)
         elif not unlocked:

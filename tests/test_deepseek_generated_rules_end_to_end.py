@@ -110,7 +110,7 @@ def test_prompt_explains_the_exact_matchers():
     sent = {}
     client_request = client._request
     try:
-        client._request = lambda prompt, config, confirmed: sent.setdefault('prompt', prompt)
+        client._request = lambda prompt, config, confirmed, **k: sent.setdefault('prompt', prompt)
         client.generate_rule('T1059.004', 'reverse_shell', adapter.SCHEMA_HINT, {}, confirmed=True)
     finally:
         client._request = client_request

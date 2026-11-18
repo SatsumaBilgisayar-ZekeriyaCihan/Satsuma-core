@@ -56,6 +56,49 @@ def _records():
     return findings, actions
 
 
+def _logbook(params):
+    """record_catalog.timeline over an in-memory copy of the fixture records."""
+    import json
+    import sqlite3
+    from contextlib import contextmanager
+    from satsuma.record_catalog import timeline
+    findings, actions = _records()
+    rows = [(ts, 'findings', f) for ts, f in findings] + [(ts, 'actions', a) for ts, a in actions]
+    rows += [(NOW - 1800, 'errors', {'component': 'DNS filtresi', 'error': 'dnsmasq yanıt vermedi; yeniden başlatıldı'}),
+             (NOW - 2400, 'flow_guard', {'code': 'engine_restarted', 'ok': True, 'detail': 'Kural motoru 4 sn sessiz kaldı'}),
+             (NOW - 300, 'events', {'source': 'sys_proc', 'action': 'exec', 'exe': '/usr/bin/curl', 'cmd': 'curl https://example.org'})]
+    db = sqlite3.connect(':memory:')
+    db.execute('CREATE TABLE records (id INTEGER PRIMARY KEY, created REAL, kind TEXT, body TEXT)')
+    for ts, kind, body in sorted(rows, key=lambda r: r[0]):
+        db.execute('INSERT INTO records(created,kind,body) VALUES(?,?,?)', (ts, kind, json.dumps(body, ensure_ascii=False)))
+
+    @contextmanager
+    def connect():
+        yield db
+    return timeline((('core', connect),), view=params.get('view', 'important'), hours=params.get('hours', 24),
+                    search=params.get('search', ''), before=params.get('before'), limit=params.get('limit', 100), now=NOW)
+
+
+def _scanners():
+    excerpt = ('/home/kullanici/İndirilenler/fatura.pdf.exe: Win.Trojan.Agent-1234 FOUND\n----------- SCAN SUMMARY -----------\n'
+               'Scanned directories: 12034\nScanned files: 184512\nInfected files: 1\nData scanned: 9876.43 MiB\n'
+               'Time: 1532.118 sec (25 m 32 s)\n')
+    clam = {'_id': 31, 'timestamp': NOW - 5400, 'completed_at': NOW - 3868, 'tool': 'clamav', 'status': 'FINDINGS', 'findings': 1,
+            'exit_code': 1, 'output_excerpt': excerpt,
+            'files': [{'path': '/home/kullanici/İndirilenler/fatura.pdf.exe', 'signature': 'Win.Trojan.Agent-1234', 'sha256': 'ab' * 32}],
+            'quarantine': [{'source': '/home/kullanici/İndirilenler/fatura.pdf.exe', 'status': 'quarantined'}]}
+    old = {'_id': 21, 'timestamp': NOW - 90000, 'completed_at': NOW - 88500, 'tool': 'clamav', 'status': 'COMPLETED', 'findings': 0,
+           'exit_code': 0, 'fallback_from': 'clamdscan',
+           'summary': {'scanned_files': 183977, 'infected_files': 0, 'data_scanned': '9841.10 MiB'}}
+    rk = {'_id': 32, 'timestamp': NOW - 3860, 'completed_at': NOW - 3700, 'tool': 'rkhunter', 'status': 'WARNING', 'findings': 2, 'exit_code': 1}
+    chk = {'_id': 33, 'timestamp': NOW - 3690, 'completed_at': NOW - 3690, 'tool': 'chkrootkit', 'status': 'UNAVAILABLE', 'findings': 0,
+           'error': 'chkrootkit komutu bulunamadı'}
+    return {'items': [chk, rk, clam, old], 'data_state': 'OK', 'scope': 'Bu bilgisayarda yerel dosya ve sistem taraması',
+            'engines': {'clamav': {'installed': True, 'last_result': clam}, 'rkhunter': {'installed': True, 'last_result': rk},
+                        'chkrootkit': {'installed': False, 'last_result': chk}},
+            'quarantine': [{'quarantine_id': 'q1', 'path': '/home/kullanici/İndirilenler/fatura.pdf.exe'}]}
+
+
 class FakeReader:
     """What the root reader would answer; ``healthy`` switches between the two states shown."""
 
@@ -101,7 +144,12 @@ class FakeReader:
                                'addons': [{'id': 'http', 'title': 'Şifresiz web (HTTP, TCP 80)', 'explain': 'Eski siteler ve bazı güncelleme sunucuları.', 'enabled': True},
                                           {'id': 'mail', 'title': 'E-posta istemcisi (IMAP/SMTP)', 'explain': 'Thunderbird gibi programlar için.', 'enabled': False},
                                           {'id': 'quic', 'title': 'QUIC / HTTP3 (UDP 443)', 'explain': 'Bazı sitelerde daha hızlı bağlantı.', 'enabled': False}]},
-                    'blocked_ips': [{'ip': '203.0.113.77', 'reason': 'OTX: 4 kaynak'}, {'ip': '198.51.100.23', 'reason': 'Suricata: ET SCAN'}]}
+                    'blocked_ips': [{'ip': '203.0.113.77', 'reason': 'OTX: 4 kaynak'}, {'ip': '198.51.100.23', 'reason': 'Suricata: ET SCAN'}],
+                    'network_blocks': [{'network': '192.168.0.0/16', 'reason': 'Misafir ağı', 'added_at': NOW - 3000}]}
+        if method == 'logbook':
+            return _logbook(params)
+        if method == 'security_scanners':
+            return _scanners()
         if method == 'self_health':
             report = dict(_info(self.healthy)['health'])
             report['repairs'] = []

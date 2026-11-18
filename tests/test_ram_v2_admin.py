@@ -37,14 +37,17 @@ class AdminVerificationTests(unittest.TestCase):
         try:
             from PyQt6.QtWidgets import QApplication,QPushButton
         except ImportError:self.skipTest('Qt6 unavailable locally; Fedora CI installs Qt6')
-        from satsuma.dashboard_qt.panels.admin import AdminPanel
+        import sys
+        from pathlib import Path
+        sys.path.insert(0,str(Path(__file__).parents[1]/'tools'))
+        from dashboard_fixture import FakeBackend
+        from satsuma.dashboard_qt.panels.health import HealthPanel
         app=QApplication.instance() or QApplication([])
-        panel=AdminPanel(object());panel._send=Mock();panel.token='fixture'
+        panel=HealthPanel(FakeBackend());acted=[];panel.act=lambda action,refresh=True:acted.append(action)
         try:
-            panel._done('status',{'ok':True,'maintenance':{'status':'FAILED','operation':'boot_check','output':'fixture diagnostic'},'health_summary':{'files':'Sağlıklı'},'verification':{'allowed':False,'status':'LOCKED','reasons':['application_integrity_unverified']}})
-            self.assertIn('fixture diagnostic',panel.verification_job_label.text())
-            self.assertIn('kilitli',panel.verification_job_label.text())
-            self.assertIn('Sağlıklı',panel.integrity_label.text())
-            button=next(b for b in panel.findChildren(QPushButton) if b.text()=='Doğrulamayı şimdi çalıştır')
-            button.click();panel._send.assert_called_with('boot_check',{})
+            panel._operator_status('status',{},{'ok':True,'maintenance':{'status':'FAILED','operation':'boot_check','output':'fixture diagnostic'},'verification':{'allowed':False,'status':'LOCKED','reasons':['application_integrity_unverified']}})
+            self.assertIn('fixture diagnostic',panel.jobs.text())
+            self.assertIn('kilitli',panel.jobs.text())
+            button=next(b for b in panel.findChildren(QPushButton) if b.text()=='Dosyaları şimdi doğrula')
+            button.click();self.assertEqual(acted[-1],{'method':'boot_check','params':{}})
         finally:panel.close()

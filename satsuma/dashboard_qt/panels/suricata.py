@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""SURICATA modülü — EVE health ve ağ alarm özeti."""
+"""Trafik analizi (Suricata) modülü — EVE health ve ağ alarm özeti."""
 try:
     from ._module import ReadOnlyModulePanel
     from . import register
@@ -15,7 +15,7 @@ class SuricataPanel(ReadOnlyModulePanel):
     PANEL_ICON = '📡'
     PANEL_ORDER = 11
     PANEL_GROUP = 'system'
-    PANEL_SUBTITLE = 'EVE AKIŞI · AĞ ALARMLARI · SÜREÇ AYRI DURUM'
+    PANEL_SUBTITLE = 'Suricata’nın ağ trafiğinde bulduğu alarmlar. Tüm bağlantılar bu denetimden geçer.'
     METHOD = 'suricata'
     KEY = 'network_alert_summary'
     COLUMNS = (
@@ -33,9 +33,9 @@ class SuricataPanel(ReadOnlyModulePanel):
         try:
             data = self.backend.call('suricata')
             eve = data.get('eve_input') or {}
+            states={'running':'çalışıyor','RUNNING':'çalışıyor','OK':'akıyor','STALE':'eski','MISSING':'yok'}
             self.status.setText(
-                f"EVE: {eve.get('state')}  ·  SÜREÇ: {data.get('process_state')}  ·  "
-                f"ALARM: {data.get('alert_count')}  ·  DNS EVENT: {data.get('dns_event_count')}"
-            )
+                f"Suricata: {states.get(str(data.get('process_state')), data.get('process_state'))} · Olay akışı: {states.get(str(eve.get('state')), eve.get('state'))} · "
+                f"{data.get('alert_count')} alarm · {data.get('dns_event_count')} DNS olayı")
         except Exception as exc:
-            self.status.setText('UNKNOWN · Veri okunamadı: '+str(exc)[:200])
+            self.status.setText('Suricata verisi okunamadı: '+str(exc)[:200])

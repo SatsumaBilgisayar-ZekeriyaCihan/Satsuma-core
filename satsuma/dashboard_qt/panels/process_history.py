@@ -38,7 +38,7 @@ class PagedPanel(ReadOnlyModulePanel):
 @register
 class StoppedProcessesPanel(PagedPanel):
     PANEL_ID = 'stopped_processes'
-    PANEL_TITLE = 'Durdurulan işlemler'
+    PANEL_TITLE = 'Durdurulan programlar'
     PANEL_ORDER = 4
     PANEL_SUBTITLE = 'Yalnız sinyal gönderilen ve çıkışı doğrulanan süreçler. Diğer girişimler Güvenlik aksiyonları bölümündedir.'
     METHOD = 'stopped_processes'

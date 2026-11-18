@@ -60,7 +60,7 @@ def test_prompt_describes_the_stop_proposal_and_the_definition(tmp_path, monkeyp
     monkeypatch.setattr(definitions, 'DIRECTORY', folder)
     monkeypatch.setattr(definitions, '_read', lambda path, owner=0, real=definitions._read: real(path, os.getuid()))
     sent = {}
-    monkeypatch.setattr(client, '_request', lambda prompt, config, confirmed: sent.setdefault('p', prompt))
+    monkeypatch.setattr(client, '_request', lambda prompt, config, confirmed, **k: sent.setdefault('p', prompt))
     client.generate_rule('T1562.001', 'defense_evasion', adapter.SCHEMA_HINT, {}, confirmed=True)
     assert 'process_kill, target_type process' in sent['p']
     assert 'T1562.001 was revoked and replaced by T1685' in sent['p']

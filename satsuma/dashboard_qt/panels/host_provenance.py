@@ -6,10 +6,10 @@ from ._module import ReadOnlyModulePanel, QLabel
 @register
 class HostProvenancePanel(ReadOnlyModulePanel):
     PANEL_ID = 'host_provenance'
-    PANEL_TITLE = 'SİSTEM KÖKENİ VE PAKET RİSKİ'
+    PANEL_TITLE = 'Açılış, TPM ve paketler'
     PANEL_GROUP = 'system'
     PANEL_ORDER = 15
-    PANEL_SUBTITLE = 'Fedora / OSTree / bootc · sistem denetimi · Python ve paket riskleri (salt okunur)'
+    PANEL_SUBTITLE = 'Güvenli açılış, TPM kanıtları, dağıtım (OSTree / bootc) ve paket riskleri. Açılışta ve “Yenile” ile okunur.'
     METHOD = 'host_provenance'
     # 2.2.45: read on opening and with "Yenile" only; the reader keeps it ten minutes.
     REFRESH_MS = 0

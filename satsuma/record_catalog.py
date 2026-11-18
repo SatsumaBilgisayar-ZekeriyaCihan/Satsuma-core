@@ -311,3 +311,101 @@ def explained(db, kind, offset=0, limit=50):
         items.append({'id': rid, 'created': created, **render(kind, decoded, created), 'raw': redact(decoded)})
     return {**describe(kind), 'count': total, 'offset': offset, 'limit': limit, 'items': items,
             'has_more': offset + len(items) < total, 'data_state': 'OK'}
+
+
+# 2.2.47: one readable log of everything (Kayıtlar → Tüm kayıtlar).
+# Raw telemetry (every process start, every DNS question) is left out unless
+# asked for; it would bury what Satsuma did and what went wrong.
+# Tek, okunur kayıt defteri; ham telemetri yalnızca istenirse gösterilir.
+RAW_KINDS = ('events', 'normalized', 'audit_raw', 'audit', 'dns', 'flow', 'sys_proc')
+VIEWS = {
+    'important': 'Önemli kayıtlar',
+    'protection': 'Koruma',
+    'network': 'Ağ',
+    'health': 'Satsuma’nın sağlığı',
+    'problems': 'Yalnızca uyarı ve hatalar',
+    'raw': 'Ham olaylar',
+}
+TONE_LABELS = {'crit': 'Önemli', 'warn': 'Uyarı', 'ok': 'Başarılı', 'info': 'Bilgi'}
+ERROR_KINDS = ('errors', 'host_errors', 'temporary_scan_error')
+
+
+def _view_kinds(view, db_name):
+    """(include, exclude) kind lists for a view in one database."""
+    raw = [k for k in RAW_KINDS] + [k for k, e in KINDS.items() if e['group'] == 'raw']
+    if view == 'raw':
+        return sorted(set(raw)), None
+    if view in ('protection', 'network', 'health'):
+        return [k for k, e in KINDS.items() if e['group'] == view and e['db'] == db_name], None
+    return None, sorted(set(raw))
+
+
+def timeline(connections, view='important', hours=24, search='', before=None, limit=100, now=None, scan=1500):
+    """Newest records of both databases as one list of plain sentences, newest first.
+
+    Each item names its kind and why it is kept (catalog), carries a tone and the
+    masked raw body for the technical view. ``before`` pages to older records.
+    """
+    import json
+    now = time.time() if now is None else now
+    view = view if view in VIEWS else 'important'
+    cutoff = now - max(1, min(24 * 30, float(hours or 24))) * 3600
+    limit = max(1, min(200, int(limit or 100)))
+    search = str(search or '').strip()[:120]
+    items, errors, scanned = [], {}, 0
+    for db_name, connect in connections:
+        include, exclude = _view_kinds(view, db_name)
+        if include == []:
+            continue
+        sql = 'SELECT id, created, kind, body FROM records WHERE id>=? AND created>=?'
+        try:
+            with connect() as db:
+                args = [_window_start(db, cutoff), cutoff]
+                if before is not None:
+                    sql += ' AND created<?'; args.append(float(before))
+                if include:
+                    sql += ' AND kind IN (%s)' % ','.join('?' * len(include)); args += include
+                if exclude:
+                    sql += ' AND kind NOT IN (%s)' % ','.join('?' * len(exclude)); args += exclude
+                if search:
+                    sql += " AND (body LIKE ? ESCAPE '\\' OR kind LIKE ? ESCAPE '\\')"
+                    pattern = '%' + search.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
+                    args += [pattern, pattern]
+                sql += ' ORDER BY id DESC LIMIT ?'; args.append(scan)
+                for rid, created, kind, body in db.execute(sql, args):
+                    scanned += 1
+                    try:
+                        decoded = json.loads(body)
+                    except (TypeError, ValueError):
+                        decoded = body
+                    line = render(kind, decoded, created)
+                    if view == 'problems' and line['tone'] not in ('warn', 'crit'):
+                        continue
+                    entry = describe(kind)
+                    items.append({'id': f'{db_name}:{rid}', 'db': db_name, 'kind': kind, 'kind_name': entry['name'],
+                                  'kind_what': entry['what'], 'kind_why': entry['why'], 'created': created,
+                                  'level': 'Hata' if kind in ERROR_KINDS else TONE_LABELS.get(line['tone'], 'Bilgi'),
+                                  **line, 'raw': redact(decoded)})
+        except Exception as exc:
+            errors[db_name] = str(exc)[:200]
+    items.sort(key=lambda i: (i['created'] or 0), reverse=True)
+    # The same sentence repeated back to back is one line with a count ("×11").
+    folded = []
+    for item in items:
+        last = folded[-1] if folded else None
+        if last and (last['kind'], last['text'], last['detail'], last['chip']) == (item['kind'], item['text'], item['detail'], item['chip']):
+            last['repeat'] = last.get('repeat', 1) + 1
+            last['first_created'] = item['created']
+            continue
+        folded.append(item)
+        if len(folded) > limit:
+            break
+    has_more = len(folded) > limit
+    items = folded[:limit]
+    for item in items:
+        if item.get('repeat'):
+            item['text'] += f" (×{item['repeat']})"
+    return {'view': view, 'views': [{'id': k, 'name': v} for k, v in VIEWS.items()], 'window_hours': hours,
+            'items': items, 'count': len(items), 'has_more': has_more,
+            'oldest': (items[-1].get('first_created') or items[-1]['created']) if items else None, 'errors': errors,
+            'data_state': 'DEGRADED' if errors else ('OK' if items else 'NO_DATA')}

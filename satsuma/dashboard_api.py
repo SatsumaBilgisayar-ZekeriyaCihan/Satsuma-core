@@ -2192,6 +2192,14 @@ def m_records_explained(params):
         return explained(db, params.get('kind', ''), offset=params.get('offset', 0), limit=params.get('limit', 50))
 
 
+def m_logbook(params):
+    """All records of both databases as one readable log (2.2.47)."""
+    from .record_catalog import timeline
+    return timeline((('core', _connect), ('host', _connect_host)), view=params.get('view', 'important'),
+                    hours=params.get('hours', 24), search=params.get('search', ''), before=params.get('before'),
+                    limit=params.get('limit', 100))
+
+
 def m_stopped_processes(params):
     from .database_view import stopped
     with _connect() as db:return stopped(db,offset=params.get('offset',0),limit=params.get('limit',50))
@@ -2350,6 +2358,7 @@ def m_protection(params=None):
             result['dns_health'] = get('dns_filter_health', {}) or {}
             result['allowed_domains'] = sorted(get('dns_allowed_domains', []) or [])[:500]
             result['allow_ips'] = list(get('operator_allow_ips', []) or [])[:500]
+            result['network_blocks'] = [row for row in (get('manual_network_blocks', []) or []) if isinstance(row, dict)][:256]
             from .custom_dns_lists import status as list_status
 
             class _View:
@@ -2390,6 +2399,7 @@ METHODS = {
     'exec_guard_events': lambda p: __import__('satsuma.exec_guard_view',fromlist=['events']).events(kind=p.get('kind'), limit=p.get('limit',50)),
     'records_overview': lambda p: m_records_overview(p),
     'records_explained': lambda p: m_records_explained(p),
+    'logbook': lambda p: m_logbook(p),
     'vpn_proxy': lambda p: m_state('vpn_proxy',{'status':'NOT_RUN','items':[]}),
     'security_scanners': lambda p: m_security_scanners(),
     'host_provenance': lambda p: m_host_provenance(),

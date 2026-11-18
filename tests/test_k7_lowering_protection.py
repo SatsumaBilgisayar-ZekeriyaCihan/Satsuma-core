@@ -91,36 +91,32 @@ def test_weakens_table(method, params, expected):
 
 
 def test_gui_asks_for_the_password_and_cancelling_sends_nothing(monkeypatch):
+    """2.2.47: the shared lock asks again before lowering protection; cancelling sends nothing."""
     from PyQt6.QtWidgets import QApplication
-    from satsuma.dashboard_qt.panels.admin import AdminPanel
-    from satsuma.dashboard_qt.panels import admin as admin_module
+    from satsuma.dashboard_qt.session import OperatorSession
     app = QApplication.instance() or QApplication([])
     sent = []
 
     class Client:
-        def __init__(self, *a, **k):
-            pass
-
         def call(self, method, **params):
             sent.append((method, params))
             return {'ok': True}
-    monkeypatch.setattr(admin_module, 'ReaderClient', Client)
-    panel = AdminPanel(NS(call=lambda *a, **k: {}))
-    try:
-        panel.token = 'session'
-        panel.ask_password = lambda method: ''
-        panel._send('lan_access', {'enabled': True})
-        time.sleep(0.2); app.processEvents()
-        assert sent == [] and 'iptal' in panel.status.text()
-        panel.ask_password = lambda method: PASSWORD
-        panel._send('lan_access', {'enabled': True})
-        for _ in range(50):
-            app.processEvents(); time.sleep(0.02)
-            if sent:
-                break
-        assert sent and sent[0][1]['password'] == PASSWORD
-    finally:
-        panel.close()
+    session = OperatorSession(client_factory=Client)
+    session.token = 'session'
+    answers = ['']
+    session.ask_password = lambda *a: answers.pop(0) if answers else None
+    messages = []
+    session.message.connect(lambda tone, text: messages.append(text))
+    session.run('lan_access', {'enabled': True})
+    time.sleep(0.2); app.processEvents()
+    assert sent == [] and any('iptal' in m for m in messages)
+    session.ask_password = lambda *a: PASSWORD
+    session.run('lan_access', {'enabled': True})
+    for _ in range(50):
+        app.processEvents(); time.sleep(0.02)
+        if sent:
+            break
+    assert sent and sent[0][1]['password'] == PASSWORD and sent[0][1]['token'] == 'session'
 
 
 def test_pausing_does_not_exist(controller):

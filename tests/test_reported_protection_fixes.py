@@ -229,7 +229,11 @@ def test_otx_mode_change_requires_session_and_valid_mode(store, monkeypatch):
 def test_qt_discovery_and_otx_mode_controls_work_offscreen():
     from PyQt6.QtWidgets import QApplication,QPushButton
     from satsuma.dashboard_qt.panels.defense_sections import NetworkDefensePanel
-    from satsuma.dashboard_qt.panels.admin import AdminPanel
+    import sys
+    from pathlib import Path
+    sys.path.insert(0,str(Path(__file__).parents[1]/'tools'))
+    from dashboard_fixture import FakeBackend
+    from satsuma.dashboard_qt.panels.protection import FirewallSettingsPanel as ProtectionPanel
     app=QApplication.instance() or QApplication([])
     class Backend:
         def call(self,method,**kw):
@@ -237,9 +241,9 @@ def test_qt_discovery_and_otx_mode_controls_work_offscreen():
                     'interfaces':[{'interface':'eth0','state':'UP','addresses':['192.168.1.5/24']}],
                     'neighbors':[{'ip':'192.168.1.1','mac':'02:00:00:00:00:01','interface':'eth0','state':['STALE']}]}}
     panel=NetworkDefensePanel(Backend())
-    admin=AdminPanel(Backend())
+    admin=ProtectionPanel(FakeBackend())
     calls=[]
-    admin._send=lambda method,params:calls.append((method,params))
+    admin.act=lambda action,refresh=True:calls.append((action['method'],action['params']))
     try:
         panel.refresh();app.processEvents()
         assert '192.168.1.5/24' in panel.discovery.toPlainText()
@@ -247,8 +251,8 @@ def test_qt_discovery_and_otx_mode_controls_work_offscreen():
         assert panel.discovery.isReadOnly()
         # Audit K3: no button blocks on a single OTX pulse any more.
         assert not [b for b in admin.findChildren(QPushButton) if b.text()=='OTX eşleşmesinde engelle']
-        toggle=admin._toggles['otx_blocker'];toggle._state_known=True
-        admin.token='fixture';admin._set_enabled();toggle.click()
+        admin.reload()
+        row=admin.switches['otx_blocker'];assert row.switch.known and not row.switch.isChecked()
+        row.switch.click()
         assert calls[-1]==('otx_blocker',{'enabled':True})
-        assert 'otx_blocker' in admin._toggles
     finally:panel.close();admin.close()

@@ -46,11 +46,17 @@ class HealthPanel(UserPage):
         text.addWidget(self.headline)
         self.subline = label('', 'heroText')
         text.addWidget(self.subline)
+        self.jobs = label('', 'secondary', selectable=True)
+        text.addWidget(self.jobs)
         row.addLayout(text, 1)
         buttons = QVBoxLayout()
         buttons.addWidget(button('Sorunları onar', lambda: self.act({'method': 'repair', 'params': {}}), 'primary',
                                  'Bakım kitini çalıştırır: durmuş servisleri başlatır, eksik ayarları geri yükler. Hiçbir şeyi silmez.'))
         buttons.addWidget(button('Dosyaları şimdi doğrula', lambda: self.act({'method': 'boot_check', 'params': {}})))
+        buttons.addWidget(button('Servis güvenliği denetimi', lambda: self.act({'method': 'systemd_security', 'params': {}}), 'quiet',
+                                 'systemd-analyze security ile Satsuma servislerinin yalıtımını denetler.'))
+        buttons.addWidget(button('Aygıt envanteri (/dev)', lambda: self.act({'method': 'device_inventory', 'params': {}}), 'quiet',
+                                 '/dev altındaki aygıt dosyalarının listesini çıkarır.'))
         buttons.addStretch()
         row.addLayout(buttons)
         top.body.addLayout(row)
@@ -75,15 +81,23 @@ class HealthPanel(UserPage):
         self.maintenance = Card(name='listCard', margins=(18, 12, 18, 12), spacing=6)
         content.addWidget(self.maintenance)
 
-        links = QHBoxLayout()
-        for text, target in (('Servisler', 'expert:services'), ('Arka plan bileşenleri', 'expert:workers'),
-                             ('Dosya bütünlüğü', 'expert:integrity'), ('Hata kayıtları', 'expert:errors')):
-            links.addWidget(button(text + '  →', lambda t=target: self.open(t), 'quiet'))
-        links.addStretch()
-        content.addLayout(links)
         content.addStretch()
 
+    def _operator_status(self, method, params, result):
+        """Last maintenance job and whether verification may act (moved from the management page)."""
+        if not isinstance(result, dict) or result.get('error'):
+            return
+        from ...verification_view import job_text, decision_text
+        self.jobs.setText('Son bakım işi: ' + job_text(result.get('maintenance')) + '\n' + decision_text(result.get('verification')))
+
     def refresh(self):
+        session = self.session()
+        if session and session.unlocked():
+            if self.changed('unlocked', True):
+                session.run('status', {}, self, then=self._operator_status)
+        else:
+            self._last.pop('unlocked', None)
+            self.jobs.setText('Bakım işlerinin sonucunu görmek için kilidi açın.')
         report, error = self.fetch('self_health')
         summary, _ = self.fetch('health_summary')
         maintenance, _ = self.fetch('maintenance_report')

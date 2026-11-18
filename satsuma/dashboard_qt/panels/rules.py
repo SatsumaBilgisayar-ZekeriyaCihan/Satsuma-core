@@ -14,11 +14,11 @@ except ImportError:
 @register
 class RulesPanel(ReadOnlyModulePanel):
     PANEL_ID = 'rules'
-    PANEL_TITLE = 'KURALLAR'
+    PANEL_TITLE = 'Kurallar'
     PANEL_ICON = '📜'
     PANEL_ORDER = 8
     PANEL_GROUP = 'system'
-    PANEL_SUBTITLE = 'Aktif tespit kuralları · doğrudan durdurma tanımı ve kanıt kapsamı ayrı gösterilir'
+    PANEL_SUBTITLE = 'Etkin tespit kuralları; hangisinin programı durdurabildiği ve gereken kanıt ayrı sütunlarda.'
     METHOD = 'rules'
     KEY = 'rules'
     COLUMNS = (
@@ -43,8 +43,8 @@ class RulesPanel(ReadOnlyModulePanel):
     def _build(self):
         super()._build()
         from .deepseek import QPushButton
-        research = QPushButton('DeepSeek araştırma stüdyosunu aç  →')
-        research.clicked.connect(lambda: self.window().nav.select('deepseek'))
+        research = QPushButton('Araştırma stüdyosunu aç  →');research.setObjectName('quiet')
+        research.clicked.connect(lambda: __import__('satsuma.dashboard_qt.links', fromlist=['open_target']).open_target(self, 'deepseek'))
         self._layout.insertWidget(2, research)
 
     def refresh(self, *args):
@@ -52,12 +52,8 @@ class RulesPanel(ReadOnlyModulePanel):
         try:
             data = self.backend.call('rules')
             self.status.setText(
-                f"AKTİF: {data.get('active_total')}  ·  "
-                f"YAML DOĞRUDAN DURDURMA: {data.get('direct_stop_total')}  ·  "
-                f"DURDURMA TANIMI OLMAYAN: {data.get('without_direct_stop_total')}  ·  "
-                f"GELECEK TELEMETRİ / ETKİN DEĞİL: {data.get('future_total')}  ·  "
-                f"MERKEZİ POLİTİKA ADAYI: {data.get('central_policy_candidate_total')} (yetki/sonuç değildir) · "
-                f"YÜKLEME DURUMU: {data.get('data_state')}"
-            )
+                f"{data.get('active_total')} etkin kural · {data.get('direct_stop_total')} tanesi programı doğrudan durdurabilir · "
+                f"{data.get('without_direct_stop_total')} tanesi yalnızca bildirir · {data.get('future_total')} tanesi henüz etkin değil (gelecek telemetri). "
+                f"Merkezi politika adayı: {data.get('central_policy_candidate_total')} (yetki değildir).")
         except Exception as exc:
-            self.status.setText('UNKNOWN · Veri okunamadı: '+str(exc)[:200])
+            self.status.setText('Kurallar okunamadı: '+str(exc)[:200])

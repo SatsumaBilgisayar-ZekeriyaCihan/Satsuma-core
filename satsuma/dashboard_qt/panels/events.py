@@ -51,7 +51,7 @@ ALIGN_CENTER = Qt.AlignmentFlag.AlignCenter if QT_VERSION == 6 else Qt.AlignCent
 @register
 class EventsPanel(BasePanel):
     PANEL_ID = 'events'
-    PANEL_TITLE = 'Olaylar'
+    PANEL_TITLE = 'Olay geçmişi'
     PANEL_ICON = '▤'
     PANEL_ORDER = 2
     PANEL_GROUP = 'main'
@@ -74,7 +74,7 @@ class EventsPanel(BasePanel):
         self._events = []
 
         title_row = QHBoxLayout()
-        title_row.addWidget(self.make_title(f'{self.PANEL_ICON}  {self.PANEL_TITLE}'))
+        title_row.addWidget(self.make_title(self.PANEL_TITLE))
         title_row.addStretch()
         self.info_label = QLabel('')
         self.info_label.setStyleSheet(

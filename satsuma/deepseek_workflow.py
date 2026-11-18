@@ -29,7 +29,9 @@ def _recent_network_requests(store):
     Başarısız istek (DNS yok, zaman aşımı, reddedilen anahtar) saatlik hakkı tüketmez.
     """
     try:
-        return store.db.execute("SELECT count(*),max(created) FROM deepseek_requests WHERE method IN "
+        # A generation may send a second, corrected request (2.2.47); it counts too.
+        return store.db.execute("SELECT coalesce(sum(coalesce(json_extract(result,'$.api_requests'),1)),0),max(created) "
+                                "FROM deepseek_requests WHERE method IN "
                                 "('deepseek_test_connection','deepseek_research','deepseek_generate') AND created>? "
                                 "AND (result IS NULL OR json_extract(result,'$.ok')=1)",
                                 (time.time()-3600,)).fetchone()

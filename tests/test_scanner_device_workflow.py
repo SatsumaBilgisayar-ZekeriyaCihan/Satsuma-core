@@ -115,10 +115,11 @@ def test_new_panels_are_registered_and_reachable():
         def close(self):pass
     window=MainWindow(Backend())
     try:
-        window.nav.select('scanners');assert window.stack.currentWidget().PANEL_ID=='scanners'
-        assert 'clamav' in window.stack.currentWidget().engines.text().lower()
-        window.nav.select('network_devices');assert window.stack.currentWidget().PANEL_ID=='network_devices'
-        panel=window.stack.currentWidget();panel.decide('allow')
+        window.nav.select('scanners');assert window.current_panel().PANEL_ID=='scanners'
+        panel=window.current_panel()
+        assert set(panel.cards)=={'clamav','rkhunter','chkrootkit'} and panel.table.minimumHeight()>=300
+        window.nav.select('network_devices');assert window.current_panel().PANEL_ID=='network_devices'
+        panel=window.current_panel();panel.decide('allow')
         assert 'Önce bir cihaz' in panel.status.text()
     finally:window.close()
 
@@ -188,3 +189,34 @@ def test_missing_optional_chkrootkit_does_not_stop_other_engines(tmp_path,monkey
         assert [row['status'] for row in rows]==['COMPLETED','COMPLETED','UNAVAILABLE']
         assert host.get('security_scan_health')['tools']=={'clamav':'COMPLETED','rkhunter':'COMPLETED','chkrootkit':'UNAVAILABLE'}
     finally:host.close()
+
+
+def test_clamav_scans_are_readable_on_the_antivirus_page():
+    """2.2.47 field report: ClamAV scans were not visible (seven buttons squeezed the table)."""
+    import os
+    os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
+    import pytest
+    pytest.importorskip('PyQt6.QtWidgets')
+    from PyQt6.QtWidgets import QApplication
+    from satsuma.dashboard_qt.panels.scanners import ScannersPanel
+    app=QApplication.instance() or QApplication([])
+    excerpt='/home/u/eicar.com: Win.Test.EICAR_HDB-1 FOUND\n----------- SCAN SUMMARY -----------\nScanned directories: 120\nScanned files: 184512\nInfected files: 1\nData scanned: 9876.43 MiB\nTime: 1532.118 sec (25 m 32 s)\n'
+    clam={'_id':7,'timestamp':1763490000,'completed_at':1763491532,'tool':'clamav','status':'FINDINGS','findings':1,'exit_code':1,
+          'output_excerpt':excerpt,'files':[{'path':'/home/u/eicar.com','signature':'Win.Test.EICAR_HDB-1','sha256':'a'*64}]}
+    rk={'_id':8,'timestamp':1763491600,'tool':'rkhunter','status':'WARNING','findings':2,'exit_code':1}
+    class Backend:
+        def call(self,method,**kw):
+            return {'items':[rk,clam],'engines':{'clamav':{'installed':True,'last_result':clam},'rkhunter':{'installed':True,'last_result':rk},
+                    'chkrootkit':{'installed':False}},'data_state':'OK','scope':'yerel'}
+    panel=ScannersPanel(Backend())
+    try:
+        panel.refresh()
+        card=panel.cards['clamav'].text()
+        assert '184.512 dosya' in card and '9876.43 MiB' in card and 'Bulunan: 1 dosya' in card
+        assert 'rpm-ostree install chkrootkit' in panel.cards['chkrootkit'].text()
+        assert panel.table.rowCount()==2
+        panel.tool.setCurrentIndex(1)
+        assert panel.table.rowCount()==1 and panel.table.item(0,3).text()=='184.512 dosya · 9876.43 MiB'
+        panel.table.selectRow(0)
+        assert 'eicar.com · Win.Test.EICAR_HDB-1' in panel.detail_view.text()
+    finally:panel.close()

@@ -12,6 +12,14 @@ def main():
         from satsuma.loopback_guard import setup as setup_loopback
         setup_loopback()
         setup()
+        # 2.2.47: ranges blocked by hand (satsuma.net_blocks) come back before traffic flows.
+        from satsuma.net_blocks import restore
+        from satsuma.store import Store
+        store = Store()
+        try:
+            restore(store)
+        finally:
+            store.close()
         remove_lockdown()
     except Exception as exc:
         try:

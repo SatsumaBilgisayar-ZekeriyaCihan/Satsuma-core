@@ -34,6 +34,18 @@ except ImportError:
     )
 
 
+def _sentence(text):
+    """'BULGULAR' -> 'Bulgular': titles written in capitals read as shouting (2.2.47 design)."""
+    text = str(text or '')
+    if not text.isupper():
+        return text
+    lower = text.lower().replace('i̇', 'i')
+    table = str.maketrans({'ı': 'ı'})
+    lower = ''.join(('i' if c == 'i' else c) for c in lower).translate(table)
+    first = lower[:1]
+    return ({'i': 'İ', 'ı': 'I'}.get(first, first.upper())) + lower[1:]
+
+
 class BasePanel(QWidget):
     """Tum panellerin ortak iskeleti."""
 
@@ -53,8 +65,8 @@ class BasePanel(QWidget):
 
         # Ana layout — alt sinif _build_ui() icinde doldurur
         self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(24, 20, 24, 20)
-        self._layout.setSpacing(12)
+        self._layout.setContentsMargins(32, 24, 32, 24)
+        self._layout.setSpacing(14)
 
         # Baslik (opsiyonel, alt sinif gizleyebilir)
         self._title_label = None
@@ -95,30 +107,17 @@ class BasePanel(QWidget):
     # ------------------------------------------------------------------
 
     def make_title(self, text):
-        """Standart panel basligi olustur — BUYUK, BOLD, PARLAK TURUNCU."""
-        label = QLabel(text)
+        """Page title in the 2.2.47 design (sentence case, no capitals shouting)."""
+        label = QLabel(_sentence(text))
         label.setWordWrap(True)
-        label.setStyleSheet(
-            f'color: {Colors.TEXT_PRIMARY}; '
-            f'font-family: {FONT_UI}; '
-            f'font-size: {FONT_SIZE_TITLE}px; '
-            f'font-weight: 700; '
-            f'letter-spacing: 0px; '
-            f'background: transparent;'
-        )
+        label.setObjectName('pageTitle')
         return label
 
     def make_subtitle(self, text):
-        """Ikincil baslik (kucuk, gri)."""
-        label = QLabel(text)
+        """One line under the title saying what the page shows."""
+        label = QLabel(_sentence(text) if text and text.isupper() else text)
         label.setWordWrap(True)
-        label.setStyleSheet(
-            f'color: {Colors.TEXT_MUTED}; '
-            f'font-family: {FONT_UI}; '
-            f'font-size: {FONT_SIZE_SUBTITLE}px; '
-            f'letter-spacing: 0px; '
-            f'background: transparent;'
-        )
+        label.setObjectName('pageSubtitle')
         return label
 
     def layout(self):

@@ -54,6 +54,7 @@ MESSAGES = {
     'functional_tests_failed': 'Kural kendi testlerini geçmedi; 02 sekmesinde test edin.',
     'rule_not_found': 'Bu kimlikte kural bulunamadı; listeyi yenileyin.',
     'activation_target_exists': 'Bu kural zaten etkin.',
+    'rule_adapter_disabled': 'Kural üretimi ayarlarda kapalı (rule_adapter_enabled).',
 }
 
 
@@ -82,6 +83,23 @@ def failed_cases(result):
     return ', '.join(parts)
 
 
+def generation_text(result):
+    """What a generation produced, in plain Turkish (2.2.47: tested before the operator sees it)."""
+    tries = 'ikinci denemede düzeltildi; ' if 'corrected_by_second_request' in (result.get('completed_locally') or []) else ''
+    known = int(result.get('known_rules_sent') or 0)
+    known_text = f' Mevcut {known} kural DeepSeek\'e bildirildi.' if known else ''
+    status = result.get('status')
+    if status == 'generated':
+        return 'Yeni kural üretildi ve yalıtılmış testi geçti (' + tries + 'iki aşama kaldı: kuyruğa gönder, onayla).' + known_text
+    if status == 'duplicate':
+        return 'DeepSeek iki denemede de var olan bir kuralı tekrarladı. Başka bir MITRE tekniği girin ya da biraz sonra yeniden deneyin.' + known_text
+    if status == 'disabled' or result.get('enabled') is False:
+        return explain(result.get('error'))
+    reason = failed_cases(result) or '; '.join(str(e) for e in (result.get('errors') or [])[:3]) or 'doğrulama başarısız'
+    return ('DeepSeek\'in kuralı iki denemede de kendi testini geçmedi: ' + reason +
+            '. Paket 02 sekmesinde; düzenleyip yeniden test edebilirsiniz.' + known_text)
+
+
 def session_expired(error):
     text = str(error or '').casefold()
     return 'oturum' in text and ('gerekli' in text or 'süresi' in text)
@@ -90,23 +108,27 @@ def session_expired(error):
 @register
 class DeepSeekPanel(BasePanel):
     PANEL_ID='deepseek'
-    PANEL_TITLE='Tehdit araştırması'
+    PANEL_TITLE='Araştırma stüdyosu'
     PANEL_ORDER=9
     PANEL_GROUP='main'
     REFRESH_MS=3000
     completed=pyqtSignal(str,object)
 
     def _token(self):
-        panels=getattr(self.window(),'_panels',{})
-        return getattr(panels.get('admin'),'token',None)
+        from ..links import token
+        return token(self)
+
+    def _unlock(self):
+        from ..links import session
+        if session(self) is not None:session(self).unlock(self,self.refresh)
 
     def _build(self):
         self._busy=False;self._stage='Henüz öneri yok';self._payload=None;self._buttons={}
         title=QHBoxLayout()
-        heading=QVBoxLayout();eyebrow=QLabel('ARAŞTIRMA ÇALIŞMA ALANI');eyebrow.setObjectName('eyebrow');heading.addWidget(eyebrow)
+        heading=QVBoxLayout();eyebrow=QLabel('Araştırma çalışma alanı');eyebrow.setObjectName('eyebrow');heading.addWidget(eyebrow)
         name=QLabel('DeepSeek ile araştır. Satsuma ile doğrula.');name.setObjectName('pageTitle');name.setWordWrap(True);heading.addWidget(name)
         title.addLayout(heading,1)
-        access=QPushButton('Yönetici oturumu');access.setObjectName('quiet');access.clicked.connect(lambda:self.window().nav.select('admin'));title.addWidget(access)
+        access=QPushButton('Kilidi aç');access.setObjectName('quiet');access.clicked.connect(self._unlock);title.addWidget(access)
         self._layout.addLayout(title)
         note=QLabel('Öneri → doğrulama → izole test → onay (Satsuma mühürler) → aktivasyon. GPG imzası isteğe bağlıdır. Müdahale yetkisi Satsuma’da kalır.')
         note.setWordWrap(True);note.setObjectName('secondary');self._layout.addWidget(note)
@@ -231,12 +253,10 @@ class DeepSeekPanel(BasePanel):
         success=result.get('ok') is True
         error=result.get('error') or result.get('errors')
         if not success and session_expired(error):
-            admin=getattr(self.window(),'_panels',{}).get('admin')
-            if admin is not None:
-                admin.token=None
-                if hasattr(admin,'refresh'):admin.refresh()
+            from ..links import session
+            if session(self) is not None:session(self).lock()
             self.refresh()
-            self.status.setText('Yönetici oturumu sona erdi. Sağ üstteki "Yönetici erişimi" ile yeniden giriş yapın.')
+            self.status.setText('Yönetici oturumu sona erdi. Sağ üstteki kilitten yeniden açın.')
         elif success and method=='deepseek_status':
             problem=result.get('key_problem')
             key='Anahtar hazır' if result.get('key_available') else 'Anahtar kullanılamıyor: '+explain(problem)
@@ -245,6 +265,8 @@ class DeepSeekPanel(BasePanel):
             self.status.setText('Onaylandı ve Satsuma tarafından mühürlendi. GPG imzası gerekmez; şimdi etkinleştirebilirsiniz.')
         elif success and str(result.get('renamed','')).startswith('renamed_from:'):
             self.status.setText('Kimlik çakıştığı için kurala yeni kimlik verildi: '+str(result.get('rule_id'))+' (eski: '+str(result['renamed']).split(':',1)[1]+').')
+        elif success and method in ('deepseek_generate','deepseek_research') and result.get('status'):
+            self.status.setText(generation_text(result))
         elif success:
             self.status.setText('İşlem tamamlandı · '+method.removeprefix('deepseek_'))
         elif failed_cases(result):

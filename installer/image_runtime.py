@@ -31,6 +31,7 @@ OWNED_TABLES={
     'satsuma_loopback':'Satsuma loopback validation',
     'satsuma_apps':'Satsuma application egress',
     'satsuma_dns_ns':'Satsuma DNS namespace',
+    'satsuma_netblock':'Satsuma manual network blocks',
 }
 
 

@@ -360,12 +360,39 @@ def activation_status(store, rule_id):
             'runtime_data_state': 'CURRENT' if fresh else 'UNKNOWN', **status}
 
 
-def research_and_generate(store, technique, attack_type, config, *, confirmed=False):
-    if config.get('rule_adapter_enabled') is not True:
-        return {'enabled': False, 'error': 'rule_adapter_disabled'}
-    raw = generate_rule(technique, attack_type, SCHEMA_HINT, config, confirmed=confirmed)
+def _known_rules(store, attack_type, technique):
+    """base_match of the rules already here for this threat, newest first, rejected ones included.
+
+    Sent to DeepSeek so the next reply covers another variant (2.2.47: the same
+    prompt kept returning the same rule). Only Satsuma's own rule text is sent.
+    Bu tehdit için zaten var olan kuralların base_match'i; DeepSeek'e başka bir
+    varyant yazması için gönderilir.
+    """
+    family = (technique or '').split('.')[0]
+    known, seen = [], set()
+    try:
+        rows = store.db.execute("SELECT package_json,technique FROM rule_adapter_queue "
+                                "WHERE package_json IS NOT NULL ORDER BY created_at DESC LIMIT 200").fetchall()
+    except sqlite3.Error:
+        rows = []
+    for package_json, rule_technique in rows:
+        try:
+            detection = json.loads(package_json)['detection']
+            match = detection['base_match']
+        except (TypeError, ValueError, KeyError):
+            continue
+        same = (detection.get('category') == attack_type
+                or (family and str(rule_technique or '').split('.')[0] == family))
+        key = pkg.digest(match)
+        if same and key not in seen:
+            seen.add(key)
+            known.append(match)
+    return known
+
+
+def _prepare(store, raw, known):
+    """(package, completed, errors, test_report, duplicate) for one model reply; nothing semantic is repaired."""
     completed = []
-    _ensure_queue(store)
     if isinstance(raw, dict) and isinstance(raw.get('detection'), dict) and 'response_proposal' not in raw:
         raw['response_proposal'] = pkg.observe_only_proposal(raw)
         completed.append('response_proposal_missing_observe_only_added')
@@ -376,5 +403,56 @@ def research_and_generate(store, technique, attack_type, config, *, confirmed=Fa
     if note:
         completed.append(note)
     errors = pkg.validate_package(raw)
-    return {'enabled': True, 'generated_by': 'deepseek', 'package': raw, 'errors': errors, 'completed_locally': completed,
-            'status': 'validation_failed' if errors else 'generated', 'queued': False}
+    report = pkg.test_package(raw) if not errors else {'passed': False, 'errors': errors, 'scope': 'schema'}
+    match = (raw.get('detection') or {}).get('base_match') if isinstance(raw, dict) else None
+    duplicate = note == 'identical_rule_already_present' or (
+        isinstance(match, dict) and pkg.digest(match) in {pkg.digest(m) for m in known})
+    return raw, completed, errors, report, duplicate
+
+
+def _feedback(package, errors, report, duplicate):
+    failed = []
+    cases = (package or {}).get('test_cases') if isinstance(package, dict) else None
+    for case in report.get('cases') or []:
+        if case.get('passed') is False and isinstance(cases, dict) and case.get('case') in cases:
+            try:
+                failed.append({'case': case['case'], 'event': cases[case['case']][case['index']]})
+            except (IndexError, KeyError, TypeError):
+                pass
+    return {'errors': errors, 'failed': failed, 'duplicate': duplicate}
+
+
+def research_and_generate(store, technique, attack_type, config, *, confirmed=False):
+    """Ask DeepSeek for a rule; a refused reply gets one corrected attempt with Satsuma's reasons.
+
+    2.2.47: the rule is tested here, before the operator sees it, and a reply
+    that fails its own synthetic events or repeats an existing rule is sent
+    back once. Model yanıtı kendi testini geçmezse ya da var olan bir kuralı
+    tekrarlarsa gerekçesiyle bir kez daha istenir.
+    """
+    if config.get('rule_adapter_enabled') is not True:
+        return {'enabled': False, 'error': 'rule_adapter_disabled'}
+    _ensure_queue(store)
+    known = _known_rules(store, attack_type, technique)
+    raw = generate_rule(technique, attack_type, SCHEMA_HINT, config, confirmed=confirmed, known=known)
+    attempt = _prepare(store, raw, known)
+    requests, notes = 1, []
+    package, completed, errors, report, duplicate = attempt
+    if errors or not report.get('passed') or duplicate:
+        try:
+            retry = generate_rule(technique, attack_type, SCHEMA_HINT, config, confirmed=confirmed, known=known,
+                                  feedback=_feedback(package, errors, report, duplicate))
+            requests = 2
+            second = _prepare(store, retry, known)
+            rank = lambda a: (bool(a[2]), not a[3].get('passed'), a[4])
+            if rank(second) <= rank(attempt):
+                attempt = second
+            notes.append('corrected_by_second_request')
+        except DeepSeekError as exc:
+            notes.append('second_request_failed:' + str(exc))
+        package, completed, errors, report, duplicate = attempt
+    passed = not errors and bool(report.get('passed')) and not duplicate
+    status = 'generated' if passed else ('duplicate' if duplicate and not errors and report.get('passed') else 'validation_failed')
+    return {'enabled': True, 'generated_by': 'deepseek', 'package': package, 'errors': errors,
+            'test_report': report, 'completed_locally': completed + notes, 'status': status,
+            'queued': False, 'api_requests': requests, 'known_rules_sent': len(known)}

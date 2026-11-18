@@ -5,7 +5,7 @@ from ...status_view import label,timestamp
 
 @register
 class OtxPanel(ReadOnlyModulePanel):
-    PANEL_ID='otx';PANEL_TITLE='OTX';PANEL_ORDER=5;METHOD='otx';KEY='items'
+    PANEL_ID='otx';PANEL_TITLE='Tehdit istihbaratı (OTX)';PANEL_ORDER=5;METHOD='otx';KEY='items'
     PANEL_SUBTITLE='İstihbarat sorguları, kanıtlı eşleşmeler ve müdahaleler; uygulama/domain ilişkisi yalnız kayıtta varsa gösterilir.'
     COLUMNS=(('Zaman','timestamp'),('IP / alan adı','target'),('Tehdit bilgisi','reason'),('Uygulama','application'),('İşlem sonucu','outcome'))
     FILTERS=(('search','Ara',()),('outcome','Sonuç',('Eşleşme','Engelleme')))
