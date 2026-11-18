@@ -32,5 +32,18 @@ def table_json():
                 expressions.append([match({'payload':{'protocol':protocol,'field':'dport'}},ports),{'counter':{}},{'queue':{'num':100}}])
             elif chain=='input':
                 expressions.append([match({'ct':{'key':'state'}},'established'),match({'ct':{'key':'direction'}},'reply'),match({'payload':{'protocol':protocol,'field':'sport'}},ports),{'counter':{}},{'queue':{'num':100}}])
+        if chain=='forward':
+            # 2.2.44: the DNS filter in its own namespace is the only forwarded
+            # traffic: to OpenDNS port 53 and its replies, through queue 100.
+            upstreams={'set':['208.67.222.222','208.67.220.220']}
+            for protocol in ('tcp','udp'):
+                expressions.append([match({'meta':{'key':'iifname'}},'satsuma-dns0'),match({'payload':{'protocol':'ip','field':'saddr'}},'169.254.53.2'),
+                                    match({'payload':{'protocol':'ip','field':'daddr'}},upstreams),match({'payload':{'protocol':protocol,'field':'dport'}},53),
+                                    {'counter':{'packets':0,'bytes':0}},{'queue':{'num':100}}])
+            for protocol in ('tcp','udp'):
+                expressions.append([match({'meta':{'key':'oifname'}},'satsuma-dns0'),match({'payload':{'protocol':'ip','field':'daddr'}},'169.254.53.2'),
+                                    match({'ct':{'key':'state'}},'established'),match({'ct':{'key':'direction'}},'reply'),
+                                    match({'payload':{'protocol':'ip','field':'saddr'}},upstreams),match({'payload':{'protocol':protocol,'field':'sport'}},53),
+                                    {'counter':{'packets':0,'bytes':0}},{'queue':{'num':100}}])
         out.extend({'rule':{'chain':chain,'expr':expr}} for expr in expressions)
     return json.dumps({'nftables':out})

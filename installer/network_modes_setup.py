@@ -1,13 +1,14 @@
 """Restore selected modes and verify DNS without removing protection on failure.
 
-Since 2.2.38 the DNS lock sends every query straight to the pinned resolver;
-there is no local dnsmasq to probe first. The lock is applied, then system DNS
-through it is checked and recorded in dns_filter_health.
+2.2.44: the DNS lock redirects to Satsuma's dnsmasq filter in its own network
+namespace (169.254.53.2:53). The filter is brought up and probed first; only a
+working filter gets the lock (an existing lock is never removed on failure).
+Then system DNS through the lock is checked and recorded in dns_filter_health.
 
 Seçili ağ kiplerini geri yükle; DNS hatasında mevcut korumayı kaldırma.
-2.2.38'den beri DNS kilidi her sorguyu doğrudan sabit çözümleyiciye gönderir;
-önce sınanacak yerel dnsmasq yoktur. Kilit uygulanır, ardından onun üzerinden
-sistem DNS'i denetlenir ve dns_filter_health'e yazılır.
+2.2.44: DNS kilidi kendi ağ ad alanındaki dnsmasq filtresine yönlendirir. Önce
+filtre başlatılıp sınanır; kilit yalnızca çalışan filtreye uygulanır. Ardından
+sistem DNS'i kilit üzerinden denetlenir.
 """
 import sys
 sys.path.insert(0, '/opt/satsuma-core')
@@ -16,20 +17,33 @@ from satsuma.network_modes import NetworkModes, LAN_TABLE, DNS_TABLE
 
 
 def record_lock(store, probe=None):
-    """System DNS through the lock; no local filter exists any more."""
+    """System DNS through the lock to the filter in its namespace."""
     import time
     from satsuma.dns_readiness import probe_system
-    result = {'status': 'LOCK_ACTIVE', 'ok': True, 'filter': 'none (dnsmasq and HaGeZi retired in 2.2.38)',
+    from satsuma.dns_netns import DNS_ADDR
+    result = {'status': 'ACTIVE', 'ok': True, 'local_ready': True,
+              'filter': 'dnsmasq ' + DNS_ADDR + ':53 (own network namespace)',
               'updated_at': time.time(), **(probe or probe_system)()}
+    previous = store.get('dns_filter_health', {}) or {}
+    if 'blocked_count' in previous:
+        result['blocked_count'] = previous['blocked_count']
     store.set('dns_filter_health', result)
     return result
 
 
-def configure(store, modes=None, probe=None):
+def _filter(store):
+    from satsuma.dnsmasq_control import refresh
+    return refresh(store)
+
+
+def configure(store, modes=None, probe=None, dns_filter=_filter):
     modes = modes or NetworkModes(store)
     modes.apply(LAN_TABLE, bool((store.get(LAN_TABLE + '_state', {}) or {}).get('enabled')))
     dns = store.get('dns_policy', {}) or {}
     try:
+        if dns.get('enabled'):
+            # A filter that does not answer gets no new redirect.
+            dns_filter(store)
         result = modes.apply(DNS_TABLE, bool(dns.get('enabled')))
         if dns.get('enabled'):record_lock(store, probe)
         return result

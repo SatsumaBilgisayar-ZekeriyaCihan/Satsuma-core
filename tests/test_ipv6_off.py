@@ -40,7 +40,10 @@ def test_sysctl_file_service_and_dns_follow():
     assert '/usr/lib/sysctl.d/91-satsuma-ipv6.conf' in Path('packaging/satsuma-core.spec').read_text()
     assert 'boot_setup.py --ipv6-off' in Path('systemd/satsuma-memory-hardening.service').read_text()
     dns = Path('satsuma/dnsmasq_control.py').read_text()
-    assert 'listen-address=127.0.0.1\\n' in dns and '::1' not in dns.split('listen-address=')[1].split('\\n')[0]
+    # 2.2.44: IPv4 only, in the filter's own namespace (satsuma.dns_netns).
+    assert "listen-address=' + DNS_ADDR" in dns and '::1' not in dns.split('listen-address=')[1].split('\\n')[0]
+    from satsuma.dns_netns import DNS_ADDR
+    assert DNS_ADDR == '169.254.53.2'
 
 
 def test_nftables_service_loads_satsuma_without_ever_flushing():

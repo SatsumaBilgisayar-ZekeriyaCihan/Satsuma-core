@@ -2,7 +2,8 @@
 
 Since 2.2.38 (owner, 2026-11-13) no domain list is downloaded: a list someone
 can change steers what this machine may resolve, the MITM Satsuma guards
-against. update() records that and fetches nothing. domain() and parse() stay
+against. update() records that and fetches nothing; since 2.2.44 no list address is
+left in the product. domain() and parse() stay
 for the names Satsuma still checks.
 
 Alan adı denetimleri; HaGeZi listesi indirme kaldırıldı. 2.2.38'den beri
@@ -10,13 +11,8 @@ Alan adı denetimleri; HaGeZi listesi indirme kaldırıldı. 2.2.38'den beri
 değiştirebildiği bir liste bu makinenin neyi çözebileceğini yönlendirir.
 update() bunu kaydeder ve hiçbir şey indirmez.
 """
-import hashlib
-import os
-import tempfile
-import time
-import urllib.request
-from pathlib import Path
 import re
+import time
 
 def domain(value):
     if not isinstance(value, str):
@@ -28,8 +24,7 @@ def domain(value):
     return value
 
 
-HAGEZI_URL = 'https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/ultimate-onlydomains.txt'
-LIST_PATH = Path('/var/lib/satsuma-core/dns/hagezi.txt')
+
 
 
 def parse(text):
@@ -53,30 +48,8 @@ def parse(text):
 RETIRED = 'retired_in_2.2.38'
 
 
-def update(store, path=LIST_PATH, opener=None, *, url=HAGEZI_URL, state_key='hagezi_list'):
-    """Nothing is downloaded any more (2.2.38). Artık hiçbir şey indirilmez."""
+def update(store, *args, state_key='hagezi_list', **kwargs):
+    """Nothing is downloaded (2.2.38; the address was removed in 2.2.44). Hiçbir şey indirilmez."""
     info = {'status': RETIRED, 'source': None, 'count': 0, 'updated_at': time.time()}
-    store.set(state_key, info)
-    return info
-
-
-def _download_retired(store, path=LIST_PATH, opener=urllib.request.urlopen, *, url=HAGEZI_URL, state_key='hagezi_list'):
-    with opener(url, timeout=30) as reply:
-        if reply.geturl() != url:
-            raise ValueError('Unexpected domain list redirect')
-        raw = reply.read(32 * 1024 * 1024 + 1)
-    if len(raw) > 32 * 1024 * 1024:
-        raise ValueError('Domain list exceeds size limit')
-    names = parse(raw.decode('utf-8'))
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    fd, temporary = tempfile.mkstemp(prefix='.list-', dir=path.parent)
-    try:
-        with os.fdopen(fd, 'w') as stream:
-            stream.write('\n'.join(names) + '\n'); stream.flush(); os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    finally:
-        Path(temporary).unlink(missing_ok=True)
-    info = {'source': url, 'count': len(names), 'sha256': hashlib.sha256(raw).hexdigest(),
-            'updated_at': time.time(), 'status': 'updated'}
     store.set(state_key, info)
     return info

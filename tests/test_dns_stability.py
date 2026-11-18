@@ -114,20 +114,24 @@ def test_changed_upstream_that_gives_nothing_is_still_rolled_back(env, monkeypat
     assert all((env.dir / n).read_text() == c for n, c in original.items())
 
 
-def test_refresh_stops_dnsmasq_and_removes_its_configuration(env):
-    # 2.2.38 (owner, 2026-11-13): dnsmasq never runs again; its unit needs dnsmasq.conf.
-    env.dir.mkdir(parents=True, exist_ok=True)
-    for name in ('dnsmasq.conf', 'dnsmasq.conf.sig', 'blocked.conf', 'blocked.conf.sig'):
-        (env.dir / name).write_text('x')
-    calls = []
-    def runner(argv, **kwargs):
-        calls.append(argv)
-        return SimpleNamespace(returncode=0, stdout='', stderr='')
-    result = dns.refresh(env.store, runner, env.dir)
-    assert result['status'] == 'DNSMASQ_RETIRED' and result['ok'] is True
-    assert ['/usr/bin/systemctl', 'stop', dns.SERVICE] in calls
-    assert not any(c[:2] == ['/usr/bin/systemctl', 'start'] or c[:2] == ['/usr/bin/systemctl', 'restart'] for c in calls)
-    assert not list(env.dir.glob('*.conf*'))
+def test_refresh_runs_dnsmasq_again_and_pins_the_upstream_to_opendns(env, monkeypatch):
+    # 2.2.44 (owner, 2026-11-13): dnsmasq is back in its own namespace; the host
+    # forwards its queries only to OpenDNS, so another upstream is replaced.
+    env.dir.chmod(0o750)
+    seen = []
+    monkeypatch.setattr(dns, '_refresh', lambda store, runner, directory: seen.append(dict(store.get('dns_policy'))) or {'status': 'configured'})
+    assert dns.refresh(env.store, fake_systemctl(), env.dir)['status'] == 'configured'
+    assert seen[0]['upstream'] == '208.67.222.222' and seen[0]['previous_upstream'] == '192.0.2.53'
+    env.state['dns_policy'] = {'enabled': True, 'upstream': '208.67.220.220'}
+    dns.refresh(env.store, fake_systemctl(), env.dir)
+    assert seen[1]['upstream'] == '208.67.220.220' and 'previous_upstream' not in seen[1]
+
+
+def test_generated_config_listens_only_in_the_namespace(env):
+    dns._refresh(env.store, fake_systemctl(), env.dir)
+    config = (env.dir / 'dnsmasq.conf').read_text()
+    assert 'listen-address=169.254.53.2\n' in config and 'port=53\n' in config
+    assert '127.0.0.1' not in config and '53053' not in config and 'bind-interfaces' in config
 
 
 def _reply(flags, answers=b'', count=0, ident=7):

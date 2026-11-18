@@ -20,7 +20,7 @@ TABLE = 'satsuma_apps'
 OWNER = 'Satsuma application egress'
 POLICY = Path('/var/lib/satsuma-core/application-control/policy.json')
 UNIT = re.compile(r'[A-Za-z0-9_.-]{1,128}\.service')
-# 2.2.38: DNS goes straight to the pinned resolver; dnsmasq's 53053 is closed.
+# 2.2.44: DNS is redirected to 169.254.53.2:53 (satsuma.dns_netns); port 53 either way.
 PORTS = {'dns': [('tcp', 53), ('udp', 53)], 'https': [('tcp', 443)]}
 
 
@@ -125,7 +125,22 @@ def render(grants, present=False, enabled=True):
             for protocol, port in PORTS[access]:
                 lines.append(f'  socket cgroupv2 level 2 {json.dumps(path)} {protocol} dport {port} counter accept')
     return '\n'.join(lines + ['  counter drop', ' }',
-        ' chain forward { type filter hook forward priority -5; policy drop; counter drop; }', '}', ''])
+        ' chain forward { type filter hook forward priority -5; policy drop;'] + dns_namespace_forward() + ['  counter drop', ' }', '}', ''])
+
+
+def dns_namespace_forward():
+    """2.2.44: the DNS filter's own namespace still reaches the pinned resolver.
+
+    Accept here does not skip satsuma_core, whose forward chain queues the same
+    packets to Suricata. Kabul satsuma_core'u atlatmaz; orada Suricata kuyruğuna girer.
+    """
+    from .dns_netns import HOST_IF, DNS_ADDR, OPENDNS
+    lines = []
+    for server in OPENDNS:
+        for protocol in ('udp', 'tcp'):
+            lines.append(f'  iifname "{HOST_IF}" ip saddr {DNS_ADDR} ip daddr {server} {protocol} dport 53 counter accept')
+            lines.append(f'  oifname "{HOST_IF}" ip saddr {server} ip daddr {DNS_ADDR} {protocol} sport 53 counter accept')
+    return lines
 
 
 def valid_layout(text, grants, enabled=True):

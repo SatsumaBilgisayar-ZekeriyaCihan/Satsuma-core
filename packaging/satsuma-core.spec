@@ -2,7 +2,7 @@
 %global debug_package %{nil}
 %global _build_id_links none
 Name: satsuma-core
-Version: 2.2.43
+Version: 2.2.44
 Release: 1%{?dist}
 Summary: Satsuma Core security monitoring and response
 License: LicenseRef-Proprietary AND GPL-3.0-only AND Unlicense
@@ -92,8 +92,6 @@ find %{buildroot}/usr/lib/satsuma-core/payload -type f -exec chmod 0644 {} +
 install -d -m 0755 %{buildroot}%{_docdir}/%{name}/examples
 install -m 0644 satsuma_engine/samples/events.jsonl %{buildroot}%{_docdir}/%{name}/examples/
 install -m 0644 SELF-REPAIR-GUIDE.md BUILD-VALIDATION.json %{buildroot}%{_docdir}/%{name}/
-install -d -m 0755 %{buildroot}/usr/share/satsuma-core/dns-feeds
-install -m 0644 data/dns-feeds/* %{buildroot}/usr/share/satsuma-core/dns-feeds/
 install -d -m 0755 %{buildroot}/usr/share/satsuma-core/hardening
 install -m 0644 packaging/hardening/* %{buildroot}/usr/share/satsuma-core/hardening/
 cp -a packaging/root/. %{buildroot}/
@@ -302,7 +300,7 @@ if [ -d /run/systemd/system ]; then
  /usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B -c 'from pathlib import Path; p=Path("/var/lib/satsuma-core"); (p/"rpm-known-units").write_text("".join(x+"\n" for x in (p/"rpm-all-units").read_text().splitlines() if x.startswith("satsuma")))' || exit 1
  while read -r retired state preset; do
   case "$retired" in
-   satsuma-flow-guard.service|satsuma-kernel-profile.service|satsuma-aide-check.service|satsuma-aide-check.timer|satsuma-module-lock.service|satsuma-module-lock.timer|satsuma-mitm-watch.service|satsuma-mitm-watch.timer|satsuma-quarantine-confirm.service|satsuma-quarantine-confirm.timer|satsuma-quarantine-rollback.service|satsuma-privd.service|satsuma-ram-clamd.service|satsuma-clamonacc.service|satsuma-onaccess-listener.service|satsuma-image.service|satsuma-boot-lockdown.service|satsuma-kernel-guard.service|satsuma-exec-guard.service|satsuma-temporary-scan.service|satsuma-temporary-scan.timer|satsuma-configuration.path|satsuma-configuration.service|satsuma-core-audit.service|satsuma-core-dns-refresh.service|satsuma-core-dns-refresh.timer|satsuma-core-dns.service|satsuma-core-finding.service|satsuma-deep-engine.service|satsuma-core-gateway.service|satsuma-core-otx.service|satsuma-core-security-scan.service|satsuma-core-security-scan-now.service|satsuma-core-security-scan.timer|satsuma-core-sentinel.service|satsuma-core-subnet.service|satsuma-core.service|satsuma-early-guard.service|satsuma-memory-hardening.service|satsuma-guardian.service|satsuma-network-modes.service|satsuma-network.service|satsuma-operator.service|satsuma-reader.service|satsuma-teams.service|satsuma-suricata-ips.service|satsuma-suricata-otx-guard.service|satsuma-app-control.service|satsuma-network-identity.service|satsuma-containment.service|satsuma-opnsense-advisory.service|satsuma-self-health.service|satsuma-self-health.timer|satsuma-rescue.service|satsuma-udev.service|satsuma-integrity-check.service|satsuma-integrity-check.timer|satsuma-boot-inventory.service|satsuma-boot-inventory.timer|satsuma-ostree-firstboot.service|satsuma-maintenance.service|satsuma-maintenance.timer) :;;
+   satsuma-flow-guard.service|satsuma-kernel-profile.service|satsuma-aide-check.service|satsuma-aide-check.timer|satsuma-module-lock.service|satsuma-module-lock.timer|satsuma-mitm-watch.service|satsuma-mitm-watch.timer|satsuma-quarantine-confirm.service|satsuma-quarantine-confirm.timer|satsuma-quarantine-rollback.service|satsuma-privd.service|satsuma-ram-clamd.service|satsuma-clamonacc.service|satsuma-onaccess-listener.service|satsuma-image.service|satsuma-boot-lockdown.service|satsuma-kernel-guard.service|satsuma-exec-guard.service|satsuma-temporary-scan.service|satsuma-temporary-scan.timer|satsuma-configuration.path|satsuma-configuration.service|satsuma-core-audit.service|satsuma-core-dns-refresh.service|satsuma-core-dns-refresh.timer|satsuma-core-dns.service|satsuma-dns-netns.service|satsuma-core-finding.service|satsuma-deep-engine.service|satsuma-core-gateway.service|satsuma-core-otx.service|satsuma-core-security-scan.service|satsuma-core-security-scan-now.service|satsuma-core-security-scan.timer|satsuma-core-sentinel.service|satsuma-core-subnet.service|satsuma-core.service|satsuma-early-guard.service|satsuma-memory-hardening.service|satsuma-guardian.service|satsuma-network-modes.service|satsuma-network.service|satsuma-operator.service|satsuma-reader.service|satsuma-teams.service|satsuma-suricata-ips.service|satsuma-suricata-otx-guard.service|satsuma-app-control.service|satsuma-network-identity.service|satsuma-containment.service|satsuma-opnsense-advisory.service|satsuma-self-health.service|satsuma-self-health.timer|satsuma-rescue.service|satsuma-udev.service|satsuma-integrity-check.service|satsuma-integrity-check.timer|satsuma-boot-inventory.service|satsuma-boot-inventory.timer|satsuma-ostree-firstboot.service|satsuma-maintenance.service|satsuma-maintenance.timer) :;;
    satsuma*.service|satsuma*.timer)
     # Do not stop/mask unknown units. An operator must review retired services.
     echo "SATSUMA: unknown pre-existing unit preserved for review: $retired" >&2;;
@@ -315,7 +313,7 @@ if [ -d /run/systemd/system ]; then
    systemctl stop "$timer" || exit 1
   fi
  done
- for unit in satsuma-maintenance.timer satsuma-maintenance satsuma-self-health.timer satsuma-self-health satsuma-rescue satsuma-core satsuma-flow-guard satsuma-configuration.path satsuma-configuration.service satsuma-teams satsuma-deep-engine satsuma-reader satsuma-operator satsuma-guardian satsuma-core-audit satsuma-core-otx satsuma-core-subnet satsuma-core-dns satsuma-core-dns-refresh satsuma-network-modes satsuma-core-finding satsuma-core-gateway satsuma-core-sentinel satsuma-core-security-scan-now satsuma-core-security-scan.timer satsuma-core-dns-refresh.timer satsuma-network satsuma-suricata-ips satsuma-suricata-otx-guard satsuma-early-guard satsuma-memory-hardening satsuma-exec-guard satsuma-containment satsuma-network-identity satsuma-app-control satsuma-integrity-check.timer satsuma-integrity-check satsuma-boot-inventory.timer satsuma-boot-inventory satsuma-udev satsuma-mitm-watch satsuma-privd satsuma-ram-clamd satsuma-clamonacc satsuma-onaccess-listener satsuma-temporary-scan.timer satsuma-temporary-scan satsuma-aide-check.timer satsuma-aide-check; do
+ for unit in satsuma-maintenance.timer satsuma-maintenance satsuma-self-health.timer satsuma-self-health satsuma-rescue satsuma-core satsuma-flow-guard satsuma-configuration.path satsuma-configuration.service satsuma-teams satsuma-deep-engine satsuma-reader satsuma-operator satsuma-guardian satsuma-core-audit satsuma-core-otx satsuma-core-subnet satsuma-core-dns satsuma-dns-netns satsuma-core-dns-refresh satsuma-network-modes satsuma-core-finding satsuma-core-gateway satsuma-core-sentinel satsuma-core-security-scan-now satsuma-core-security-scan.timer satsuma-core-dns-refresh.timer satsuma-network satsuma-suricata-ips satsuma-suricata-otx-guard satsuma-early-guard satsuma-memory-hardening satsuma-exec-guard satsuma-containment satsuma-network-identity satsuma-app-control satsuma-integrity-check.timer satsuma-integrity-check satsuma-boot-inventory.timer satsuma-boot-inventory satsuma-udev satsuma-mitm-watch satsuma-privd satsuma-ram-clamd satsuma-clamonacc satsuma-onaccess-listener satsuma-temporary-scan.timer satsuma-temporary-scan satsuma-aide-check.timer satsuma-aide-check; do
   case "$unit" in *.timer) name="$unit";; *.service) name="$unit";; *) name="$unit.service";; esac
   if systemctl is-active --quiet "$name"; then
    printf '%s\n' "$name" >> /var/lib/satsuma-core/rpm-active-units
@@ -373,7 +371,7 @@ if [ "$1" -eq 0 ] && [ -d /run/systemd/system ]; then
    systemctl stop "$timer" || exit 1
   fi
  done
- for unit in satsuma-maintenance.timer satsuma-maintenance satsuma-self-health.timer satsuma-self-health satsuma-rescue satsuma-core satsuma-flow-guard satsuma-configuration.path satsuma-configuration.service satsuma-teams satsuma-deep-engine satsuma-reader satsuma-operator satsuma-guardian satsuma-core-audit satsuma-core-otx satsuma-core-subnet satsuma-core-dns satsuma-core-dns-refresh satsuma-core-security-scan satsuma-network-modes satsuma-core-finding satsuma-core-gateway satsuma-core-sentinel satsuma-network satsuma-suricata-ips satsuma-suricata-otx-guard satsuma-early-guard satsuma-memory-hardening satsuma-containment satsuma-network-identity satsuma-app-control satsuma-integrity-check.timer satsuma-integrity-check satsuma-boot-inventory.timer satsuma-boot-inventory satsuma-udev satsuma-mitm-watch satsuma-privd satsuma-ram-clamd satsuma-clamonacc satsuma-onaccess-listener satsuma-temporary-scan.timer satsuma-temporary-scan satsuma-aide-check.timer satsuma-aide-check; do
+ for unit in satsuma-maintenance.timer satsuma-maintenance satsuma-self-health.timer satsuma-self-health satsuma-rescue satsuma-core satsuma-flow-guard satsuma-configuration.path satsuma-configuration.service satsuma-teams satsuma-deep-engine satsuma-reader satsuma-operator satsuma-guardian satsuma-core-audit satsuma-core-otx satsuma-core-subnet satsuma-core-dns satsuma-dns-netns satsuma-core-dns-refresh satsuma-core-security-scan satsuma-network-modes satsuma-core-finding satsuma-core-gateway satsuma-core-sentinel satsuma-network satsuma-suricata-ips satsuma-suricata-otx-guard satsuma-early-guard satsuma-memory-hardening satsuma-containment satsuma-network-identity satsuma-app-control satsuma-integrity-check.timer satsuma-integrity-check satsuma-boot-inventory.timer satsuma-boot-inventory satsuma-udev satsuma-mitm-watch satsuma-privd satsuma-ram-clamd satsuma-clamonacc satsuma-onaccess-listener satsuma-temporary-scan.timer satsuma-temporary-scan satsuma-aide-check.timer satsuma-aide-check; do
   case "$unit" in *.timer) name="$unit";; *.service) name="$unit";; *) name="$unit.service";; esac
   # Optional/retired units may not be installed. A loaded unit failing to stop
   # must abort removal, preserving the helper required for a safe retry.
@@ -498,7 +496,7 @@ if [ -d /run/systemd/system ]; then systemctl daemon-reload >/dev/null 2>&1 || :
 %files
 %defattr(-,root,root,-)
 %license LICENSE
-%doc docs/RELEASE-2.2.38.md docs/RELEASE-2.2.39.md docs/RELEASE-2.2.40.md docs/RELEASE-2.2.41.md docs/RELEASE-2.2.42.md docs/RELEASE-2.2.43.md
+%doc docs/RELEASE-2.2.38.md docs/RELEASE-2.2.39.md docs/RELEASE-2.2.40.md docs/RELEASE-2.2.41.md docs/RELEASE-2.2.42.md docs/RELEASE-2.2.43.md docs/RELEASE-2.2.44.md
 %doc DEVICE-AND-SYSTEMD-RESEARCH.md VERSION NETWORK-IPS.md
 %{_docdir}/%{name}/examples
 %{_docdir}/%{name}/SELF-REPAIR-GUIDE.md
@@ -517,9 +515,9 @@ if [ -d /run/systemd/system ]; then systemctl daemon-reload >/dev/null 2>&1 || :
 /usr/lib/systemd/system/satsuma*
 %dir /usr/lib/systemd/system/nftables.service.d
 /usr/lib/systemd/system/nftables.service.d/90-satsuma.conf
+/usr/lib/NetworkManager/conf.d/90-satsuma-dns.conf
 /usr/share/applications/satsuma-dashboard.desktop
 /etc/xdg/autostart/satsuma-notify.desktop
-/usr/share/satsuma-core/dns-feeds
 /usr/share/satsuma-core/hardening
 %config(noreplace) /etc/pki/rpm-gpg/RPM-GPG-KEY-SatsumaBilgisayar
 %dir %attr(0755,root,root) /etc/satsuma-core

@@ -1,4 +1,4 @@
-"""User-selected public HTTPS domain feeds, parsed as data with rollback."""
+"""User-selected public HTTPS domain lists: fetched once on request, parsed as data, with rollback."""
 import hashlib
 import http.client
 import ipaddress
@@ -7,6 +7,7 @@ import ssl
 import time
 import urllib.parse
 import urllib.request
+from pathlib import Path
 from .domain_lists import domain
 
 MAX_BYTES=4*1024*1024
@@ -57,11 +58,14 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def download(url):
-    # 2.2.38 (owner, 2026-11-13): no DNS list is downloaded; Satsuma's DNS filter is retired.
-    raise ValueError('Özel DNS listeleri 2.2.38\'de kaldırıldı; DNS filtresi kullanılmıyor')
+    """Download a list the user added, once, on the user's own request.
 
-
-def _download_retired(url):
+    2.2.44 (owner's decision 2026-11-13): the product downloads no list by
+    itself and never refreshes one automatically; a user list is fetched only
+    when the user adds or explicitly updates it, then kept as a read-only,
+    signed copy. Kullanıcının eklediği liste yalnızca onun isteğiyle bir kez
+    indirilir, otomatik yenilenmez; salt okunur ve imzalı kopyası saklanır.
+    """
     validate_url(url)
     opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),PublicHTTPSHandler(context=ssl.create_default_context()),NoRedirect())
     deadline=time.monotonic()+30;raw=bytearray()
@@ -73,6 +77,35 @@ def _download_retired(url):
             raw.extend(chunk)
             if len(raw)>MAX_BYTES:raise ValueError('Liste 4 MiB sınırını aşıyor')
     return bytes(raw)
+
+
+KEEP=Path('/var/lib/satsuma-core/dns/custom')
+
+
+def keep_copy(identifier,names,directory=KEEP):
+    """Store the verified names root-owned, 0444, with an HMAC signature beside them."""
+    import os,tempfile
+    directory.mkdir(parents=True,exist_ok=True,mode=0o700)
+    info=directory.lstat()
+    if directory.is_symlink() or info.st_uid!=os.geteuid() or info.st_mode&0o022:
+        raise PermissionError('Unsafe custom list directory')
+    path=directory/(identifier+'.list')
+    fd,temporary=tempfile.mkstemp(prefix='.list-',dir=directory)
+    try:
+        with os.fdopen(fd,'w') as stream:
+            stream.write('\n'.join(names)+'\n');stream.flush();os.fsync(stream.fileno())
+        os.chmod(temporary,0o444)
+        os.replace(temporary,path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+    from installer.integrity import read_key,sign
+    sign(path,read_key())
+    return str(path)
+
+
+def drop_copy(identifier,directory=KEEP):
+    for path in (directory/(identifier+'.list'),directory/(identifier+'.list.sig')):
+        if path.is_file() and not path.is_symlink():path.unlink()
 
 
 def parse_data(raw):
@@ -121,7 +154,14 @@ def status(store):
             'format':'domain / hosts / ||domain^','network_ip_blocklist':False}
 
 
-def change(store,url,action,refresh,fetcher=download):
+def _default_keep():
+    import os
+    if os.geteuid()==0 and KEEP.parent.parent.is_dir():
+        return keep_copy,drop_copy
+    return (lambda *a:None),(lambda *a:None)
+
+
+def change(store,url,action,refresh,fetcher=download,keep=None):
     url=validate_url(url);identifier=hashlib.sha256(url.encode()).hexdigest()
     old=sources(store);previous_enabled=store.get('custom_dns_lists_enabled',False)
     updated=dict(old)
@@ -143,5 +183,11 @@ def change(store,url,action,refresh,fetcher=download):
         except Exception as rollback:
             store.add('errors',{'component':'custom_dns_lists','status':'ROLLBACK_FAILED','error':str(rollback)[:250]})
         raise RuntimeError('Liste uygulanamadı; önceki kaynaklar korundu: '+str(exc)[:250]) from exc
+    store_copy,remove_copy=keep or _default_keep()
+    try:
+        if action=='remove':remove_copy(identifier)
+        else:store_copy(identifier,updated[identifier]['domains'])
+    except Exception as exc:
+        store.add('errors',{'component':'custom_dns_lists','status':'COPY_FAILED','error':str(exc)[:250]})
     return {'ok':True,'custom_lists':status(store),'apply_status':result.get('status'),
             'active':bool((store.get('dns_policy',{}) or {}).get('enabled')) and result.get('status') in ('configured','unchanged')}

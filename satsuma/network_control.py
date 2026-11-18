@@ -47,7 +47,8 @@ RULESET = Path('/etc/satsuma-core/nftables.nft')
 # Loopback is closed (user decision 2026-10-26): on lo only replies and these
 # local services pass. 53: systemd-resolved stub; 5939: TeamViewer's local
 # daemon, which its window talks to. 2.2.38 (owner, 2026-11-13): Satsuma's only
-# relation to loopback is blocking it; its dnsmasq port 53053 is closed for good.
+# relation to loopback is blocking it; its dnsmasq port 53053 is closed for good
+# (2.2.44: the filter listens on 169.254.53.2 in its own namespace).
 # Loopback kapalı; 2.2.38'den beri Satsuma'nın dnsmasq portu 53053 kalıcı olarak kapalı.
 LO_TCP = (53, 5939)
 LO_UDP = (53,)
@@ -56,6 +57,13 @@ LO_UDP = (53,)
 # 6568 AnyDesk. Outbound only; inbound only as established replies.
 # Her zaman açık, her zaman Suricata kuyruğundan geçer.
 ALWAYS_QUEUED = {'tcp': (5938, 6568), 'udp': (67, 123, 5938)}
+# 2.2.44: the only forwarded traffic is the DNS filter's (satsuma.dns_netns):
+# from 169.254.53.2 over satsuma-dns0 to the pinned resolver on port 53, and
+# its replies, both through the Suricata queue.
+# Tek iletilen trafik DNS filtresininkidir; o da Suricata kuyruğundan geçer.
+DNS_NS_IF = 'satsuma-dns0'
+DNS_NS_ADDR = '169.254.53.2'
+DNS_NS_UPSTREAMS = ('208.67.220.220', '208.67.222.222')
 
 
 def run(args):
@@ -116,7 +124,32 @@ def expected_rules(chain, previous=False, ports=None):
                           match({'ct': {'key': 'direction'}}, 'reply'),
                           match({'payload': {'protocol': proto, 'field': 'sport'}}, ports_expr),
                           {'counter': {}}, {'queue': {'num': QUEUE}}])
+    if chain == 'forward' and not previous:
+        upstreams = {'set': list(DNS_NS_UPSTREAMS)}
+        for proto in ('tcp', 'udp'):
+            rules.append([match({'meta': {'key': 'iifname'}}, DNS_NS_IF),
+                          match({'payload': {'protocol': 'ip', 'field': 'saddr'}}, DNS_NS_ADDR),
+                          match({'payload': {'protocol': 'ip', 'field': 'daddr'}}, upstreams),
+                          match({'payload': {'protocol': proto, 'field': 'dport'}}, 53),
+                          {'counter': {}}, {'queue': {'num': QUEUE}}])
+        for proto in ('tcp', 'udp'):
+            rules.append([match({'meta': {'key': 'oifname'}}, DNS_NS_IF),
+                          match({'payload': {'protocol': 'ip', 'field': 'daddr'}}, DNS_NS_ADDR),
+                          match({'ct': {'key': 'state'}}, 'established'),
+                          match({'ct': {'key': 'direction'}}, 'reply'),
+                          match({'payload': {'protocol': 'ip', 'field': 'saddr'}}, upstreams),
+                          match({'payload': {'protocol': proto, 'field': 'sport'}}, 53),
+                          {'counter': {}}, {'queue': {'num': QUEUE}}])
     return rules
+
+
+def _dns_forward_lines():
+    upstreams = '{ ' + ', '.join(DNS_NS_UPSTREAMS) + ' }'
+    lines = [f'  iifname "{DNS_NS_IF}" ip saddr {DNS_NS_ADDR} ip daddr {upstreams} {proto} dport 53 counter queue num {QUEUE}'
+             for proto in ('tcp', 'udp')]
+    lines += [f'  oifname "{DNS_NS_IF}" ip daddr {DNS_NS_ADDR} ct state established ct direction reply '
+              f'ip saddr {upstreams} {proto} sport 53 counter queue num {QUEUE}' for proto in ('tcp', 'udp')]
+    return lines
 
 
 def render_ruleset(include_sets=True, ports=None):
@@ -142,6 +175,8 @@ def render_ruleset(include_sets=True, ports=None):
         elif chain == 'input':
             lines += [f'  ct state established ct direction reply {proto} sport {_port_text(ports[proto])} counter queue num 100'
                       for proto in ('tcp', 'udp') if ports[proto]]
+        else:
+            lines += _dns_forward_lines()
         lines.append(' }')
     return '\n'.join(lines+['}', ''])
 

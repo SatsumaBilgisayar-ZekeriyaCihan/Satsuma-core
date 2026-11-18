@@ -24,7 +24,6 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
-from .domain_lists import LIST_PATH
 
 DIRECTORY = Path('/etc/satsuma-core/dns')
 
@@ -136,11 +135,12 @@ def _refresh(store, runner=subprocess.run, directory=DIRECTORY):
     import time
     records = store.get('dns_blocked_domains', {}) or {}
     blocked = {name for name, info in records.items() if info.get('expires_at', 0) > time.time()}
-    if policy.get('hagezi_enabled') and LIST_PATH.exists():
-        blocked.update(LIST_PATH.read_text().splitlines())
-    if policy.get('threat_lists_enabled'):
-        from .threat_domain_lists import blocked_domains as threat_domains
-        blocked.update(threat_domains(store))
+    # 2.2.44 (owner's decision 2026-11-13): no list downloaded from the internet
+    # (the HaGeZi lists of 2.2.37) is used; a changed list is a way to steer this
+    # machine's DNS. Blocked names come from Satsuma's own findings (OTX and
+    # the like) and from lists the user added.
+    # İnternetten indirilen liste kullanılmaz; engeller Satsuma bulguları ve
+    # kullanıcının eklediği listelerden gelir.
     from .custom_dns_lists import blocked_domains
     blocked.update(blocked_domains(store))
     rules = render(policy, blocked, store.get('dns_allowed_domains', []) or [])
@@ -149,7 +149,9 @@ def _refresh(store, runner=subprocess.run, directory=DIRECTORY):
         raise PermissionError('Unsafe DNS configuration directory')
     gid = grp.getgrnam('satsuma-dns').gr_gid
     os.chown(directory, 0, gid); os.chmod(directory, 0o750)
-    config = ('port=53053\nlisten-address=127.0.0.1\nbind-interfaces\nno-resolv\nno-hosts\n'
+    # 2.2.44: own network namespace (satsuma.dns_netns), never loopback.
+    from .dns_netns import DNS_ADDR
+    config = ('port=53\nlisten-address=' + DNS_ADDR + '\nbind-interfaces\nno-resolv\nno-hosts\n'
               'cache-size=1000\n' + ''.join('server=' + server + '\n' for server in upstream_servers(policy['upstream'])) + 'conf-file=' + str(directory / 'blocked.conf') + '\n')
     block_path, config_path = directory / 'blocked.conf', directory / 'dnsmasq.conf'
     if block_path.exists() or config_path.exists():verify_config(directory)
@@ -232,34 +234,32 @@ def removals_wait(store, old_rules, new_rules, same_config, now):
     return now - float(store.get('dns_filter_restarted_at', 0) or 0) < REMOVAL_RESTART_SECONDS
 
 
-def refresh(store, runner=subprocess.run, directory=DIRECTORY):
-    """2.2.38: dnsmasq is retired; make sure it is stopped and can never start again.
+def pin_upstream(store):
+    """dnsmasq may only ask OpenDNS: the host forwards nothing else from its namespace.
 
-    Owner's decision 2026-11-13. The service runs only while dnsmasq.conf exists
-    (ConditionPathExists), so the generated configuration and its signatures are
-    removed and the service is stopped. Every caller (setup, the minute timer,
-    the full check, the dashboard) ends here. Port 53053 is also closed on
-    loopback, so nothing could reach it anyway.
-
-    2.2.38: dnsmasq kaldırıldı; durdurulur ve bir daha başlayamaz. Hizmet yalnızca
-    dnsmasq.conf varken çalışır; üretilmiş yapılandırma ve imzaları silinir, hizmet
-    durdurulur. 53053 loopback'te de kapalıdır.
+    An upstream outside OPENDNS (an old setting) would make every query fail,
+    so it is replaced and the earlier value is kept in ``previous_upstream``.
+    dnsmasq yalnızca OpenDNS'e sorabilir; başka bir üst sunucu ayarı OpenDNS ile
+    değiştirilir, eski değer ``previous_upstream`` alanında saklanır.
     """
-    import time
-    stopped = runner(['/usr/bin/systemctl', 'stop', SERVICE], capture_output=True, text=True, timeout=30)
-    removed = []
-    for name in ('dnsmasq.conf', 'blocked.conf'):
-        for path in (directory / name, directory / (name + '.sig')):
-            if path.is_file() and not path.is_symlink():
-                path.unlink()
-                removed.append(str(path))
-    result = {'ok': stopped.returncode == 0, 'status': 'DNSMASQ_RETIRED', 'removed': removed,
-              'updated_at': time.time()}
-    store.set('dnsmasq_retired', result)
-    return result
+    policy = store.get('dns_policy', {}) or {}
+    upstream = policy.get('upstream')
+    if not upstream or upstream in OPENDNS:
+        return policy
+    policy = {**policy, 'upstream': OPENDNS[0], 'upstream_source': 'pinned_opendns_namespace',
+              'previous_upstream': upstream}
+    store.set('dns_policy', policy)
+    return policy
 
 
-def _refresh_retired(store, runner=subprocess.run, directory=DIRECTORY):
+def refresh(store, runner=subprocess.run, directory=DIRECTORY):
+    """Write, sign and (re)start the DNS filter under a lock.
+
+    2.2.44 (owner's decision 2026-11-13): dnsmasq is back, in its own network
+    namespace (satsuma.dns_netns). From 2.2.38 to 2.2.43 this stopped dnsmasq
+    and removed its configuration.
+    dnsmasq kendi ağ ad alanında geri döndü; 2.2.38-2.2.43 arası durduruluyordu.
+    """
     import fcntl
     import stat
     directory.mkdir(parents=True,exist_ok=True,mode=0o750)
@@ -272,6 +272,7 @@ def _refresh_retired(store, runner=subprocess.run, directory=DIRECTORY):
         if not stat.S_ISREG(lock.st_mode) or lock.st_uid!=0 or lock.st_mode&0o077 or lock.st_nlink!=1:
             raise PermissionError('Unsafe DNS lock')
         fcntl.flock(fd,fcntl.LOCK_EX)
+        pin_upstream(store)
         try:return _refresh(store,runner,directory)
         except Exception as exc:
             import time
@@ -284,8 +285,9 @@ def _refresh_retired(store, runner=subprocess.run, directory=DIRECTORY):
 def _probe_once():
     """Check useful A replies on both local transports; this is not system readiness."""
     from .dns_readiness import query
+    from .dns_netns import DNS_ADDR
     for transport in ('udp', 'tcp'):
-        query('127.0.0.1', 53053, transport=transport)
+        query(DNS_ADDR, 53, transport=transport)
 
 
 def record_readiness(store):

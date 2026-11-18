@@ -37,7 +37,12 @@ def assess(root: Path):
         problems.append('DNS daemon still configured for loopback:53053')
     if 'dnat ip to {address}' in nat or 'dnat ip to 208.67.' in nat:
         problems.append('DNS NAT redirects directly to a public resolver, not a namespace')
-    if 'policy drop' in network and 'forward' in network:
+    rules = texts['network_rules']
+    forward = rules.split('chain forward', 1)[1] if 'chain forward' in rules else ''
+    namespace_lines = [line for line in forward.splitlines() if 'satsuma-dns0' in line]
+    if 'policy drop' in network and 'forward' in network and (
+            not namespace_lines or any(not line.rstrip().endswith('queue num 100') for line in namespace_lines)
+            or ' accept' in forward):
         problems.append('Forward policy defaults to drop; namespace egress/replies must be reviewed with NFQUEUE 100')
     return {'status': 'BLOCKED' if problems else 'SOURCE_CHECKS_PASSED_NOT_HOST_VERIFIED',
             'checks': sorted(checks), 'blockers': problems,

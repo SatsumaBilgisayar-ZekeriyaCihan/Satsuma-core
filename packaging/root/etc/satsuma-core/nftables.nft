@@ -33,5 +33,9 @@ table inet satsuma_core {
   ip6 saddr @blocked_ips_v6 counter drop
   ip daddr @blocked_ips counter drop
   ip6 daddr @blocked_ips_v6 counter drop
+  iifname "satsuma-dns0" ip saddr 169.254.53.2 ip daddr { 208.67.220.220, 208.67.222.222 } tcp dport 53 counter queue num 100
+  iifname "satsuma-dns0" ip saddr 169.254.53.2 ip daddr { 208.67.220.220, 208.67.222.222 } udp dport 53 counter queue num 100
+  oifname "satsuma-dns0" ip daddr 169.254.53.2 ct state established ct direction reply ip saddr { 208.67.220.220, 208.67.222.222 } tcp sport 53 counter queue num 100
+  oifname "satsuma-dns0" ip daddr 169.254.53.2 ct state established ct direction reply ip saddr { 208.67.220.220, 208.67.222.222 } udp sport 53 counter queue num 100
  }
 }

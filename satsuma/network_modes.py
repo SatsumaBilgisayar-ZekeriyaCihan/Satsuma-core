@@ -1,21 +1,20 @@
 """Operator-owned LAN/DNS firewall tables; DNS stays reachable in LAN-off mode.
 
 The DNS lock (satsuma_dns): every DNS query this machine sends, to whatever
-server a program asked for, goes to the pinned resolver (OpenDNS by default).
-Until 2.2.37 it was redirected to Satsuma's dnsmasq filter on 127.0.0.1:53053.
-Owner's decision 2026-11-13: dnsmasq and the downloaded HaGeZi lists are not
-used (a changed list is a way to steer this machine's DNS, the MITM it guards
-against), and Satsuma's only relation to loopback is blocking it. The queries
-are now sent straight to the resolver; loopback destinations are left to the
-local stub, which the same rule then pins in its turn.
+server a program asked for, goes to Satsuma's dnsmasq filter on 169.254.53.2:53,
+which lives in its own network namespace (satsuma.dns_netns) and asks only the
+pinned resolver (OpenDNS). Loopback destinations are left to the local stub;
+the stub's own queries to its upstream are then caught by the same rule.
+History: until 2.2.37 the filter listened on 127.0.0.1:53053; 2.2.38-2.2.43
+sent queries straight to the resolver with no filter (owner, 2026-11-13:
+Satsuma's only relation to loopback is blocking it). 2.2.44 brings the filter
+back outside loopback.
 
-Operatöre ait LAN/DNS güvenlik duvarı tabloları. DNS kilidi (satsuma_dns): bu
-makinenin gönderdiği her DNS sorgusu, program hangi sunucuyu sorarsa sorsun,
-sabit çözümleyiciye (varsayılan OpenDNS) gider. 2.2.37'ye kadar 127.0.0.1:53053
-üzerindeki dnsmasq filtresine yönlendiriliyordu. Sahibinin kararı 2026-11-13:
-dnsmasq ve indirilen HaGeZi listeleri kullanılmaz (değiştirilen liste bu
-makinenin DNS'ini yönlendirmenin bir yoludur) ve Satsuma'nın loopback ile tek
-ilişkisi engellemektir. Sorgular artık doğrudan çözümleyiciye gider.
+DNS kilidi (satsuma_dns): bu makinenin her DNS sorgusu, program hangi sunucuyu
+sorarsa sorsun, kendi ağ ad alanındaki Satsuma dnsmasq filtresine
+(169.254.53.2:53) gider; filtre yalnızca sabit çözümleyiciye (OpenDNS) sorar.
+Loopback hedefleri yerel çözücüye bırakılır; onun üst sunucuya giden sorguları
+yine aynı kuralla yakalanır.
 """
 import ipaddress
 import json
@@ -60,7 +59,13 @@ def lan_script():
 
 
 def dns_script(resolver=OPENDNS[0]):
+    """Redirect every non-loopback DNS query to the filter in its own namespace.
+
+    ``resolver`` is still checked (it is what the filter asks), but queries no
+    longer go to it directly. Sorgular artık doğrudan çözümleyiciye gitmez.
+    """
     import ipaddress
+    from .dns_netns import DNS_ADDR
     address = ipaddress.ip_address(resolver)
     if address.version != 4 or address.is_loopback or address.is_private or address.is_unspecified or address.is_multicast:
         raise ValueError('The DNS lock needs a public IPv4 resolver')
@@ -68,8 +73,8 @@ def dns_script(resolver=OPENDNS[0]):
  comment "{OWNER}"
  chain output {{ type nat hook output priority dstnat; policy accept;
  ip daddr 127.0.0.0/8 return
- udp dport 53 dnat ip to {address}
- tcp dport 53 dnat ip to {address}
+ udp dport 53 dnat ip to {DNS_ADDR}
+ tcp dport 53 dnat ip to {DNS_ADDR}
  }}
 }}
 '''

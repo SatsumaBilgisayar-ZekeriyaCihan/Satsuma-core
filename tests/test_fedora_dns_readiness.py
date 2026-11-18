@@ -58,11 +58,13 @@ def test_startup_failure_preserves_policy_and_existing_redirect(monkeypatch,fail
     store=Store();modes=Mock()
     monkeypatch.setattr(dns,'probe',Mock(side_effect=RuntimeError('timeout') if fail_local else None))
     monkeypatch.setattr(wire,'probe_system',Mock(side_effect=RuntimeError('system timeout')))
-    with pytest.raises(RuntimeError):setup.configure(store,modes)
+    # 2.2.44: the filter in its namespace is brought up first (stubbed: its probe).
+    with pytest.raises(RuntimeError):setup.configure(store,modes,dns_filter=lambda s:dns.probe())
     calls=[call.args for call in modes.apply.call_args_list]
     assert ('satsuma_dns',False) not in calls
     assert store.get('dns_policy')['enabled'] and store.get('satsuma_dns_state')['enabled']
     assert store.get('dns_filter_health')['status']=='FAILED'
+    if fail_local:assert ('satsuma_dns',True) not in calls  # a dead filter gets no new redirect
 
 
 def test_bounded_timeout_is_safe_and_does_not_apply_any_redirect(monkeypatch,tmp_path):

@@ -7,7 +7,7 @@ from satsuma.presentation import fields, priority_key
 from satsuma.subnet_protection import connection_counts, evaluate
 from satsuma.network_modes import NetworkModes, LAN_TABLE, DNS_TABLE, lan_script, dns_script
 from satsuma.dnsmasq_control import render
-from satsuma.domain_lists import domain, parse, HAGEZI_URL, update
+from satsuma.domain_lists import domain, parse, update
 from satsuma.store import Store
 from satsuma import otx
 
@@ -115,11 +115,11 @@ def test_lan_toggle_only_changes_owned_table_and_preserves_dns(tmp_path):
         nft.tables.add(LAN_TABLE); nft.owned = False
         with pytest.raises(RuntimeError, match='ownership'):
             modes.apply(LAN_TABLE, False)
-        # 2.2.38: the lock sends DNS straight to the pinned resolver; no dnsmasq, no loopback port.
+        # 2.2.44: the lock sends DNS to the filter in its own namespace, never to loopback.
         script = dns_script()
-        assert 'dnat ip to 208.67.222.222' in script and 'ip daddr 127.0.0.0/8 return' in script
-        assert '53053' not in script and 'redirect' not in script
-        assert 'dnat ip to 208.67.220.220' in dns_script('208.67.220.220')
+        assert 'dnat ip to 169.254.53.2' in script and 'ip daddr 127.0.0.0/8 return' in script
+        assert '53053' not in script and 'redirect' not in script and '208.67' not in script
+        assert 'dnat ip to 169.254.53.2' in dns_script('208.67.220.220')
         for bad in ('192.168.1.1', '127.0.0.1', '::1', '0.0.0.0'):
             with pytest.raises(ValueError):
                 dns_script(bad)
@@ -136,7 +136,6 @@ def test_dnsmasq_config_rejects_injection(name):
 def test_dnsmasq_keeps_unblocked_names_on_upstream_and_allows_exceptions():
     config = render({'upstream': '1.1.1.1'}, ['bad.example', 'safe.bad.example'], ['safe.bad.example'])
     assert config == 'address=/bad.example/#\nlocal=/bad.example/\nserver=/example.com/1.1.1.1\nserver=/safe.bad.example/1.1.1.1\n'  # probe name always forwarded
-    assert HAGEZI_URL.endswith('/wildcard/ultimate-onlydomains.txt')
     assert parse('# metadata\nBAD.EXAMPLE\nbad.example\ninternal.local\n') == ['bad.example']
 
 

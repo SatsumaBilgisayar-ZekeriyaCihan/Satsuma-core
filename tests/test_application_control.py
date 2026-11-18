@@ -28,15 +28,20 @@ def test_explicit_service_policy():
 
 def test_empty_rules_have_no_external_accept():
     text=app.render([])
-    assert text.count('accept')==0 and 'oifname "lo" accept' not in text
+    output,forward=text.split('chain forward',1)
+    assert output.count('accept')==0 and 'oifname "lo" accept' not in text
     assert text.count('policy drop')==2 and 'established' not in text
+    # 2.2.44: forwarding accepts only the DNS filter's namespace (port 53, OpenDNS).
+    accepted=[l for l in forward.splitlines() if 'accept' in l]
+    assert len(accepted)==8 and all('satsuma-dns0' in l and ' 53 ' in l and '208.67.22' in l for l in accepted)
 
 
 def test_permissions_remain_port_scoped():
     grant={'unit':'browser.service','path':'system.slice/browser.service','inode':91234,'access':['https']}
     text=app.render([grant])
     assert 'socket cgroupv2 level 2 "system.slice/browser.service" tcp dport 443' in text
-    assert 'dport 53' not in text and 'udp dport 443' not in text
+    output=text.split('chain forward',1)[0]
+    assert 'dport 53' not in output and 'udp dport 443' not in text
     assert 'priority -5' in text and 'queue' not in text
 
 
@@ -59,7 +64,8 @@ def fixture():
         }
         chain forward {
             type filter hook forward priority -5; policy drop;
-            counter packets 0 bytes 0 drop
+'''+''.join('            '+line.strip().replace('counter accept','counter packets 0 bytes 0 accept')+'\n'
+            for line in app.dns_namespace_forward())+'''            counter packets 0 bytes 0 drop
         }
     }
 '''

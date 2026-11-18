@@ -2,7 +2,8 @@
 
 Taken from the yeni-yazim branch (netd/dns.py) and fitted to 2.x, where
 every plain DNS query on port 53 is redirected to Satsuma's own dnsmasq
-(127.0.0.1:53053), which asks one upstream server (dns_policy.upstream).
+(since 2.2.44 at 169.254.53.2:53 in its own network namespace; until 2.2.37
+127.0.0.1:53053), which asks one upstream server (dns_policy.upstream).
 Changing a DNS server sends name lookups to the attacker, so the setting
 is watched instead of frozen (chattr +i on /etc/resolv.conf would stop
 NetworkManager from applying the servers of the next network):

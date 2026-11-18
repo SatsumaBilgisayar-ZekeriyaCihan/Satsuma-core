@@ -1,9 +1,10 @@
 [Unit]
 StartLimitIntervalSec=300
 StartLimitBurst=3
-Requires=satsuma-image.service
-After=satsuma-image.service
-Description=Satsuma dnsmasq domain filter
+Requires=satsuma-image.service satsuma-dns-netns.service
+After=satsuma-image.service satsuma-dns-netns.service
+BindsTo=satsuma-dns-netns.service
+Description=Satsuma dnsmasq domain filter (own network namespace, 169.254.53.2:53)
 After=network.target
 ConditionPathExists=/etc/satsuma-core/dns/dnsmasq.conf
 
@@ -18,12 +19,17 @@ ExecStartPre=+/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B
 ExecStart=/usr/sbin/dnsmasq --keep-in-foreground --conf-file=/etc/satsuma-core/dns/dnsmasq.conf --pid-file=
 Restart=on-failure
 RestartSec=3
+# 2.2.44 (owner's decision 2026-11-13): dnsmasq runs in its own network
+# namespace and never on loopback (satsuma.dns_netns).
+NetworkNamespacePath=/run/netns/satsuma-dns
 UMask=0077
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
 PrivateTmp=yes
-CapabilityBoundingSet=
+# Port 53 inside the namespace; no other privilege. Yalnızca 53'e bağlanma yetkisi.
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
 
 [Install]

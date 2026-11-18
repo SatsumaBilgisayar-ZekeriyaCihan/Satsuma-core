@@ -30,6 +30,7 @@ OWNED_TABLES={
     'satsuma_identity':'Satsuma interface identity guard',
     'satsuma_loopback':'Satsuma loopback validation',
     'satsuma_apps':'Satsuma application egress',
+    'satsuma_dns_ns':'Satsuma DNS namespace',
 }
 
 

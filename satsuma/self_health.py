@@ -64,7 +64,7 @@ def notice_text(result):
     return text+' Ayrıntılar: Sistem Sağlığı.'
 UNITS=('satsuma-core-gateway.service','satsuma-core-sentinel.service','satsuma-core.service','satsuma-teams.service','satsuma-reader.service',
        'satsuma-operator.service','satsuma-app-control.service','satsuma-network.service','satsuma-suricata-ips.service',
-       'satsuma-suricata-otx-guard.service','satsuma-udev.service','satsuma-rescue.service','satsuma-core-dns.service',
+       'satsuma-suricata-otx-guard.service','satsuma-udev.service','satsuma-rescue.service','satsuma-core-dns.service','satsuma-dns-netns.service',
        'satsuma-core-subnet.service')
 
 
@@ -204,7 +204,8 @@ def run():
             finally:dns_store.close()
         except Exception as exc:
             checks['dns_policy']={'ok':False,'error':str(exc)[:250]}
-        if not dns_policy.get('enabled'):states.pop('satsuma-core-dns.service',None)
+        if not dns_policy.get('enabled'):
+            states.pop('satsuma-core-dns.service',None);states.pop('satsuma-dns-netns.service',None)
         try:
             from .config import load
             expected=load().get('expected_dns_servers',[])
@@ -231,11 +232,6 @@ def run():
                 checks['subnet_protection']=subnet_check(store.get('subnet_protection_policy',None),store.get('subnet_health',{}))
                 modem=store.get('network_identity',{}) or {}
                 checks['modem_reference']={'ok':modem.get('status')=='MATCHED_USER_APPROVAL' and 0<=time.time()-modem.get('updated_at',0)<30,'state':modem.get('status','MODEM_APPROVAL_REQUIRED')}
-                if dns_policy.get('enabled') and dns_policy.get('threat_lists_enabled'):
-                    from .threat_domain_lists import FEEDS,REFRESH_SECONDS
-                    feeds={name:store.get('dns_threat_feed.'+name,{}) or {} for name in FEEDS}
-                    checks['dns_threat_lists']={'ok':all(item.get('count',0)>0 and item.get('status')!='UPDATE_FAILED'
-                        and 0<=time.time()-item.get('updated_at',0)<REFRESH_SECONDS for item in feeds.values()),'sources':feeds}
                 rows=store.db.execute("SELECT key,body FROM state WHERE key LIKE 'team.%.health'").fetchall()
                 workers={key:json.loads(body) for key,body in rows}
                 missing=['team.'+name+'.health' for name in ('network_team','host_team','file_team','identity_team') if 'team.'+name+'.health' not in workers]
@@ -296,7 +292,8 @@ def run():
         if repairs:
             time.sleep(3)
             after=inspect_units()
-            if not dns_policy.get('enabled'):after.pop('satsuma-core-dns.service',None)
+            if not dns_policy.get('enabled'):
+                after.pop('satsuma-core-dns.service',None);after.pop('satsuma-dns-netns.service',None)
             checks['services_after_repair']={'ok':all(v.get('ActiveState')=='active' for v in after.values()),'states':after}
             # Keep the original evidence, but assess current service state.
             # A recovered service must not leave the pre-repair failure in

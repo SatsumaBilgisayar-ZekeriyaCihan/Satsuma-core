@@ -339,6 +339,10 @@ class OperatorController:
                 resolver = ipaddress.ip_address(params.get('upstream', policy.get('upstream', '')))
                 if resolver.is_loopback or resolver.is_unspecified or resolver.is_multicast:
                     raise ValueError('DNS upstream gerçek DNS sunucusu olmalı; loopback olamaz')
+                # 2.2.44: the filter's namespace reaches only OpenDNS (satsuma.dns_netns).
+                from .dnsmasq_control import OPENDNS
+                if str(resolver) not in OPENDNS:
+                    raise ValueError('DNS filtresi yalnızca OpenDNS\'e sorar: ' + ' / '.join(OPENDNS))
                 policy = {**policy, 'enabled': True, 'upstream': str(resolver)}
                 if 'upstream' in params:
                     policy['upstream_source'] = 'operator'
@@ -366,35 +370,13 @@ class OperatorController:
         elif method == 'custom_lists_status':
             from .custom_dns_lists import status
             result={'ok':True,'custom_lists':status(self.store)}
-        elif method == 'hagezi_update':
-            from .domain_lists import update
-            info = update(self.store)
-            from .dnsmasq_control import refresh
-            refresh(self.store, self.runner)
-            result = {'ok': True, **info}
-        elif method == 'hagezi_enabled':
-            if type(params.get('enabled')) is not bool:
-                raise ValueError('enabled boolean gerekli')
+        elif method in ('hagezi_update', 'hagezi_enabled'):
+            # 2.2.44: no list is downloaded (owner, 2026-11-13); lists the user
+            # adds go through custom_list_update. İndirilen liste yok.
             policy = self.store.get('dns_policy', {}) or {}
-            previous_policy = dict(policy)
-            if params['enabled']:
-                upstream = params.get('upstream') or policy.get('upstream')
-                if not upstream:
-                    raise ValueError('Önce DNS sunucusunun IP adresini girin')
-                from .domain_lists import LIST_PATH, update
-                if not LIST_PATH.exists():
-                    update(self.store)
-                self.store.set('dns_policy', {**policy, 'hagezi_enabled': True})
-                try:
-                    result = self.dispatch(uid, 'dns_filter', {**params, 'upstream':upstream, 'enabled':True})
-                except Exception:
-                    self.store.set('dns_policy', previous_policy)
-                    raise
-            else:
-                self.store.set('dns_policy', {**policy, 'hagezi_enabled': False})
-                from .dnsmasq_control import refresh
-                refresh(self.store, self.runner)
-                result = {'ok':True, 'enabled':False}
+            if policy.get('hagezi_enabled'):
+                self.store.set('dns_policy', {k: v for k, v in policy.items() if k != 'hagezi_enabled'})
+            result = {'ok': False, 'status': 'RETIRED', 'reason': 'İnternetten indirilen DNS listeleri kullanılmıyor; kendi listenizi ekleyebilirsiniz.'}
         elif method in ('allow_domain', 'remove_allow_domain'):
             from .domain_lists import domain
             name = domain(params.get('domain', ''))
