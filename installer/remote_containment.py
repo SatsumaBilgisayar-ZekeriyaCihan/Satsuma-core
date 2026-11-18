@@ -40,9 +40,13 @@ def secure_directory(path):
     fd=os.open('/',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
     try:
         for part in path.parts[1:]:
-            try: os.mkdir(part,0o700,dir_fd=fd)
-            except FileExistsError: pass
-            child=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=fd)
+            # 2.2.43: open first, create only when missing; mkdir on an existing folder failed
+            # with EEXIST and every /etc step was logged by audit (owner's report 2026-11-18).
+            try: child=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=fd)
+            except FileNotFoundError:
+                try: os.mkdir(part,0o700,dir_fd=fd)
+                except FileExistsError: pass
+                child=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=fd)
             os.close(fd);fd=child;info=os.fstat(fd)
             if info.st_uid!=0 or info.st_mode&0o022: raise PermissionError('Unsafe containment directory: '+str(path))
     finally: os.close(fd)

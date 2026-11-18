@@ -101,11 +101,16 @@ def _trusted_parent(root, relative, uid=0):
     fd = os.open(str(root), os.O_RDONLY | os.O_DIRECTORY)
     try:
         for part in Path(relative).parent.parts:
+            # 2.2.43: open first, create only when missing; mkdir on an existing folder failed
+            # with EEXIST and every /etc step was logged by audit (owner's report 2026-11-18).
             try:
-                os.mkdir(part, 0o755, dir_fd=fd)
-            except FileExistsError:
-                pass
-            nxt = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+                nxt = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            except FileNotFoundError:
+                try:
+                    os.mkdir(part, 0o755, dir_fd=fd)
+                except FileExistsError:
+                    pass
+                nxt = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
             os.close(fd)
             fd = nxt
             info = os.fstat(fd)

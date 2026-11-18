@@ -25,11 +25,16 @@ def open_directory(path):
     try:
         check(os.fstat(fd), True)
         for part in path.parts[1:]:
+            # 2.2.43: open first, create only when missing; mkdir on an existing folder failed
+            # with EEXIST and every /etc step was logged by audit (owner's report 2026-11-18).
             try:
-                os.mkdir(part, mode=0o700, dir_fd=fd)
-            except FileExistsError:
-                pass
-            next_fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+                next_fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            except FileNotFoundError:
+                try:
+                    os.mkdir(part, mode=0o700, dir_fd=fd)
+                except FileExistsError:
+                    pass
+                next_fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
             os.close(fd)
             fd = next_fd
             check(os.fstat(fd), True)
