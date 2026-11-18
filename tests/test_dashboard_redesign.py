@@ -71,7 +71,8 @@ def test_opens_on_status_with_verdict_waiting_items_and_layers(make):
     assert page.PANEL_ID == 'home'
     assert page.verdict.text().endswith('sizi bekliyor')
     titles = [page.attention_box.itemAt(i).widget().item['title'] for i in range(page.attention_box.count())]
-    assert 'DNS filtresi çalışmıyor' in titles and 'firefox internete çıkmak istiyor' in titles
+    assert '2 sağlık kontrolü başarısız' in titles and 'firefox internete çıkmak istiyor' in titles
+    assert titles[-1] == 'Tehdit istihbaratı için OTX anahtarı ekleyin'   # suggestions last
     assert page.layers_grid.count() == 6
     assert page.metrics['stopped'].value.text() == '1'
 

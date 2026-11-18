@@ -194,7 +194,7 @@ class SettingsPanel(UserPage):
     # -- view
     def _expert(self, value):
         QSettings('SatsumaBilgisayar', 'Satsuma Internet Security').setValue('expert_view', bool(value))
-        window = self.window()
+        window = self.main_window()
         if hasattr(window, 'nav'):
             window.nav.set_expert(bool(value))
 
@@ -208,7 +208,7 @@ class SettingsPanel(UserPage):
         unlocked = bool(session and session.unlocked())
         self.lock_state.set('Kilit açık' if unlocked else 'Kilitli', 'ok' if unlocked else 'unknown')
         self.lock_button.setText('Kilitle' if unlocked else 'Kilidi aç')
-        window = self.window()
+        window = self.main_window()
         if hasattr(window, 'nav'):
             self.expert_toggle.blockSignals(True)
             self.expert_toggle.setChecked(window.nav.expert_visible())

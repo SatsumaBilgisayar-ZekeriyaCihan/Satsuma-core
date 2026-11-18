@@ -131,6 +131,7 @@ class MainWindow(QMainWindow):
         try:
             if created:
                 candidate = panel._panel_class(self.backend)
+                candidate._main_window = self
             candidate.on_activate()
         except Exception as exc:
             if created and candidate is not panel:

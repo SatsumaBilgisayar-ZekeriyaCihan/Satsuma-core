@@ -22,7 +22,7 @@ class FeedRow(QFrame):
         line.setContentsMargins(12, 8, 12, 8)
         line.setSpacing(10)
         pill = Pill(row['outcome_label'], OUTCOME_TONES.get(row['outcome'], 'unknown'))
-        pill.setFixedWidth(128)
+        pill.setFixedWidth(112)
         line.addWidget(pill)
         text = QVBoxLayout()
         text.setSpacing(1)

@@ -4,7 +4,7 @@
 """
 from .qt import (QWidget, QFrame, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QScrollArea, QSize, QPainter,
                  QColor, QPen, QBrush, QRectF, Qt, pyqtSignal, enum, NO_SCROLL, POINTING, ALIGN_TOP, QSizePolicy,
-                 EXPANDING, PREFERRED, TEXT_SELECTABLE)
+                 EXPANDING, PREFERRED, TEXT_SELECTABLE, ALIGN_CENTER)
 from .style.theme import Colors
 
 TONES = {
@@ -70,6 +70,7 @@ class Pill(QLabel):
 
     def __init__(self, text='', tone='unknown', parent=None):
         super().__init__(parent)
+        self.setAlignment(ALIGN_CENTER)
         self.set(text, tone)
 
     def set(self, text, tone='unknown'):
