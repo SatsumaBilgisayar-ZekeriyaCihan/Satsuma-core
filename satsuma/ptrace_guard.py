@@ -125,18 +125,38 @@ def sources(dirs=SYSCTL_DIRS, legacy=LEGACY_FILES, own=OWN_FILE, cmdline='/proc/
     return found
 
 
-def _neutralize_file(path, lines, evidence, clock):
-    """Copy the original aside, then comment out only the offending lines."""
+def _override_target(real, marker=None):
+    """On ostree a file under /usr cannot be edited: a same-named /etc/sysctl.d file replaces it.
+
+    systemd-sysctl reads only one file per name and /etc wins over /usr/lib, so
+    the copy in /etc (with the offending lines commented out) is what applies.
+    ostree'de /usr düzenlenemez; aynı adlı /etc/sysctl.d dosyası onun yerine geçer.
+    """
+    from . import ostree
+    if str(real).startswith('/usr/') and ostree.booted(marker):
+        return ostree.SYSCTL_DIR_ETC / real.name
+    return real
+
+
+def _neutralize_file(path, lines, evidence, clock, marker=None):
+    """Copy the original aside, then comment out only the offending lines.
+
+    2.2.38: on ostree a file under the read-only /usr is overridden from
+    /etc/sysctl.d instead of edited in place.
+    """
     real = Path(os.path.realpath(path))
     info = real.lstat()
     if not stat.S_ISREG(info.st_mode):
         raise PermissionError('not_a_regular_file')
+    source, real = real, _override_target(real, marker)
+    if real != source:
+        real.parent.mkdir(parents=True, exist_ok=True, mode=0o755)
     evidence.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(evidence, 0o700)
-    copy = evidence / f'{int(clock())}-{str(real).strip("/").replace("/", "_")}'
-    shutil.copy2(real, copy)
+    copy = evidence / f'{int(clock())}-{str(source).strip("/").replace("/", "_")}'
+    shutil.copy2(source, copy)
     os.chmod(copy, 0o600)
-    original = real.read_text(errors='replace').splitlines(keepends=True)
+    original = source.read_text(errors='replace').splitlines(keepends=True)
     for number in lines:
         line = original[number - 1]
         if _LINE.match(line.rstrip('\n')):

@@ -195,12 +195,22 @@ def setup(runner=subprocess.run, sysfs=Path('/sys/bus/usb/devices'), crypttab='/
     devices = usb_devices(sysfs)
     blocker = kernel_arg_blocker(devices, boot_unlocks_disk(crypttab), root_on_usb(runner))
     cmdline = read('/proc/cmdline') if cmdline is None else cmdline
+    from . import ostree
+    if not blocker and ostree.booted() and KERNEL_ARG not in cmdline.split():
+        # 2.2.38: on ostree the package's removal scripts run in rpm-ostree's
+        # sandbox and cannot take the argument back, so after
+        # "rpm-ostree uninstall" every USB keyboard and mouse would stay dead
+        # (field report 2026-10-25 on normal Fedora). USBGuard still enforces
+        # from the moment its service starts; only the early-boot window is open.
+        # ostree'de kaldırma betiği parametreyi geri alamaz; kaldırmadan sonra
+        # USB klavye/fare ölü kalırdı. USBGuard servis başlayınca yine korur.
+        blocker = 'ostree_removal_cannot_undo_kernel_argument'
     if blocker:
         report.update(status='ACTIVE_WITHOUT_EARLY_BOOT', kernel_arg='not_set', reason=blocker)
     elif KERNEL_ARG in cmdline.split():
         report.update(status='ACTIVE_FROM_EARLY_BOOT', kernel_arg='active')
     else:
-        grubby = run(['/usr/sbin/grubby', '--update-kernel=ALL', '--args=' + KERNEL_ARG], runner)
+        grubby = ostree.update_args(add=[KERNEL_ARG], runner=runner)
         if grubby.returncode:
             report.update(status='ACTIVE_WITHOUT_EARLY_BOOT', kernel_arg='failed', reason=grubby.stderr[:300])
         else:
@@ -229,7 +239,8 @@ def restore(runner=subprocess.run, sysfs=Path('/sys/bus/usb/devices'), conf=DAEM
     önceki içeriğine döner.
     """
     report = {'updated_at': time.time(), 'actions': [], 'errors': []}
-    grubby = run(['/usr/sbin/grubby', '--update-kernel=ALL', '--remove-args=' + KERNEL_ARG], runner)
+    from . import ostree
+    grubby = ostree.update_args(remove=[KERNEL_ARG], runner=runner)
     (report['actions'] if grubby.returncode == 0 else report['errors']).append('kernel_arg_removed')
     for path in sorted(sysfs.glob('usb*/authorized_default')) + [
             d / 'authorized' for d in sorted(sysfs.glob('*')) if ':' not in d.name and read(d / 'authorized').strip() == '0']:

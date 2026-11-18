@@ -126,13 +126,13 @@ def test_policy_and_target_exemptions_still_required_when_evidence_passes(store)
     assert not gate(store,finding,admin_session_valid=True).allowed
 
 
-def test_inventory_all_233_are_distinct_and_no_baseline_actions_were_modified():
+def test_inventory_all_231_are_distinct_and_no_baseline_actions_were_modified():
     from tools.build_rule_response_inventory import build
     from satsuma.smart_rules import SmartRuleEngine
     from satsuma.ai_rule_package import digest
     catalog=build()['rules'];rules=SmartRuleEngine().rules
-    assert len(catalog)==len(rules)==233
-    assert len({r['rule_id'] for r in catalog})==233
+    assert len(catalog)==len(rules)==231  # RAM-106/107 retired
+    assert len({r["rule_id"] for r in catalog})==231
     for row,rule in zip(catalog,rules):
         assert row['current_actions']==rule['actions']
         assert row['match']==rule['base_match']

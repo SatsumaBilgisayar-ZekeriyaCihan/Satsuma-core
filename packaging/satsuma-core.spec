@@ -2,7 +2,7 @@
 %global debug_package %{nil}
 %global _build_id_links none
 Name: satsuma-core
-Version: 2.2.37
+Version: 2.2.38
 Release: 1%{?dist}
 Summary: Satsuma Core security monitoring and response
 License: LicenseRef-Proprietary AND GPL-3.0-only AND Unlicense
@@ -104,6 +104,9 @@ install -d -m 0700 %{buildroot}/var/lib/satsuma-core/generated_rules/active
 # 2.2.24: MITRE ATT&CK / CISA KEV definitions (reference data, not rules).
 install -d -m 0755 %{buildroot}/var/lib/satsuma-core/tanim
 install -m 0644 data/tanim/*.yaml %{buildroot}/var/lib/satsuma-core/tanim/
+# 2.2.38: rpm-ostree drops regular files under /var; the same files under /usr/share.
+install -d -m 0755 %{buildroot}/usr/share/satsuma-core/tanim
+install -m 0644 data/tanim/*.yaml %{buildroot}/usr/share/satsuma-core/tanim/
 install -d -m 0700 %{buildroot}/etc/satsuma-core/package-trust/keys
 install -d %{buildroot}/usr/lib/systemd/system %{buildroot}/etc/satsuma-core
 install -m 0644 systemd/* %{buildroot}/usr/lib/systemd/system/
@@ -113,10 +116,26 @@ install -m 0640 config_examples/config.json %{buildroot}/etc/satsuma-core/config
 install -m 0640 config_examples/policy.json %{buildroot}/etc/satsuma-core/policy.json
 install -m 0600 config_examples/suricata-otx-guard.json %{buildroot}/etc/satsuma-core/suricata-otx-guard.json
 
-install -d -m 0755 %{buildroot}/opt/satsuma-core %{buildroot}/usr/libexec
+install -d -m 0755 %{buildroot}/usr/libexec
+install -m 0755 installer/ostree_firstboot.sh %{buildroot}/usr/libexec/satsuma-ostree-firstboot
+install -d %{buildroot}/usr/lib/systemd/system/multi-user.target.wants
+ln -s ../satsuma-ostree-firstboot.service %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/satsuma-ostree-firstboot.service
 install -m 0755 installer/image_runtime.py %{buildroot}/usr/libexec/satsuma-image
 
 %pre
+# 2.2.38 (owner, 2026-11-16): rpm-ostree runs package scripts in a sandbox with
+# a read-only /usr, no systemd and no writable /var; nothing below can work there.
+# On an ostree system the script only places files and returns; the same
+# scripts run on the real system at first boot (satsuma-ostree-firstboot).
+# rpm-ostree betikleri salt okunur /usr, systemd'siz kapalı ortamda çalıştırır;
+# ostree'de betik yalnızca dosyaları yerleştirir, aynı betikler ilk açılışta
+# gerçek sistemde çalışır.
+satsuma_ostree=0
+if [ -z "${SATSUMA_OSTREE_FIRSTBOOT:-}" ] && { [ -e /run/ostree-booted ] || { [ -x /usr/bin/rpm-ostree ] && [ ! -d /run/systemd/system ]; }; }; then satsuma_ostree=1; fi
+if [ "$satsuma_ostree" -eq 1 ]; then
+ echo 'SATSUMA: ostree sistemi; kurulum adimlari ilk acilisa ertelendi (satsuma-ostree-firstboot.service).' >&2
+ exit 0
+fi
 # Installation never invokes or accepts a host-wide integrity baseline.
 # Existing application evidence is preserved; new payload is independently checked.
 
@@ -258,6 +277,8 @@ for path, mode in (
     ('/var/lib/satsuma-core/integrity', 0o700),
     ('/usr/share/satsuma-core', 0o755),
 ):
+    if os.environ.get('SATSUMA_OSTREE_FIRSTBOOT') and path.startswith('/usr/'):
+        continue  # read-only on ostree; the package already placed it
     prepare(path, mode)
     for directory, dirs, names, fd in os.fwalk(path, follow_symlinks=False):
         for name in dirs + names:
@@ -281,7 +302,7 @@ if [ -d /run/systemd/system ]; then
  /usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B -c 'from pathlib import Path; p=Path("/var/lib/satsuma-core"); (p/"rpm-known-units").write_text("".join(x+"\n" for x in (p/"rpm-all-units").read_text().splitlines() if x.startswith("satsuma")))' || exit 1
  while read -r retired state preset; do
   case "$retired" in
-   satsuma-flow-guard.service|satsuma-kernel-profile.service|satsuma-aide-check.service|satsuma-aide-check.timer|satsuma-module-lock.service|satsuma-module-lock.timer|satsuma-mitm-watch.service|satsuma-mitm-watch.timer|satsuma-quarantine-confirm.service|satsuma-quarantine-confirm.timer|satsuma-quarantine-rollback.service|satsuma-privd.service|satsuma-ram-clamd.service|satsuma-clamonacc.service|satsuma-onaccess-listener.service|satsuma-image.service|satsuma-boot-lockdown.service|satsuma-kernel-guard.service|satsuma-exec-guard.service|satsuma-temporary-scan.service|satsuma-temporary-scan.timer|satsuma-configuration.path|satsuma-configuration.service|satsuma-core-audit.service|satsuma-core-dns-refresh.service|satsuma-core-dns-refresh.timer|satsuma-core-dns.service|satsuma-core-finding.service|satsuma-deep-engine.service|satsuma-core-gateway.service|satsuma-core-otx.service|satsuma-core-security-scan.service|satsuma-core-security-scan-now.service|satsuma-core-security-scan.timer|satsuma-core-sentinel.service|satsuma-core-subnet.service|satsuma-core.service|satsuma-early-guard.service|satsuma-memory-hardening.service|satsuma-guardian.service|satsuma-network-modes.service|satsuma-network.service|satsuma-operator.service|satsuma-reader.service|satsuma-teams.service|satsuma-suricata-ips.service|satsuma-suricata-otx-guard.service|satsuma-app-control.service|satsuma-network-identity.service|satsuma-containment.service|satsuma-opnsense-advisory.service|satsuma-self-health.service|satsuma-self-health.timer|satsuma-rescue.service|satsuma-udev.service|satsuma-integrity-check.service|satsuma-integrity-check.timer|satsuma-boot-inventory.service|satsuma-boot-inventory.timer) :;;
+   satsuma-flow-guard.service|satsuma-kernel-profile.service|satsuma-aide-check.service|satsuma-aide-check.timer|satsuma-module-lock.service|satsuma-module-lock.timer|satsuma-mitm-watch.service|satsuma-mitm-watch.timer|satsuma-quarantine-confirm.service|satsuma-quarantine-confirm.timer|satsuma-quarantine-rollback.service|satsuma-privd.service|satsuma-ram-clamd.service|satsuma-clamonacc.service|satsuma-onaccess-listener.service|satsuma-image.service|satsuma-boot-lockdown.service|satsuma-kernel-guard.service|satsuma-exec-guard.service|satsuma-temporary-scan.service|satsuma-temporary-scan.timer|satsuma-configuration.path|satsuma-configuration.service|satsuma-core-audit.service|satsuma-core-dns-refresh.service|satsuma-core-dns-refresh.timer|satsuma-core-dns.service|satsuma-core-finding.service|satsuma-deep-engine.service|satsuma-core-gateway.service|satsuma-core-otx.service|satsuma-core-security-scan.service|satsuma-core-security-scan-now.service|satsuma-core-security-scan.timer|satsuma-core-sentinel.service|satsuma-core-subnet.service|satsuma-core.service|satsuma-early-guard.service|satsuma-memory-hardening.service|satsuma-guardian.service|satsuma-network-modes.service|satsuma-network.service|satsuma-operator.service|satsuma-reader.service|satsuma-teams.service|satsuma-suricata-ips.service|satsuma-suricata-otx-guard.service|satsuma-app-control.service|satsuma-network-identity.service|satsuma-containment.service|satsuma-opnsense-advisory.service|satsuma-self-health.service|satsuma-self-health.timer|satsuma-rescue.service|satsuma-udev.service|satsuma-integrity-check.service|satsuma-integrity-check.timer|satsuma-boot-inventory.service|satsuma-boot-inventory.timer|satsuma-ostree-firstboot.service|satsuma-maintenance.service|satsuma-maintenance.timer) :;;
    satsuma*.service|satsuma*.timer)
     # Do not stop/mask unknown units. An operator must review retired services.
     echo "SATSUMA: unknown pre-existing unit preserved for review: $retired" >&2;;
@@ -294,7 +315,7 @@ if [ -d /run/systemd/system ]; then
    systemctl stop "$timer" || exit 1
   fi
  done
- for unit in satsuma-self-health.timer satsuma-self-health satsuma-rescue satsuma-core satsuma-flow-guard satsuma-configuration.path satsuma-configuration.service satsuma-teams satsuma-deep-engine satsuma-reader satsuma-operator satsuma-guardian satsuma-core-audit satsuma-core-otx satsuma-core-subnet satsuma-core-dns satsuma-core-dns-refresh satsuma-network-modes satsuma-core-finding satsuma-core-gateway satsuma-core-sentinel satsuma-core-security-scan-now satsuma-core-security-scan.timer satsuma-core-dns-refresh.timer satsuma-network satsuma-suricata-ips satsuma-suricata-otx-guard satsuma-early-guard satsuma-memory-hardening satsuma-exec-guard satsuma-containment satsuma-network-identity satsuma-app-control satsuma-integrity-check.timer satsuma-integrity-check satsuma-boot-inventory.timer satsuma-boot-inventory satsuma-udev satsuma-mitm-watch satsuma-privd satsuma-ram-clamd satsuma-clamonacc satsuma-onaccess-listener satsuma-temporary-scan.timer satsuma-temporary-scan satsuma-aide-check.timer satsuma-aide-check; do
+ for unit in satsuma-maintenance.timer satsuma-maintenance satsuma-self-health.timer satsuma-self-health satsuma-rescue satsuma-core satsuma-flow-guard satsuma-configuration.path satsuma-configuration.service satsuma-teams satsuma-deep-engine satsuma-reader satsuma-operator satsuma-guardian satsuma-core-audit satsuma-core-otx satsuma-core-subnet satsuma-core-dns satsuma-core-dns-refresh satsuma-network-modes satsuma-core-finding satsuma-core-gateway satsuma-core-sentinel satsuma-core-security-scan-now satsuma-core-security-scan.timer satsuma-core-dns-refresh.timer satsuma-network satsuma-suricata-ips satsuma-suricata-otx-guard satsuma-early-guard satsuma-memory-hardening satsuma-exec-guard satsuma-containment satsuma-network-identity satsuma-app-control satsuma-integrity-check.timer satsuma-integrity-check satsuma-boot-inventory.timer satsuma-boot-inventory satsuma-udev satsuma-mitm-watch satsuma-privd satsuma-ram-clamd satsuma-clamonacc satsuma-onaccess-listener satsuma-temporary-scan.timer satsuma-temporary-scan satsuma-aide-check.timer satsuma-aide-check; do
   case "$unit" in *.timer) name="$unit";; *.service) name="$unit";; *) name="$unit.service";; esac
   if systemctl is-active --quiet "$name"; then
    printf '%s\n' "$name" >> /var/lib/satsuma-core/rpm-active-units
@@ -321,6 +342,19 @@ fi
 exit 0
 
 %preun
+# 2.2.38 (owner, 2026-11-16): rpm-ostree runs package scripts in a sandbox with
+# a read-only /usr, no systemd and no writable /var; nothing below can work there.
+# On an ostree system the script only places files and returns; the same
+# scripts run on the real system at first boot (satsuma-ostree-firstboot).
+# rpm-ostree betikleri salt okunur /usr, systemd'siz kapalı ortamda çalıştırır;
+# ostree'de betik yalnızca dosyaları yerleştirir, aynı betikler ilk açılışta
+# gerçek sistemde çalışır.
+satsuma_ostree=0
+if [ -z "${SATSUMA_OSTREE_FIRSTBOOT:-}" ] && { [ -e /run/ostree-booted ] || { [ -x /usr/bin/rpm-ostree ] && [ ! -d /run/systemd/system ]; }; }; then satsuma_ostree=1; fi
+if [ "$satsuma_ostree" -eq 1 ]; then
+ echo 'SATSUMA: ostree sistemi; kurulum adimlari ilk acilisa ertelendi (satsuma-ostree-firstboot.service).' >&2
+ exit 0
+fi
 if [ "$1" -eq 0 ]; then
  # First, before anything that can abort: give USB input back. The image is
  # still mounted here; after unmount /opt/satsuma-core is gone. Field report
@@ -339,7 +373,7 @@ if [ "$1" -eq 0 ] && [ -d /run/systemd/system ]; then
    systemctl stop "$timer" || exit 1
   fi
  done
- for unit in satsuma-self-health.timer satsuma-self-health satsuma-rescue satsuma-core satsuma-flow-guard satsuma-configuration.path satsuma-configuration.service satsuma-teams satsuma-deep-engine satsuma-reader satsuma-operator satsuma-guardian satsuma-core-audit satsuma-core-otx satsuma-core-subnet satsuma-core-dns satsuma-core-dns-refresh satsuma-core-security-scan satsuma-network-modes satsuma-core-finding satsuma-core-gateway satsuma-core-sentinel satsuma-network satsuma-suricata-ips satsuma-suricata-otx-guard satsuma-early-guard satsuma-memory-hardening satsuma-containment satsuma-network-identity satsuma-app-control satsuma-integrity-check.timer satsuma-integrity-check satsuma-boot-inventory.timer satsuma-boot-inventory satsuma-udev satsuma-mitm-watch satsuma-privd satsuma-ram-clamd satsuma-clamonacc satsuma-onaccess-listener satsuma-temporary-scan.timer satsuma-temporary-scan satsuma-aide-check.timer satsuma-aide-check; do
+ for unit in satsuma-maintenance.timer satsuma-maintenance satsuma-self-health.timer satsuma-self-health satsuma-rescue satsuma-core satsuma-flow-guard satsuma-configuration.path satsuma-configuration.service satsuma-teams satsuma-deep-engine satsuma-reader satsuma-operator satsuma-guardian satsuma-core-audit satsuma-core-otx satsuma-core-subnet satsuma-core-dns satsuma-core-dns-refresh satsuma-core-security-scan satsuma-network-modes satsuma-core-finding satsuma-core-gateway satsuma-core-sentinel satsuma-network satsuma-suricata-ips satsuma-suricata-otx-guard satsuma-early-guard satsuma-memory-hardening satsuma-containment satsuma-network-identity satsuma-app-control satsuma-integrity-check.timer satsuma-integrity-check satsuma-boot-inventory.timer satsuma-boot-inventory satsuma-udev satsuma-mitm-watch satsuma-privd satsuma-ram-clamd satsuma-clamonacc satsuma-onaccess-listener satsuma-temporary-scan.timer satsuma-temporary-scan satsuma-aide-check.timer satsuma-aide-check; do
   case "$unit" in *.timer) name="$unit";; *.service) name="$unit";; *) name="$unit.service";; esac
   # Optional/retired units may not be installed. A loaded unit failing to stop
   # must abort removal, preserving the helper required for a safe retry.
@@ -355,6 +389,19 @@ if [ "$1" -eq 0 ] && [ -d /run/systemd/system ]; then
 fi
 
 %posttrans
+# 2.2.38 (owner, 2026-11-16): rpm-ostree runs package scripts in a sandbox with
+# a read-only /usr, no systemd and no writable /var; nothing below can work there.
+# On an ostree system the script only places files and returns; the same
+# scripts run on the real system at first boot (satsuma-ostree-firstboot).
+# rpm-ostree betikleri salt okunur /usr, systemd'siz kapalı ortamda çalıştırır;
+# ostree'de betik yalnızca dosyaları yerleştirir, aynı betikler ilk açılışta
+# gerçek sistemde çalışır.
+satsuma_ostree=0
+if [ -z "${SATSUMA_OSTREE_FIRSTBOOT:-}" ] && { [ -e /run/ostree-booted ] || { [ -x /usr/bin/rpm-ostree ] && [ ! -d /run/systemd/system ]; }; }; then satsuma_ostree=1; fi
+if [ "$satsuma_ostree" -eq 1 ]; then
+ echo 'SATSUMA: ostree sistemi; kurulum adimlari ilk acilisa ertelendi (satsuma-ostree-firstboot.service).' >&2
+ exit 0
+fi
 umask 077
 /usr/bin/python3 -I -B /usr/libexec/satsuma-image build || exit 1
 if [ -d /run/systemd/system ]; then
@@ -418,8 +465,16 @@ if [ -d /run/systemd/system ]; then
 systemctl enable satsuma-module-lock.timer || echo 'satsuma-module-lock.timer could not be enabled' >&2
 # Flow guard (2.2.32): watches the in-memory event flow; raw events are no longer stored.
 systemctl enable --now satsuma-flow-guard.service || echo 'satsuma-flow-guard.service could not start' >&2
+# 2.2.38: maintenance kit 15 minutes after boot and every six hours (satsuma.maintenance).
+systemctl enable --now satsuma-maintenance.timer || echo 'satsuma-maintenance.timer could not start' >&2
  /usr/bin/satsuma-enroll-desktop --auto || exit 1
  (cd /opt/satsuma-core && /usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -E -s -B -m satsuma.configuration_reload) || exit 1
+ # 2.2.38 (owner: the panel needed a manual reader restart after the first
+ # install): the reader starts again once enrollment and configuration are
+ # done, with any start-limit state cleared.
+ # Kayıt ve yapılandırma bittikten sonra reader temiz başlatılır.
+ systemctl reset-failed satsuma-reader.service >/dev/null 2>&1 || :
+ systemctl restart satsuma-reader.service || echo 'satsuma-reader could not restart; see journalctl -u satsuma-reader' >&2
  # Finish configuration first, then wait for the real health result. A pending
  # modem approval remains an explicit warning; installation never invents it.
  systemctl start satsuma-self-health.service || echo 'Satsuma functional health verification failed; see the report below.' >&2
@@ -443,24 +498,22 @@ if [ -d /run/systemd/system ]; then systemctl daemon-reload >/dev/null 2>&1 || :
 %files
 %defattr(-,root,root,-)
 %license LICENSE
-%doc docs/INTEGRATED-AUDIT-2026.md
-%doc docs/NETWORK-PROTECTION-PLAN.md docs/RULE-PREVENTION-AUDIT-20.1.4.md docs/POLICY-CONFIGURATION.md
-%doc docs/RELEASE-2.1.6.md docs/RELEASE-2.2.0.md docs/RELEASE-2.2.1.md docs/RELEASE-2.2.2.md docs/RELEASE-2.2.3.md docs/RELEASE-2.2.4.md docs/RELEASE-2.2.5.md docs/RELEASE-2.2.6.md docs/RELEASE-2.2.7.md docs/RELEASE-2.2.8.md docs/RELEASE-2.2.9.md docs/RELEASE-2.2.10.md docs/RELEASE-2.2.11.md docs/RELEASE-2.2.12.md docs/RELEASE-2.2.13.md docs/RELEASE-2.2.14.md docs/RELEASE-2.2.15.md docs/RELEASE-2.2.16.md docs/RELEASE-2.2.17.md docs/RELEASE-2.2.18.md docs/RELEASE-2.2.19.md docs/RELEASE-2.2.20.md docs/RELEASE-2.2.21.md docs/RELEASE-2.2.22.md docs/RELEASE-2.2.23.md docs/RELEASE-2.2.24.md docs/RELEASE-2.2.25.md docs/RELEASE-2.2.26.md docs/RELEASE-2.2.27.md docs/RELEASE-2.2.28.md docs/RELEASE-2.2.29.md docs/RELEASE-2.2.30.md docs/RELEASE-2.2.31.md docs/RELEASE-2.2.32.md docs/RELEASE-2.2.33.md docs/RELEASE-2.2.34.md docs/RELEASE-2.2.35.md docs/RELEASE-2.2.36.md docs/RELEASE-2.2.37.md
-%doc docs/MEMORY-PROTECTION.md docs/AUTOMATIC-PROCESS-RESPONSE.md docs/MEMORY-INSTALL-FEDORA44.md docs/SATSUMA-SIGNING.md
-%doc CANDIDATE20.1.4-UI.md CANDIDATE20.1.3-REPORT.md CANDIDATE20.1.3-INSTALL.md WORKER-AUDIT-20261019.md DEVICE-AND-SYSTEMD-RESEARCH.md CANDIDATE19-STATUS.md README.md VERSION NETWORK-AND-DASHBOARD.md RULES-AND-DEFENSE.md BOOT-INSTALLATION.md NETWORK-IPS.md PACKAGE-TRUST.md APPLICATION-CONTROL.md OPNSENSE-ADVISORY.md CANDIDATE18-AUTHORIZATION-REVIEW.md NETWORK-IDENTITY.md REMOTE-ACCESS.md
+%doc docs/RELEASE-2.2.38.md
+%doc DEVICE-AND-SYSTEMD-RESEARCH.md VERSION NETWORK-IPS.md
 %{_docdir}/%{name}/examples
 %{_docdir}/%{name}/SELF-REPAIR-GUIDE.md
 %{_docdir}/%{name}/BUILD-VALIDATION.json
-%dir /opt/satsuma-core
+%attr(0755,root,root) /usr/libexec/satsuma-ostree-firstboot
+/usr/lib/systemd/system/multi-user.target.wants/satsuma-ostree-firstboot.service
 /usr/lib/satsuma-core/payload
-/usr/libexec/satsuma-image
-/usr/libexec/satsuma-quarantine-rollback
+%attr(0755,root,root) /usr/libexec/satsuma-image
+%attr(0755,root,root) /usr/libexec/satsuma-quarantine-rollback
 /usr/lib/sysusers.d/satsuma-core.conf
 /usr/lib/sysctl.d/90-satsuma-memory.conf
 /usr/lib/sysctl.d/91-satsuma-ipv6.conf
 /usr/lib/sysctl.d/92-satsuma-network.conf
 /usr/lib/sysctl.d/93-satsuma-strict.conf
-/usr/bin/satsuma-*
+%attr(0755,root,root) /usr/bin/satsuma-*
 /usr/lib/systemd/system/satsuma*
 %dir /usr/lib/systemd/system/nftables.service.d
 /usr/lib/systemd/system/nftables.service.d/90-satsuma.conf
@@ -486,5 +539,7 @@ if [ -d /run/systemd/system ]; then systemctl daemon-reload >/dev/null 2>&1 || :
 %dir %attr(0700,root,root) /var/lib/satsuma-core/generated_rules/active
 %dir %attr(0755,root,root) /var/lib/satsuma-core/tanim
 %verify(not md5 size mtime) %attr(0644,root,root) /var/lib/satsuma-core/tanim/*.yaml
+%dir %attr(0755,root,root) /usr/share/satsuma-core/tanim
+%attr(0644,root,root) /usr/share/satsuma-core/tanim/*.yaml
 
 

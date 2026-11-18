@@ -26,7 +26,7 @@ class SmartRuleEngineTests(unittest.TestCase):
 
     def test_full_rule_set_loads_strictly(self):
         stats = self.engine.stats()
-        self.assertEqual(stats['total_rules'], 233)
+        self.assertEqual(stats['total_rules'], 231)  # RAM-106/107 retired
         self.assertEqual(stats['invalid_files'], 0, stats['load_errors'])
         self.assertEqual(stats['classifications'].get('confirmed', 0), 0)
 

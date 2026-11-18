@@ -62,7 +62,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import kernel_net, kernel_profile, memory_access, memory_mounts, ptrace_guard
+from . import account_guard, kernel_net, kernel_profile, memory_access, memory_mounts, ptrace_guard
 
 PROC_SYS = Path('/proc/sys')
 STATE_DIR = Path('/var/lib/satsuma-core/kernel-guard')
@@ -87,7 +87,9 @@ NEVER_RUN = ('ModemManager.service', 'tuned.service', 'tuned-ppd.service',
 # Çekirdek bekçisi çalışan ana Satsuma servisini denetler; RAM clamd kaldırıldı.
 REQUIRED_RUNNING = ('satsuma-suricata-ips.service', 'usbguard.service',
                     'satsuma-core.service')
-PACKAGE_MANAGERS = frozenset(('rpm', 'dnf', 'dnf5', 'microdnf', 'packagekitd', 'yum'))
+# 2.2.38: rpm-ostree (CLI and daemon run the same program) installs packages on
+# Fedora Atomic. rpm-ostree de paket yöneticisidir.
+PACKAGE_MANAGERS = frozenset(('rpm', 'dnf', 'dnf5', 'microdnf', 'packagekitd', 'yum', 'rpm-ostree'))
 HARDENING_UNIT = 'satsuma-memory-hardening.service'
 ACTIVE = frozenset(('active', 'activating', 'reloading'))
 _KEY = re.compile(r'(?:net/ipv[46]/(?:conf/[A-Za-z0-9_.@-]{1,15}/)?[a-z0-9_]+|kernel/[a-z_/]+|fs/[a-z_]+'
@@ -229,7 +231,7 @@ class Guard:
     def __init__(self, root=PROC_SYS, runner=subprocess.run, clock=time.monotonic, wall=time.time,
                  state_dir=STATE_DIR, mount_reader=memory_mounts.mount_table, pm_running=package_manager_running,
                  listdir=os.listdir, can_write=None, echo=print, uptime=None, modules_path='/proc/modules',
-                 ptrace_paths=None, ptrace_evidence=None):
+                 ptrace_paths=None, ptrace_evidence=None, account_paths=None):
         self.root, self.runner, self.clock, self.wall = root, runner, clock, wall
         self.state_dir, self.mount_reader, self.pm_running = Path(state_dir), mount_reader, pm_running
         self.listdir, self.echo = listdir, echo
@@ -244,6 +246,9 @@ class Guard:
         self.ptrace_paths = dict(ptrace_paths or {})
         self.ptrace_evidence = ptrace_evidence or ptrace_guard.EVIDENCE
         self.last_ptrace = -RESTART_EVERY
+        # 2.2.38: system accounts must hold no usable password (satsuma.account_guard).
+        self.account_paths = dict(account_paths or {})
+        self.accounts = {'status': 'NOT_CHECKED'}
         self.last_ptrace_sweep = -PTRACE_EVERY
         self.recent = {}            # (kind, key) -> last time written
         self.attempts = {}          # unit or 'mounts' -> last time started again
@@ -285,7 +290,7 @@ class Guard:
                  'watched_settings': len(readings), 'settings_ok': sum(1 for r in readings.values() if r['ok']),
                  'counts': self.counts, 'last_events': self.events,
                  'profile_sha256': kernel_profile.pattern()['sha256'], 'profile_pattern': self.pattern_state,
-                 'boot': self.boot, 'ptrace_scope': self.ptrace}
+                 'boot': self.boot, 'ptrace_scope': self.ptrace, 'system_accounts': self.accounts}
         try:
             self.state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
             temporary = self.state_dir / 'state.json.tmp'
@@ -437,8 +442,34 @@ class Guard:
         self.counts['boot_restored' if done else 'restore_failed'] += 1
         self.emit('boot_cmdline_changed', ','.join(sorted(missing)), missing=missing, restored=done)
 
+    def check_accounts(self):
+        """A system account (UID 1-999, not root) with a usable password is locked; evidence first.
+
+        UID 1-999 aralığındaki sistem hesabında kullanılabilir parola varsa kilitlenir; önce kanıt.
+        """
+        found = account_guard.find(**{k: v for k, v in self.account_paths.items() if k in ('passwd', 'shadow')})
+        if found is None:
+            self.accounts = {'status': 'UNREADABLE', 'checked_at': self.wall()}
+            return
+        if not found:
+            self.accounts = {'status': 'OK', 'checked_at': self.wall()}
+            return
+        writing = self.can_write and not self.paused()
+        results = (account_guard.lock(found, self.runner, **{k: v for k, v in self.account_paths.items()
+                                                             if k in ('shadow', 'evidence')}) if writing else [])
+        for entry in found:
+            done = next((r for r in results if r['name'] == entry['name']), {})
+            kind = 'second_root_account' if entry.get('second_root') else 'system_account_has_password'
+            self.emit(kind, entry['name'], uid=entry['uid'], shell=entry['shell'],
+                      empty_password=bool(entry.get('empty_password')),
+                      locked=bool(done.get('locked')), shell_changed=bool(done.get('shell_changed')),
+                      evidence=done.get('evidence'), error=done.get('error'))
+        self.accounts = {'status': 'LOCKED' if results and all(r['locked'] for r in results) else 'AT_RISK',
+                         'accounts': [e['name'] for e in found], 'checked_at': self.wall()}
+
     def cycle(self):
         readings = self.check_settings()
+        self.check_accounts()
         if self.clock() - self.last_units >= UNITS_EVERY:
             self.last_units = self.clock()
             self.check_units()

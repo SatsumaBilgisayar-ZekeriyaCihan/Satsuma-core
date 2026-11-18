@@ -8,6 +8,11 @@ import subprocess
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'satsuma-sentinel-v62-demo/satsuma-omni-sentinel-v62-fedora-hardened.sh'
+import pytest
+# The V62 demo is a separate project folder, not part of every source export
+# (the 2026-11-18 archive had none); its checks run wherever it exists.
+if not SCRIPT.exists():
+    pytest.skip('satsuma-sentinel-v62-demo not in this source tree', allow_module_level=True)
 
 
 def text():

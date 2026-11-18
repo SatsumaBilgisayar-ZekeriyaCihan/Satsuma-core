@@ -167,8 +167,8 @@ def test_device_decision_authentication_freshness_and_firewall_readback(store,mo
 
 def test_rule_inventory_reports_actual_zero_direct_prevention():
     result=dashboard_api.m_rules()
-    assert result['active_total']==233
-    assert result['direct_stop_total']==0 and result['without_direct_stop_total']==233
+    assert result['active_total']==231  # RAM-106/107 retired
+    assert result['direct_stop_total']==0 and result['without_direct_stop_total']==231
     assert result['native_prevention_verified_total'] is None
     assert all(not row['direct_stop_actions'] for row in result['rules'])
 

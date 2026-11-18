@@ -202,7 +202,10 @@ def mount():
 
 
 def check_mount(image):
-    data=json.loads(run(['/usr/bin/findmnt','--json','--mountpoint',str(MOUNT),'-o','FSTYPE,OPTIONS,SOURCE']).stdout)
+    # 2.2.38: on Fedora Atomic /opt is a link to var/opt and the kernel records
+    # the mount at /var/opt/satsuma-core; ask for the real path. Normal Fedora: same path.
+    # ostree'de /opt -> var/opt bağıdır; bağlama noktası gerçek yoluyla sorulur.
+    data=json.loads(run(['/usr/bin/findmnt','--json','--mountpoint',os.path.realpath(MOUNT),'-o','FSTYPE,OPTIONS,SOURCE']).stdout)
     entry=data['filesystems'][0]
     if entry['fstype']!='squashfs' or not {'ro','nodev','nosuid'}.issubset(set(entry['options'].split(','))):
         raise RuntimeError('Runtime is not a read-only SquashFS mount')

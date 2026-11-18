@@ -28,7 +28,9 @@ ProtectSystem=strict
 ProtectHome=read-only
 ReadWritePaths=/var/lib/satsuma-core
 # Event flow socket (2.2.32): collectors send events here instead of the database.
-RuntimeDirectory=satsuma-flow
+# 2.2.38: satsuma-deep-results holds the deep engine's results socket; /run is
+# read-only for this service outside its own runtime folders.
+RuntimeDirectory=satsuma-flow satsuma-deep-results
 RuntimeDirectoryMode=0770
 PrivateDevices=true
 # Writable private temporary storage for bounded journal stderr capture.

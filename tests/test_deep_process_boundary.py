@@ -62,3 +62,64 @@ def test_findings_independent_of_network_startup():
     assert 'Requires=satsuma-network.service' not in unit
     teams=(ROOT/'systemd/satsuma-teams.service').read_text()
     assert 'Requires=satsuma-core-finding.service' not in teams
+
+
+# 2.2.38 (owner, 2026-11-18): "deep engine bağlantısı inactive kalıyor".
+def test_results_socket_is_in_the_teams_runtime_folder_not_the_engines():
+    from satsuma_engine import process_ipc
+    assert process_ipc.RESULT_SOCKET == '/run/satsuma-deep-results/results.sock'
+    teams=(ROOT/'systemd/satsuma-teams.service').read_text()
+    assert 'RuntimeDirectory=satsuma-flow satsuma-deep-results' in teams
+    assert 'ProtectSystem=strict' in teams
+
+
+def test_a_restarted_teams_service_reconnects_over_its_own_stale_socket():
+    with tempfile.TemporaryDirectory() as tmp:
+        event=str(Path(tmp)/'events.sock'); result=str(Path(tmp)/'results.sock')
+        server=socket.socket(socket.AF_UNIX,socket.SOCK_DGRAM); server.bind(event)
+        first=DeepProcessClient(event_socket=event, result_socket=result, expected_uid=os.geteuid())
+        first.in_sock.close(); first.out_sock.close()   # crash: no close(), socket file stays
+        assert Path(result).exists()
+        second=DeepProcessClient(event_socket=event, result_socket=result, expected_uid=os.geteuid())
+        try:
+            assert second.health()['running'] is True
+            server.sendto(json.dumps({'authorization':'none','evidence_type':'deep_engine_observation','finding_id':'f2'}).encode(),result)
+            assert second.drain()[0]['finding_id']=='f2'
+        finally:
+            second.close(); server.close()
+
+
+def test_a_foreign_file_at_the_results_path_is_never_removed():
+    import pytest
+    with tempfile.TemporaryDirectory() as tmp:
+        result=Path(tmp)/'results.sock'; result.write_text('not a socket')
+        with pytest.raises(RuntimeError, match='not our socket'):
+            DeepProcessClient(event_socket=str(Path(tmp)/'e.sock'), result_socket=str(result), expected_uid=os.geteuid())
+        assert result.read_text()=='not a socket'
+
+
+def test_integrity_check_runs_as_root_before_the_rootless_service():
+    unit=(ROOT/'systemd/satsuma-deep-engine.service').read_text()
+    assert 'ExecStartPre=+/usr/bin/python3 -I -B /opt/satsuma-core/run_deep_engine.py --verify' in unit
+    assert 'User=satsuma-engine' in unit
+    entry=(ROOT/'run_deep_engine.py').read_text()
+    main=entry.split('def main():',1)[1]
+    assert 'verify' not in main.split('if __name__',1)[0]   # the rootless part never reads the root-only key
+
+
+def test_verify_mode_refuses_to_run_without_root():
+    import subprocess, sys, pwd
+    try:nobody=pwd.getpwnam('nobody').pw_uid
+    except KeyError:
+        import pytest;pytest.skip('no nobody user')
+    if os.geteuid()!=0:
+        import pytest;pytest.skip('needs root to drop to nobody')
+    done=subprocess.run([sys.executable,'-I','-B',str(ROOT/'run_deep_engine.py'),'--verify'],
+                        capture_output=True,text=True,preexec_fn=lambda:os.setuid(nobody))
+    assert done.returncode!=0 and 'needs root' in done.stderr
+
+
+def test_teams_retries_the_deep_engine_link():
+    source=(ROOT/'run_satsuma_teams.py').read_text()
+    assert 'def connect_deep_lane' in source
+    assert 'deep_lane is None and time.monotonic() - deep_lane_tried >= 30' in source

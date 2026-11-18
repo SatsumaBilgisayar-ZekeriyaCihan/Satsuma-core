@@ -1,0 +1,16 @@
+[Unit]
+Description=Satsuma core installation steps deferred by rpm-ostree
+ConditionPathExists=/run/ostree-booted
+After=local-fs.target systemd-sysusers.service
+Before=multi-user.target
+
+[Service]
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+Type=oneshot
+RemainAfterExit=yes
+TimeoutStartSec=900
+ExecStart=/usr/bin/sh /usr/libexec/satsuma-ostree-firstboot
+
+[Install]
+WantedBy=multi-user.target

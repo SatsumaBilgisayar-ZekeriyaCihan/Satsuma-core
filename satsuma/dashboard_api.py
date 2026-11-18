@@ -66,6 +66,30 @@ def _connect_at(path):
     # Reader control-plane yazma yapamaz: DB baglantisi daima read-only.
     db = sqlite3.connect(f'file:{path}?mode=ro', uri=True, timeout=2, factory=_ClosingConnection)
     db.execute('PRAGMA query_only=ON')
+    try:
+        db.execute('SELECT 1 FROM sqlite_master LIMIT 1').fetchone()
+        return db
+    except sqlite3.OperationalError as exc:
+        db.close()
+        # 2.2.38 (owner: the panel did not work after the first install until
+        # satsuma-reader was restarted). The databases are in WAL mode and
+        # /var/lib is read-only for this service (ProtectSystem=strict). While
+        # no writer holds a database open there is no -wal/-shm file, and a
+        # read-only connection cannot create the -shm: every call failed with
+        # "attempt to write a readonly database" (reproduced in
+        # tests/test_reader_first_install.py). That is exactly the state right
+        # after installation, before satsuma-core opens core.db. With no -wal
+        # file every committed page is in the main file, so it is read as an
+        # immutable snapshot; with a -wal file the error is real and raised.
+        # İlk kurulumda yazar yokken -wal/-shm yoktur, salt okunur bağlantı
+        # -shm oluşturamaz ve her çağrı hata veriyordu. -wal yoksa tüm veri ana
+        # dosyadadır; ana dosya değişmez anlık görüntü olarak okunur.
+        message = str(exc).lower()
+        if ('readonly' not in message and 'unable to open' not in message) or not os.path.exists(path) \
+                or os.path.exists(str(path) + '-wal'):
+            raise
+    db = sqlite3.connect(f'file:{path}?mode=ro&immutable=1', uri=True, timeout=2, factory=_ClosingConnection)
+    db.execute('PRAGMA query_only=ON')
     return db
 
 
@@ -1644,8 +1668,8 @@ def m_response(limit=100):
             result['suricata_guard_state'] = 'ABSENT'
             try:
                 if guard_path.is_file():
-                    with sqlite3.connect('file:'+str(guard_path)+'?mode=ro', uri=True, factory=_ClosingConnection) as guard_db:
-                        guard_db.execute('PRAGMA query_only=ON')
+                    # 2.2.38: same read-only path as core.db (works with no writer open).
+                    with _connect_at(str(guard_path)) as guard_db:
                         guard_items = [{'ip': ip, 'reason': reason, 'added_at': ts, 'source': 'SURICATA_GUARD',
                                         'nft_set': 'blocked_v6' if ':' in ip else 'blocked_v4'}
                                        for ip, ts, reason in guard_db.execute('SELECT ip,ts,reason FROM blocks ORDER BY ts DESC LIMIT 200')]
@@ -2040,6 +2064,14 @@ def m_host_provenance():
     rows.append({'kind': 'TPM EK ve AK baglantisi', 'name': 'Bagimsiz kimlik dogrulama',
                  'signal': data['tpm_ek_identity_evidence']['status'],
                  'detail': 'EK sertifikasi ve quote ayni TPM kaniti degildir; AK-EK credential activation gerekir'})
+    # 2.2.38: these two were collected and shown in the summary text but had no row.
+    # 2.2.38: bu ikisi toplanıyor ve özet metinde görünüyordu ama satırı yoktu.
+    rows.append({'kind': 'TPM credential activation', 'name': 'AK-EK tek kullanimlik kanit',
+                 'signal': data['tpm_credential_activation_evidence']['status'],
+                 'detail': 'Bagimsiz dogrulayici olmadan AK-EK baglantisi VERIFIED sayilmaz'})
+    rows.append({'kind': 'ISO imza kaniti', 'name': 'Fedora ISO / imzali CHECKSUM',
+                 'signal': data['iso_signature_evidence']['status'],
+                 'detail': 'Imzali CHECKSUM ve bagimsiz Fedora parmak izi olmadan ISO dogrulanmis sayilmaz; kurulu OS kaniti degil'})
     for entry in data['cve_evidence']['items']:
         rows.append({'kind': 'CVE surum karsilastirmasi', 'name': entry['cve'] + ' / ' + entry['package'],
                      'signal': entry['applicability'], 'detail': entry['advisory'] + ' · yerel metadata; istismar kaniti degil'})

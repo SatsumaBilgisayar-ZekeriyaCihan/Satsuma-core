@@ -26,7 +26,6 @@ class CoverageTests(unittest.TestCase):
         class Pipeline:
             def ingest_host(self,e):pass
         with ExitStack() as stack:
-            stack.enter_context(patch('satsuma.ram.coordinator.MemoryMonitor',Monitor))
             stack.enter_context(patch('satsuma.worker_memory.inspect_process',return_value=[]))
             stack.enter_context(patch('satsuma.worker_memory.validate_executable',return_value={'status':'CODE_MATCH','complete':True}))
             stack.enter_context(patch('satsuma.worker_memory.scan_executable_regions',return_value={'status':'READ','bytes_read':0}))

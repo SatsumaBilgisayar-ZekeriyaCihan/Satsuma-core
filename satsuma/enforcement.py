@@ -77,6 +77,18 @@ ATTACK_INDICATORS = frozenset((
 # 2.2.38: the list of programs exempt by name is gone (owner, 2026-11-13).
 # 2.2.38: ada göre muaf programlar listesi kaldırıldı (sahibi, 2026-11-13).
 INIT_PID = 1
+# 2.2.38 (owner, 2026-11-16): SATSUMA-RAM-001 is loosened. Browsers, Java, Node,
+# Python and .NET build writable+executable buffers (JIT) all day, so stopping
+# on the indicator alone stopped everything. A program whose file is a root-owned
+# regular file in a folder nobody else can write (trusted_path) is recorded, not
+# stopped; anything else (a dropped binary, memfd, a deleted file, /tmp, a home
+# folder) is still stopped. Same rule as Windows (program_not_in_expected_location).
+# 2.2.38 (sahibi, 2026-11-16): RAM-001 gevşetildi. Tarayıcı, Java, Node, Python
+# ve .NET gün boyu yazılabilir+çalıştırılabilir tampon (JIT) kurar; yalnızca
+# göstergeye bakmak her şeyi durduruyordu. Program dosyası root sahipli, kimsenin
+# yazamadığı klasördeki normal dosyaysa kaydedilir, durdurulmaz; geri kalanı
+# (bırakılmış ikili, memfd, silinmiş dosya, /tmp, ev klasörü) yine durdurulur.
+RWX_RULE = 'SATSUMA-RAM-001'
 
 
 def policy(store):
@@ -135,6 +147,28 @@ def exempt(pid, executable, finding=None, proc_root='/proc'):
     if (finding or {}).get('origin') == 'satsuma_operator' and unit=='satsuma-operator.service':
         return 'satsuma_dashboard_action'
     return None
+
+
+def rwx_kept(finding, executable):
+    """Reason a RAM-001 match is only recorded, or None when the process is stopped.
+
+    RAM-001 yalnızca kaydedilir mi: program güvenilir yoldaysa neden, değilse None.
+    """
+    if str((finding or {}).get('rule_id', '')) != RWX_RULE or not executable:
+        return None
+    path = str(executable)
+    if 'memfd:' in path:
+        return None
+    # 2.2.38: a " (deleted)" program counts only when a root-owned file nobody
+    # else can write is back at the same path (a package update replaced it
+    # while it ran, e.g. Firefox during dnf update), the same rule as
+    # worker_memory's replaced_executable. A program removed to hide (nothing
+    # at the path, or a file in /tmp) is still stopped. The caller passes the
+    # path already without the suffix (process_identity.canonical_exe_path).
+    # Güncellemeyle yerine root dosyası gelmiş program kaydedilir; gizlenmek
+    # için silinen program yine durdurulur.
+    from .trusted_process import trusted_path
+    return 'trusted_program_jit_memory' if trusted_path(path.removesuffix(' (deleted)')) else None
 
 
 def apply(store, config):

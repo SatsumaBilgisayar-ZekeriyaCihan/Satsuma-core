@@ -136,7 +136,10 @@ class OperatorController:
         elif method == 'process_approval_decide':
             from .process_approval import decide
             from .auto_process import respond as respond_process
-            from .response import ResponseWorker
+            # 2.2.38: no local "from .response import ResponseWorker" here. It
+            # made the name local to the whole dispatch(), so device_decision and
+            # the administrator's IP unblock raised UnboundLocalError every time.
+            # Buradaki yerel içe aktarma, cihaz kararı ve IP engeli kaldırmayı çökertiyordu.
             from . import enforcement
             def guarded_process(finding, request_id):
                 if self.store.get('interactive_process_test_mode', False) is not True:

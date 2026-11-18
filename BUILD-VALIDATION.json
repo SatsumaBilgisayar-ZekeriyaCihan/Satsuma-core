@@ -1,12 +1,15 @@
 {
-  "version": "2.2.37",
+  "version": "2.2.38",
   "release": "1.fc44",
   "status": "SOURCE_CANDIDATE",
-  "base": "main 6f9312d (2026-11-11) plus four local commits; all earlier branches kept under eski/",
-  "source_tests": "2251 passed, 7 skipped (host-only), 0 failed on an Ubuntu 24.04 container; Fedora-only tests skipped there",
+  "base": "satsuma-core-2.2.37-duzeltilmis archive of 2026-11-18 (no git history, docs and release/ folder in the archive)",
+  "source_tests": "2334 passed, 24 skipped, 13 failed + 4 collection errors on an Ubuntu 24.04 container (Python 3.13). Every failure but one needs PyQt5/PyQt6, which the container lacks; the other is satsuma-core-windows, which still imports the retired satsuma.ram.engine (Windows RAM-ClamAV removal not done).",
+  "rpm_built": false,
+  "rpm_build_note": "rpmbuild is not available where this source was prepared; build on Fedora with: SATSUMA_RPM_BUILD_ROOT=$(mktemp -d) bash packaging/build.sh",
   "full_audit_complete": false,
   "target_device_verified": false,
+  "ostree_device_verified": false,
   "publisher_signature": "unavailable; package built locally and not signed",
-  "behavior_changes": "Everything in main since the 2.2.36 package of 2026-11-10 (exec guard, RAM-001 stopped, memory decision shared with Windows); ptrace_scope 3 is a RAM-blinding alarm and its sysctl/boot source is undone, checked every minute; the RAM scanner trusts only the clamd in the satsuma-ram-clamd.service cgroup and scans clamd copies outside a system service; satsuma-ram-clamd never gives up and starts at boot; the kernel guard starts a stopped satsuma-ram-clamd and satsuma-core again",
-  "rollback": "eski/main holds the previous main unchanged"
+  "behavior_changes": "See docs/RELEASE-2.2.38.md: account-file writes judged by what they changed; account guard covers empty/DES hashes, a second UID 0, 65534 and dynamic users; deep engine starts and connects; reader reads before any writer opens the database and restarts at the end of installation; operator device decision and IP unblock no longer crash; rpm-ostree paths (kargs, /etc sysctl overrides, packaged definitions, rpm-ostree as package manager, no USB kernel argument on ostree); script file modes fixed in the spec; maintenance kit (satsuma-admin bakim, satsuma-maintenance.timer, tam-kontrol covers the whole product)",
+  "rollback": "the 2.2.37 archive is unchanged"
 }

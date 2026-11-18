@@ -147,7 +147,9 @@ def test_packaged_rescue_is_independent_and_health_timer_ten_minutes():
     for name in ('satsuma-rescue.service','satsuma-self-health.timer','satsuma-app-control.service'):
         assert any('systemctl enable ' in line and name in line for line in spec.splitlines())
         assert any(('systemctl start ' in line or 'systemctl restart ' in line) and name in line for line in spec.splitlines())
-    assert 'for unit in satsuma-self-health.timer satsuma-self-health satsuma-rescue satsuma-core' in spec
+    # 2.2.38: the maintenance kit's timer goes first too: it may start units.
+    assert ('for unit in satsuma-maintenance.timer satsuma-maintenance '
+            'satsuma-self-health.timer satsuma-self-health satsuma-rescue satsuma-core') in spec
 
 
 def test_self_health_reports_running_and_refuses_repairs_on_integrity_failure(monkeypatch):

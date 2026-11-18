@@ -1,4 +1,6 @@
 [Unit]
+StartLimitIntervalSec=300
+StartLimitBurst=3
 Description=Satsuma verified ClamAV on-access journal consumer (candidate)
 Requires=satsuma-image.service satsuma-clamonacc.service
 After=satsuma-image.service satsuma-clamonacc.service
@@ -11,6 +13,7 @@ WorkingDirectory=/opt/satsuma-core
 Environment=PATH=/usr/sbin:/usr/bin
 ExecStart=/usr/bin/python3 -I -B /opt/satsuma-core/installer/onaccess_listener_entry.py
 Restart=on-failure
+RestartPreventExitStatus=78
 RestartSec=10s
 UMask=0077
 LimitCORE=0

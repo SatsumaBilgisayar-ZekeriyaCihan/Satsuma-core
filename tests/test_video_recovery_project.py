@@ -7,6 +7,9 @@ import sys
 from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parents[1] / 'satsuma-video-recovery'
+import pytest
+if not PROJECT.exists():
+    pytest.skip('satsuma-video-recovery not in this source tree', allow_module_level=True)
 
 
 def test_video_recovery_tests_pass():

@@ -839,7 +839,18 @@ class SmartRuleEngine:
         runtime_errors = [item for item in self.load_errors if str(item.get('error', '')).startswith('runtime ')]
         if runtime_errors:
             raise RuntimeError('Smart rule evaluation failed: ' + runtime_errors[-1]['error'])
+        # 2.2.38 (owner, 2026-11-18): a write to /etc/passwd or /etc/shadow is
+        # judged by what it changed, once per event (satsuma.account_change).
+        # Yazma, neyi değiştirdiğine göre değerlendirilir; olay başına bir kez.
+        from . import account_change
+        if any(account_change.applies(f) for f in findings):
+            result = account_change.TRACKER.check() if self.account_tracker is None else self.account_tracker.check()
+            for finding in findings:
+                account_change.apply(finding, result)
         return self._deduplicate(findings)
+
+    # Tests and the teams service may give their own tracker; None uses the shared one.
+    account_tracker = None
 
     def _budget_finding(self, event: dict[str, Any], starved: list[str]) -> dict[str, Any]:
         # Rules that ran out of time are named, never silently dropped: a

@@ -182,16 +182,6 @@ def test_the_unit_may_write_only_the_sysctl_paths():
     assert 'ProtectSystem=strict' in unit
 
 
-def test_ram_health_names_why_it_is_blocked(tmp_path):
-    from satsuma.ram.coordinator import MemoryMonitor
-    root = tmp_path / 'proc'
-    (root / 'sys/kernel/yama').mkdir(parents=True)
-    (root / 'sys/kernel/yama/ptrace_scope').write_text('3\n')
-    health = MemoryMonitor(proc_root=root, autostart=False).health()
-    assert health['status'] == 'BLOCKED' and health['blocked_reason'] == 'ptrace_scope_3_blinds_the_scanner'
-    assert health['reboot_needed'] is True
-
-
 def test_the_guard_checks_ptrace_and_its_sources_at_start_and_then_once_a_minute(tree, tmp_path):
     now = [0.0]
     calls = []

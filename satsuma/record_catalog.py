@@ -44,6 +44,13 @@ KINDS = {
     'process_evidence': _k('Süreç kanıtları', 'Durdurulan süreçlerin kimliği',
         'Durdurulmadan önce bir sürecin doğrulanan kimliği: PID, başlangıç zamanı, program dosyası.',
         'Yanlış sürecin durdurulmadığının kanıtıdır.', group='protection'),
+    # 2.2.38: written by the code but missing here, so the records panel never showed them.
+    'onaccess_rescan': _k('Erişimde yeniden tarama', 'Açılan dosyanın yeniden taranması',
+        'ClamAV erişim anında bir dosyayı işaretlediğinde Satsuma dosyayı tanıtıcısı üzerinden yeniden tarar; sonuç burada.',
+        'Karantinaya alınan ya da bırakılan dosyanın hangi taramaya dayandığını gösterir.', group='protection'),
+    'deep_rule_review_events': _k('Derin motor kural incelemeleri', 'Onay bekleyen deneme kuralı bulguları',
+        'Deneme kipinde derin motorun önerdiği ve sizin onayınızı bekleyen, onaylanan ya da iptal edilen kural bulguları.',
+        'Deneme kuralları kendiliğinden işlem yapmaz; kararı siz verirsiniz.', group='protection'),
     'quarantine_actions': _k('Karantina', 'Karantinaya alınan dosyalar',
         'Karantinaya alınan, geri bırakılan ya da silinen dosyalar.',
         'Bir dosyanın neden ortadan kalktığını buradan görürsünüz.', group='protection'),

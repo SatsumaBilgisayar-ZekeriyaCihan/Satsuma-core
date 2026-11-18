@@ -1,5 +1,7 @@
 [Unit]
 Description=Satsuma isolated rootless deep evidence engine
+StartLimitIntervalSec=300
+StartLimitBurst=3
 Requires=satsuma-image.service
 After=satsuma-image.service
 Before=satsuma-teams.service
@@ -8,9 +10,14 @@ Type=simple
 User=satsuma-engine
 Group=satsuma-core
 WorkingDirectory=/opt/satsuma-core
+# Audit G3: bare program names never resolve to /usr/local.
+Environment=PATH=/usr/sbin:/usr/bin
+# 2.2.38: the integrity check needs the root-only manifest key; it runs as root
+# ("+") before the rootless service starts. Bütünlük denetimi root olarak önce çalışır.
+ExecStartPre=+/usr/bin/python3 -I -B /opt/satsuma-core/run_deep_engine.py --verify
 ExecStart=/usr/bin/python3 -I -B /opt/satsuma-core/run_deep_engine.py
 Environment=PYTHONDONTWRITEBYTECODE=1
-Environment=PATH=/usr/bin:/usr/sbin
+RestartPreventExitStatus=78
 RuntimeDirectory=satsuma-deep
 RuntimeDirectoryMode=0770
 UMask=0077

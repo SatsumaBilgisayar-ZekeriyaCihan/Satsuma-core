@@ -20,7 +20,7 @@ def inspect(root):
         path=payload/name
         if not path.is_file() or path.is_symlink():raise RuntimeError('payload missing: '+name)
         if path.suffix=='.py':compile(path.read_bytes(),str(path),'exec')
-    assert len(json.loads((payload/'schemas/rule-response-catalog-v1.json').read_text())['rules'])==233
+    assert len(json.loads((payload/'schemas/rule-response-catalog-v1.json').read_text())['rules'])==231  # 2.2.38: RAM-106/107 retired
     if any(payload.rglob('deepseek.key')) or any(payload.rglob('*.asc')):raise RuntimeError('unexpected key/signature in runtime payload')
     code='''import json
 from pathlib import Path
@@ -33,7 +33,7 @@ assert Path(deepseek_workflow.__file__).is_relative_to(root)
 assert Path(DeepSeekPanel.__module__.replace('.', '/')).name=='deepseek'
 Draft202012Validator.check_schema(json.loads(ai_rule_package.SCHEMA_PATH.read_text()))
 engine=SmartRuleEngine(root/'rules')
-assert len(engine.rules)==233 and not engine.load_errors
+assert len(engine.rules)==231 and not engine.load_errors
 print(json.dumps({'rules':len(engine.rules),'qt_panel':DeepSeekPanel.PANEL_ID,'operator_methods':len(deepseek_workflow.METHODS)}))
 '''
     result=subprocess.run([sys.executable,'-B','-c',code],cwd=payload,env={**os.environ,'PYTHONPATH':str(payload),'QT_QPA_PLATFORM':'offscreen'},

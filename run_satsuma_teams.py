@@ -382,6 +382,10 @@ def _recordable(finding):
     may act on, are recorded; log-only and indicator findings stay in the flow.
     """
     from satsuma import enforcement
+    if finding.get('account_change'):
+        # 2.2.38: an account file write is always shown with what it changed,
+        # at the severity that change deserves (satsuma.account_change).
+        return True
     if finding.get('log_only'):
         return enforcement.eligible(finding) and str(finding.get('classification', '')).lower() != 'indicator'
     return str(finding.get('classification', '')).lower() in ('suspicious', 'likely', 'confirmed') or enforcement.eligible(finding)
@@ -613,18 +617,36 @@ def main():
         pipeline = Pipeline(store, config)
         smart_engine = SmartRuleEngine()
         rule_stats = smart_engine.stats()
+        # 2.2.38: account snapshot before the first event, so the first write to
+        # /etc/passwd or /etc/shadow is compared with something.
+        try:
+            from satsuma import account_change
+            account_change.TRACKER.baseline()
+        except Exception as exc:
+            store.add('errors', {'component': 'brain.account_snapshot', 'error': str(exc)[:300]})
         # Event flow (2.2.32): events arrive here instead of the database.
         from satsuma import flow as flow_module
         process_flow = flow_module.ProcessFlow(window=float(config.get('flow_window_seconds', 1800)))
         short_window = ShortEvidenceWindow()
         deep_lane = None
         deep_lane_error = None
-        try:
-            from satsuma_engine.process_ipc import DeepProcessClient
-            deep_lane = DeepProcessClient()
-        except Exception as exc:
-            deep_lane_error = type(exc).__name__
-            store.add('errors', {'component': 'brain.deep_engine.start', 'error': deep_lane_error})
+        deep_lane_tried = 0.0
+
+        def connect_deep_lane():
+            # 2.2.38: one failed start no longer leaves the deep engine link off
+            # for the life of the service; it is tried again every 30 seconds.
+            # Tek başarısız deneme bağlantıyı servis boyunca kapalı bırakmaz.
+            nonlocal deep_lane, deep_lane_error, deep_lane_tried
+            deep_lane_tried = time.monotonic()
+            try:
+                from satsuma_engine.process_ipc import DeepProcessClient
+                deep_lane = DeepProcessClient()
+                deep_lane_error = None
+            except Exception as exc:
+                deep_lane_error = f'{type(exc).__name__}: {exc}'[:200]
+                store.add('errors', {'component': 'brain.deep_engine.start', 'error': deep_lane_error})
+
+        connect_deep_lane()
         receiver = flow_module.FlowReceiver()
         try:
             receiver.start()
@@ -638,6 +660,8 @@ def main():
 
         def flow_step():
             nonlocal last_flow_health
+            if deep_lane is None and time.monotonic() - deep_lane_tried >= 30:
+                connect_deep_lane()
             try:
                 _flow_tick(store, config, pipeline, smart_engine, process_flow, receiver, short_window=short_window, deep_lane=deep_lane)
             except Exception as exc:

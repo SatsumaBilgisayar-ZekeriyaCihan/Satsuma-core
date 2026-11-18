@@ -142,20 +142,9 @@ def wanted_args(unsigned):
 
 
 def boot_entries(runner=subprocess.run):
-    """kernel path -> set of words on its command line, from grubby."""
-    result = runner([GRUBBY, '--info=ALL'], capture_output=True, text=True, timeout=30)
-    if result.returncode != 0:
-        raise RuntimeError('grubby --info=ALL failed: ' + (result.stderr or '')[:200])
-    entries, kernel = {}, None
-    for line in result.stdout.splitlines():
-        key, _, value = line.partition('=')
-        value = value.strip().strip('"')
-        if key == 'kernel':
-            kernel = value
-            entries[kernel] = set()
-        elif key == 'args' and kernel is not None:
-            entries[kernel] = set(value.split())
-    return entries
+    """kernel path -> set of words on its command line (grubby; rpm-ostree kargs on ostree, 2.2.38)."""
+    from . import ostree
+    return ostree.boot_entries(runner)
 
 
 def boot_drift(entries, args):
@@ -182,21 +171,20 @@ def apply_boot(runner=subprocess.run, modules_path='/proc/modules'):
     # 2'den farklı ptrace_scope açılış bağımsız değişkeni RAM tarayıcısını kör eder; kaldırılır.
     from .ptrace_guard import sources as ptrace_sources, boot_arguments
     blinding = boot_arguments(ptrace_sources(dirs=(), legacy=(), cmdline='/nonexistent', entries=entries))
+    from . import ostree
     if blinding:
-        result = runner([GRUBBY, '--update-kernel=ALL', '--remove-args=' + ' '.join(blinding)],
-                        capture_output=True, text=True, timeout=60)
+        result = ostree.update_args(remove=blinding, runner=runner)
         if result.returncode != 0:
-            raise RuntimeError('grubby --remove-args failed: ' + (result.stderr or '')[:200])
+            raise RuntimeError(ostree.tool_name() + ' --remove-args failed: ' + (result.stderr or '')[:200])
         entries = boot_entries(runner)
         left = boot_arguments(ptrace_sources(dirs=(), legacy=(), cmdline='/nonexistent', entries=entries))
         if left:
             raise RuntimeError('Boot entries still set ptrace_scope: ' + ' '.join(left))
     missing = boot_drift(entries, args)
     if missing:
-        result = runner([GRUBBY, '--update-kernel=ALL', '--args=' + ' '.join(args)],
-                        capture_output=True, text=True, timeout=60)
+        result = ostree.update_args(add=args, runner=runner)
         if result.returncode != 0:
-            raise RuntimeError('grubby --update-kernel=ALL failed: ' + (result.stderr or '')[:200])
+            raise RuntimeError(ostree.tool_name() + ' --update-kernel=ALL failed: ' + (result.stderr or '')[:200])
         left = boot_drift(boot_entries(runner), args)
         if left:
             raise RuntimeError('Boot entries still miss: ' + json.dumps(left))

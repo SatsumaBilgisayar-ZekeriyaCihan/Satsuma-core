@@ -135,6 +135,10 @@ def test_full_removal_drops_the_usb_kernel_argument():
     from satsuma.usb_guard import KERNEL_ARG
     spec = (Path(__file__).parents[1] / 'packaging/satsuma-core.spec').read_text()
     preun = spec.split('%preun\n', 1)[1].split('\n%', 1)[0]
+    # 2.2.38: an ostree guard comes first (rpm-ostree's sandbox can do nothing);
+    # on ostree the argument is never set (satsuma.usb_guard), so nothing is left.
+    guard, preun = preun.split('\nfi\n', 1)
+    assert 'satsuma_ostree' in guard and 'exit 0' in guard
     assert preun.startswith('if [ "$1" -eq 0 ]')
     assert f'/usr/sbin/grubby --update-kernel=ALL --remove-args={KERNEL_ARG} || exit 1' in preun
     assert preun.rstrip().endswith('fi')
@@ -171,3 +175,27 @@ def test_removal_gives_usb_back_before_anything_that_can_abort():
     assert restore < preun.index('|| exit 1') and restore < preun.index('satsuma-image unmount')
     # The flag is handled by satsuma/app.py in this source (main.py only forwards to it).
     assert "'--usbguard-restore'" in (ROOT / 'satsuma' / 'app.py').read_text()
+
+
+
+def test_ostree_never_sets_the_kernel_argument_removal_could_not_undo(fs, monkeypatch, tmp_path):
+    # 2.2.38: rpm-ostree's sandbox cannot remove it on uninstall; USB input would stay dead.
+    from satsuma import ostree
+    marker = tmp_path / 'ostree-booted'; marker.write_text('')
+    monkeypatch.setattr(ostree, 'MARKER', marker)
+    usb(fs[0], '1-1', 'removable', keyboard=True)
+    host = Host()
+    report = setup(host, fs)
+    assert report['status'] == 'ACTIVE_WITHOUT_EARLY_BOOT'
+    assert report['reason'] == 'ostree_removal_cannot_undo_kernel_argument'
+    assert not any('kargs' in ' '.join(c) or c[0].endswith('grubby') for c in host.calls)
+    assert any(c[-1] == 'usbguard.service' for c in host.calls)   # the daemon still enforces
+
+
+def test_normal_fedora_still_sets_the_argument_with_grubby(fs, monkeypatch, tmp_path):
+    from satsuma import ostree
+    monkeypatch.setattr(ostree, 'MARKER', tmp_path / 'absent')
+    usb(fs[0], '1-1', 'removable', keyboard=True)
+    host = Host()
+    assert setup(host, fs)['status'] == 'REBOOT_REQUIRED'
+    assert ['/usr/sbin/grubby', '--update-kernel=ALL', '--args=' + ug.KERNEL_ARG] in host.calls

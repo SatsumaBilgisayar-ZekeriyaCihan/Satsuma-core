@@ -19,7 +19,8 @@ file (anonymous_rwx) on Windows, where every .NET program has such memory
 services): the process is stopped when a thread was started from fileless
 memory, or when its program file is not where it should be (outside the
 Windows folder and Program Files); otherwise the finding is recorded. Linux
-passes no such facts and keeps stopping on the indicator alone. Only
+passes no such facts; its anonymous_rwx decision is made in satsuma.auto_process
+(2.2.38: a program in a root-only place is recorded, anything else is stopped). Only
 reading memory and stopping a process are platform specific. Needs only the
 standard library, PyYAML and satsuma.enforcement.
 

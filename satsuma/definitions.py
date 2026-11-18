@@ -14,6 +14,10 @@ import stat
 from pathlib import Path
 
 DIRECTORY = Path('/var/lib/satsuma-core/tanim')
+# 2.2.38: rpm-ostree drops regular files a package puts under /var (only folders
+# become tmpfiles.d entries), so the package also ships them under /usr/share.
+# rpm-ostree /var altındaki dosyaları atar; paket bunları /usr/share altına da koyar.
+PACKAGED = Path('/usr/share/satsuma-core/tanim')
 FILES = {'techniques': 'mitre-attack-teknikler.yaml', 'tactics': 'mitre-attack-taktikler.yaml',
          'revoked': 'mitre-attack-iptal-edilenler.yaml', 'kev': 'cisa-kev.yaml'}
 MAX_BYTES = 16 * 1024 * 1024
@@ -48,10 +52,15 @@ def _read(path, owner=0):
 
 
 def load(name, directory=None, owner=0):
-    try:
-        return _read(Path(directory or DIRECTORY) / FILES[name], owner)
-    except (OSError, ValueError, KeyError):
-        return None
+    places = [Path(directory)] if directory else [DIRECTORY, PACKAGED]
+    for place in places:
+        try:
+            return _read(place / FILES[name], owner)
+        except FileNotFoundError:
+            continue
+        except (OSError, ValueError, KeyError):
+            return None
+    return None
 
 
 def technique(technique_id, directory=None, owner=0):

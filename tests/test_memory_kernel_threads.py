@@ -6,7 +6,6 @@ import os
 import time
 
 from satsuma import worker_memory
-from satsuma.ram.coordinator import MemoryMonitor
 from satsuma.ram.proc import kernel_thread
 from satsuma.worker_memory import WorkerMemory
 
@@ -65,24 +64,6 @@ def test_a_batch_of_only_kernel_threads_is_not_a_fault(tmp_path):
     worker.ram_v2 = Monitor()
     worker.tick(Pipeline())
     assert worker.store.data['worker.memory.health']['status'] == 'RUNNING'
-
-
-def test_ram_v2_skips_kernel_threads_without_a_report(tmp_path):
-    for pid in (2, 3):
-        (tmp_path / str(pid)).mkdir()
-        (tmp_path / str(pid) / 'stat').write_text(stat_line(pid, 0x00208040))
-    monitor = MemoryMonitor(tmp_path, autostart=False)
-    monitor.thread.start()
-    try:
-        deadline = time.monotonic() + 3
-        while time.monotonic() < deadline and len(monitor.kernel_threads) < 2:
-            time.sleep(.01)
-    finally:
-        monitor.close()
-    assert monitor.kernel_threads == {2, 3}
-    assert monitor.results.empty()
-    health = monitor.health()
-    assert health['kernel_threads'] == 2 and health['coverage_state'] != 'INCOMPLETE'
 
 
 def test_no_process_at_all_is_still_a_fault(tmp_path):

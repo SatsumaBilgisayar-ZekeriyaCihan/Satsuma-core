@@ -1,0 +1,47 @@
+# Builds the satsuma-core RPM inside Fedora 44 and keeps it as a downloadable
+# artifact (Actions -> run -> Artifacts -> satsuma-core-rpm). Unsigned.
+# satsuma-core RPM'ini Fedora 44 içinde derler ve indirilebilir çıktı olarak
+# saklar (Actions -> çalışma -> Artifacts -> satsuma-core-rpm). İmzasızdır.
+name: rpm
+
+on:
+  push:
+    branches: ['satsuma-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rpm:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      image: registry.fedoraproject.org/fedora:44
+    steps:
+      - name: Build tools
+        run: dnf -y install rpm-build tar gzip git findutils python3 systemd
+      - uses: actions/checkout@v4
+      - name: Build RPM
+        # Build root outside the checkout: build.sh tars the checkout itself.
+        run: SATSUMA_RPM_BUILD_ROOT=/tmp/rpmbuild SATSUMA_RPM_DIST=.fc44 bash packaging/build.sh
+      - name: Check the package
+        run: |
+          set -euo pipefail
+          rpm=$(ls /tmp/rpmbuild/RPMS/*/satsuma-core-*.rpm)
+          rpm -qip "$rpm"
+          # Every command must be executable (the 2.2.37 archive had none).
+          rpm -qlvp "$rpm" | grep ' /usr/bin/satsuma-'
+          if rpm -qlvp "$rpm" | grep ' /usr/bin/satsuma-' | grep -v '^-rwxr-xr-x'; then exit 1; fi
+          rpm -qlp "$rpm" | grep -qx /usr/lib/systemd/system/satsuma-maintenance.timer
+          rpm -qlp "$rpm" | grep -qx /usr/share/satsuma-core/tanim/cisa-kev.yaml
+          rpm -qp --scripts "$rpm" > /tmp/scripts.txt
+          grep -q 'satsuma_ostree' /tmp/scripts.txt
+          mkdir -p dist
+          cp "$rpm" dist/
+          (cd dist && sha256sum -- *.rpm | tee SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: satsuma-core-rpm
+          path: dist/
+          if-no-files-found: error

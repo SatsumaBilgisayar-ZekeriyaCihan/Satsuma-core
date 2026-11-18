@@ -181,6 +181,15 @@ def respond(store, config, finding, response, *, approved_request=None):
                     'title': 'PID 1 (systemd) bir saldırı kuralına takıldı; çekirdek durdurulmasına izin vermez. '
                              'Bilgisayarı ağdan ayırın ve inceleyin.'})
             return _persist_decision(store,finding,record)
+        # 2.2.38: RAM-001 on a program installed in a root-only place (JIT) is
+        # recorded, not stopped. RAM-001 kurulu güvenilir programda (JIT) kaydedilir.
+        exe_for_rwx = evidence_exe(event) or memory_extensions.get('host.exe')
+        kept = enforcement.rwx_kept(finding, exe_for_rwx)
+        if kept:
+            record.update(status='report_only', evaluation_only=True, kept=kept,
+                          reasons=['trusted_program_jit_memory'],
+                          decision_explanation='Güvenilir yoldaki program JIT için yazılabilir+çalıştırılabilir bellek kurar; kaydedildi, durdurulmadı.')
+            return _persist_decision(store, finding, record)
         # A memory difference must reproduce now; a stale or forged one never
         # stops a process, with or without the blocking policy.
         memory_claim = finding.get('rule_id') == 'SATSUMA-RAM-005'

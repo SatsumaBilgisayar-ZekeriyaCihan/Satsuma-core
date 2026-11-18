@@ -78,12 +78,52 @@ def stopped(child):
 
 
 @pytest.mark.parametrize('code', [RWX_PRIVATE, RWX_SHARED], ids=['private', 'shared'])
-def test_writable_executable_anonymous_memory_stops_the_process(store, code):
+def test_writable_executable_anonymous_memory_stops_the_process(store, code, monkeypatch):
+    # 2.2.38: a program in a root-only place is recorded (JIT); here the program is
+    # outside such a place, so it is stopped. Burada program güvenilir yerde değil.
+    monkeypatch.setattr('satsuma.trusted_process.trusted_path', lambda value: False)
     child = start(code)
     finding, result = detect_and_respond(store, child, 'anonymous_rwx')
     assert finding['rule_id'] == 'SATSUMA-RAM-001'
     assert result['signal_sent'] is True, result
     assert stopped(child)
+
+
+@pytest.mark.parametrize('code', [RWX_PRIVATE, RWX_SHARED], ids=['private', 'shared'])
+def test_rwx_memory_of_a_trusted_program_is_recorded_not_stopped(store, code, monkeypatch):
+    """Owner, 2026-11-16: JIT buffers of an installed program must not stop it.
+
+    Sahibi, 2026-11-16: kurulu programın JIT tamponu süreci durdurmaz, kaydedilir.
+    """
+    monkeypatch.setattr('satsuma.trusted_process.trusted_path', lambda value: True)
+    child = start(code)
+    try:
+        finding, result = detect_and_respond(store, child, 'anonymous_rwx')
+        assert finding['rule_id'] == 'SATSUMA-RAM-001'
+        assert result['signal_sent'] is False, result
+        assert result.get('kept') == 'trusted_program_jit_memory', result
+        assert child.poll() is None
+    finally:
+        child.kill()
+        child.wait()
+
+
+def test_rwx_kept_never_excuses_memfd_deleted_or_other_rules(monkeypatch):
+    from satsuma import enforcement
+    # Only the installed browser is a root-owned file in a root-only folder.
+    monkeypatch.setattr('satsuma.trusted_process.trusted_path', lambda value: value == '/usr/bin/firefox')
+    ram1 = {'rule_id': 'SATSUMA-RAM-001'}
+    assert enforcement.rwx_kept(ram1, '/usr/bin/firefox') == 'trusted_program_jit_memory'
+    assert enforcement.rwx_kept(ram1, '/usr/bin/x (deleted)') is None   # nothing back at the path
+    # 2.2.38: replaced by a package update while it ran: kept, as worker_memory does.
+    assert enforcement.rwx_kept(ram1, '/usr/bin/firefox (deleted)') == 'trusted_program_jit_memory'
+    assert enforcement.rwx_kept(ram1, '/tmp/dropper (deleted)') is None
+    assert enforcement.rwx_kept(ram1, '/memfd:payload') is None
+    assert enforcement.rwx_kept(ram1, None) is None
+    for other in ('SATSUMA-RAM-002', 'SATSUMA-RAM-003', 'SATSUMA-RAM-004', 'SATSUMA-RAM-008', 'SATSUMA-RAM-009'):
+        assert enforcement.rwx_kept({'rule_id': other}, '/usr/bin/firefox') is None
+    monkeypatch.setattr('satsuma.trusted_process.trusted_path', lambda value: False)
+    assert enforcement.rwx_kept(ram1, '/tmp/dropper') is None
 
 
 def test_code_mapped_from_a_temporary_folder_stops_the_process(store, tmp_path):

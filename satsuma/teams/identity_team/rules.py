@@ -3,7 +3,17 @@ from satsuma.teams.host_team.rules import _BaseRule
 
 
 PRIV_TOOLS = ('sudo', 'su', 'pkexec', 'doas', 'setpriv')
-SENSITIVE_PATHS = ('/etc/passwd', '/etc/shadow', '/etc/sudoers', '/root/.ssh')
+# 2.2.38: exact files and folder contents only. A prefix match counted
+# /etc/passwd-, /etc/shadow+ and the like. /etc/passwd and /etc/shadow are
+# judged by what a write changed in the rule engine (satsuma.account_change);
+# a second "high" alarm for the same write is not raised here.
+# Yalnızca tam dosya ve klasör içeriği; passwd/shadow yazmasını kural motoru
+# içeriğine bakarak değerlendirir, burada ikinci alarm verilmez.
+SENSITIVE_PATHS = ('/etc/sudoers', '/root/.ssh')
+
+
+def sensitive(path):
+    return any(path == item or path.startswith(item + '/') for item in SENSITIVE_PATHS)
 
 
 class PrivilegeEscalationRule(_BaseRule):
@@ -60,7 +70,7 @@ class SensitiveFileRule(_BaseRule):
         for e in events:
             exts = e.get('metadata', {}).get('extensions', {})
             path = str(exts.get('host.path', ''))
-            if path and any(path.startswith(sp) for sp in SENSITIVE_PATHS):
+            if path and sensitive(path):
                 findings.append(self._finding(
                     'sensitive_file_access',
                     [e],

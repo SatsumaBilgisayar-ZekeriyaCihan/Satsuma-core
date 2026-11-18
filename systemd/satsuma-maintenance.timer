@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Satsuma maintenance kit 15 minutes after boot and every six hours
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=6h
+RandomizedDelaySec=5min
+Unit=satsuma-maintenance.service
+
+[Install]
+WantedBy=timers.target

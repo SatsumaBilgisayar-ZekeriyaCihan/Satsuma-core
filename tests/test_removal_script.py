@@ -16,8 +16,14 @@ from pathlib import Path
 import re
 import subprocess
 
+import pytest
+
 ROOT = Path(__file__).parents[1]
 SCRIPT = ROOT / 'release/kaldir.sh'
+# release/ is published from the repository, not part of every source export
+# (the 2026-11-18 archive had none); the checks run wherever it exists.
+if not SCRIPT.exists():
+    pytest.skip('release/kaldir.sh not in this source tree', allow_module_level=True)
 TEXT = SCRIPT.read_text()
 READ_ONLY = ('-v', 'test ', 'grep ', 'find ', 'grubby --info', 'cat ', 'nft list tables', '/usr/bin/python3 -I -c')
 

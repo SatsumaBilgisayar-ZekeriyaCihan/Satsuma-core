@@ -12,7 +12,16 @@ from pathlib import Path
 from .live_lane import DeepEvidenceLane
 
 EVENT_SOCKET = '/run/satsuma-deep/events.sock'
-RESULT_SOCKET = '/run/satsuma-deep/results.sock'
+# 2.2.38 (owner, 2026-11-18: "deep engine bağlantısı inactive kalıyor"): the
+# results socket lives in the teams service's own runtime folder. Under
+# ProtectSystem=strict /run is read-only for satsuma-teams except its own
+# RuntimeDirectory, so binding in /run/satsuma-deep always failed (EROFS), and
+# a socket left by a crashed teams made every later start fail with "already
+# exists" until the deep engine was restarted.
+# Sonuç soketi teams servisinin kendi çalışma klasöründedir: /run teams için
+# salt okunurdu, bağlanma hep başarısız oluyordu.
+RESULT_SOCKET = '/run/satsuma-deep-results/results.sock'
+ENGINE_GROUP = 'satsuma-core'
 MAX_PACKET = 8192
 
 
@@ -39,6 +48,36 @@ def _compact_event(event):
             and type(value) in (str, int, float, bool)}
 
 
+def _remove_own_stale_socket(path):
+    import stat
+    try:
+        info = os.lstat(path)
+    except FileNotFoundError:
+        return
+    if not stat.S_ISSOCK(info.st_mode) or info.st_uid != os.geteuid():
+        raise RuntimeError('deep results path exists and is not our socket')
+    os.unlink(path)
+
+
+def _share_with_engine(path, group=ENGINE_GROUP):
+    import grp
+    try:
+        gid = grp.getgrnam(group).gr_gid
+    except KeyError:
+        return False
+    if gid not in os.getgroups() and gid != os.getegid():
+        return False
+    try:
+        os.chown(path, -1, gid)
+        parent = os.path.dirname(path)
+        if os.stat(parent).st_uid == os.geteuid():
+            os.chown(parent, -1, gid)
+            os.chmod(parent, 0o750)
+        return True
+    except OSError:
+        return False
+
+
 class DeepProcessClient:
     """Drop rather than wait when server is down or busy."""
     def __init__(self, event_socket=EVENT_SOCKET, result_socket=RESULT_SOCKET,
@@ -51,11 +90,14 @@ class DeepProcessClient:
         self.out_sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         self.out_sock.setblocking(False)
         self.out_sock.setsockopt(socket.SOL_SOCKET, socket.SO_PASSCRED, 1)
-        # Caller owns this socket and its parent. Never remove an unowned socket.
-        if Path(result_socket).exists():
-            raise RuntimeError('deep results socket already exists')
+        # Caller owns this socket and its parent. A socket of our own left by a
+        # previous run of this service is removed; anything else is refused.
+        _remove_own_stale_socket(result_socket)
         self.out_sock.bind(result_socket)
         os.chmod(result_socket, 0o660)
+        # The rootless engine (group satsuma-core) must be able to send results:
+        # the socket and its folder go to that group (the service is a member).
+        _share_with_engine(result_socket)
         self.accepted = self.dropped = self.invalid = self.received = 0
         self._running = True
 
@@ -106,7 +148,7 @@ class DeepProcessClient:
         return output
 
     def health(self):
-        return {'running': None, 'mode': 'unprivileged_process',
+        return {'running': Path(self.event_socket).exists(), 'mode': 'unprivileged_process',
                 'delivery_confirmed': self.received > 0, 'received': self.received,
                 'accepted': self.accepted,
                 'input_dropped': self.dropped, 'invalid_results': self.invalid,

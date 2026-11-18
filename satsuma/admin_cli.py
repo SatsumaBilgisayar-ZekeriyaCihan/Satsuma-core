@@ -59,8 +59,12 @@ def _parser() -> argparse.ArgumentParser:
     aide = sub.add_parser("aide", help="AIDE snapshot: status, check, take, undo a change (the command is the approval)")
     aide.add_argument("islem", choices=("durum", "kontrol", "ornek-al", "geri-al", "hepsini-geri-al"))
     aide.add_argument("hedef", nargs="?", help="path of a listed change for 'geri-al'")
-    check = sub.add_parser("tam-kontrol", help="switch every function on and report what is not running")
-    check.add_argument("--yalniz-kontrol", action="store_true", help="report only; do not switch anything on")
+    check = sub.add_parser("tam-kontrol", help="switch every function on, check the whole product and repair what is safe")
+    check.add_argument("--yalniz-kontrol", action="store_true", help="report only; do not switch anything on or repair")
+    # 2.2.38 (owner, 2026-11-18): maintenance kit, also run by satsuma-maintenance.timer.
+    kit = sub.add_parser("bakim", help="maintenance kit: check every Satsuma part and repair what is safe")
+    kit.add_argument("--yalniz-kontrol", action="store_true", help="report only; repair nothing")
+    kit.add_argument("--json", action="store_true", help="machine-readable report")
     return parser
 
 
@@ -266,7 +270,32 @@ def _full_check(args) -> int:
     finally:
         store.close()
     print(report(rows))
-    return 0 if all(row['ok'] for row in rows) else 1
+    # 2.2.38: the full check covers the whole product: the maintenance kit runs
+    # after the functions are switched on (satsuma.maintenance).
+    # Tam kontrol ürünün tamamını kapsar: bakım kiti ardından çalışır.
+    from .maintenance import Kit, report as kit_report
+    store = Store()
+    try:
+        summary = Kit(repair=not args.yalniz_kontrol, store=store).check()
+    finally:
+        store.close()
+    print()
+    print('== Bakım kiti ==')
+    print(kit_report(summary))
+    return 0 if all(row['ok'] for row in rows) and summary['ok'] else 1
+
+
+def _maintenance(args) -> int:
+    import json as _json
+    from .maintenance import Kit, report as kit_report
+    from .store import Store
+    store = Store()
+    try:
+        summary = Kit(repair=not args.yalniz_kontrol, store=store).check()
+    finally:
+        store.close()
+    print(_json.dumps(summary, ensure_ascii=False) if args.json else kit_report(summary))
+    return 0 if summary['ok'] else 1
 
 
 def _aide(args) -> int:
@@ -320,7 +349,7 @@ def main(argv=None) -> int:
     args = _parser().parse_args(argv)
     if args.command == 'cekirdek':
         return _kernel(args)
-    if args.command in ('modem', 'tam-kontrol', 'karantina', 'ssh', 'sertlestirme', 'aide'):
+    if args.command in ('modem', 'tam-kontrol', 'karantina', 'ssh', 'sertlestirme', 'aide', 'bakim'):
         if os.geteuid() != 0:
             print('Root yetkisi gerekli: sudo satsuma-admin ' + args.command, file=sys.stderr)
             return 1
@@ -332,6 +361,8 @@ def main(argv=None) -> int:
             return _hardening(args)
         if args.command == 'aide':
             return _aide(args)
+        if args.command == 'bakim':
+            return _maintenance(args)
         return _modem(args) if args.command == 'modem' else _full_check(args)
     if args.command == 'set-otx-key':
         if os.geteuid() != 0:
