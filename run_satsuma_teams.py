@@ -396,6 +396,7 @@ def _flow_tick(store, config, pipeline, engine, flow, receiver, limit=5000, shor
 
     Akışa gelen olayları değerlendirir ve hemen harekete geçer.
     """
+    from satsuma import self_copy
     bodies = receiver.drain(limit)
     fresh = []
     for body in bodies:
@@ -413,14 +414,20 @@ def _flow_tick(store, config, pipeline, engine, flow, receiver, limit=5000, shor
             if deep_lane is not None:
                 deep_lane.submit({**event, 'lab_test_mode': store.get('interactive_process_test_mode', False) is True})  # only privileged local setting; never authorizes actions
             for finding in engine.match(event):
+                identity = finding.get('event') or {}
+                if _recordable(finding) and str(finding.get('rule_id') or '') in self_copy.RULES:
+                    # 2.2.45: a packaged tool's own temporary copy (bootc) is recognised from
+                    # the process chain before it is recorded (satsuma.self_copy).
+                    finding['flow'] = flow.snapshot(identity.get('pid'), identity.get('starttime'))
+                    self_copy.apply(finding)
                 if not _recordable(finding):
                     continue
                 finding['team'] = 'smart_rules'
                 annotate_origin(finding, event)
                 if short_evidence is not None:
                     finding['short_evidence'] = short_evidence
-                identity = finding.get('event') or {}
-                finding['flow'] = flow.snapshot(identity.get('pid'), identity.get('starttime'))
+                if 'flow' not in finding:
+                    finding['flow'] = flow.snapshot(identity.get('pid'), identity.get('starttime'))
                 result = record_finding(store, finding, 'smart_rules')
                 finding['_dedup'] = result
                 if result.get('written'):

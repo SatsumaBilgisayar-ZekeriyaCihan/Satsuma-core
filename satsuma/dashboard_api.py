@@ -2003,8 +2003,31 @@ def m_security_scanners():
     return result
 
 
+_PROVENANCE = {'at': 0.0, 'data': None}
+PROVENANCE_SECONDS = 600
+
+
 def m_host_provenance():
-    """Demand-driven, read-only OS/deployment/package and script exposure report."""
+    """Read-only OS/deployment/package report, collected at most every ten minutes (2.2.45).
+
+    It runs rpm -qa, rpm-ostree status and bootc status. The panel asked for it
+    every three seconds; bootc's temporary self-copy then raised
+    SATSUMA-FILELESS-002 each time (field 2026-11-18).
+    En fazla on dakikada bir toplanır; panel her üç saniyede istiyordu.
+    """
+    import copy
+    import threading
+    lock = _PROVENANCE.setdefault('lock', threading.Lock())
+    with lock:
+        if _PROVENANCE['data'] is not None and 0 <= time.time() - _PROVENANCE['at'] < PROVENANCE_SECONDS:
+            return copy.deepcopy(_PROVENANCE['data'])
+        data = _m_host_provenance()
+        data['collected_at'] = time.time()
+        _PROVENANCE.update(at=time.time(), data=copy.deepcopy(data))
+        return data
+
+
+def _m_host_provenance():
     from .host_provenance import collect
     data = collect()
     from .host_risk_integration import collect_risk

@@ -11,6 +11,8 @@ class HostProvenancePanel(ReadOnlyModulePanel):
     PANEL_ORDER = 15
     PANEL_SUBTITLE = 'Fedora / OSTree / bootc · sistem denetimi · Python ve paket riskleri (salt okunur)'
     METHOD = 'host_provenance'
+    # 2.2.45: read on opening and with "Yenile" only; the reader keeps it ten minutes.
+    REFRESH_MS = 0
     KEY = 'items'
     COLUMNS = (('Tür', 'kind'), ('Nesne', 'name'), ('İşaret', 'signal'), ('Ayrıntı', 'detail'))
 
