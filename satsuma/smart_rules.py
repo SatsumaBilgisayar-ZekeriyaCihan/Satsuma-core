@@ -128,6 +128,16 @@ REGEX_BUDGET_SECONDS = 0.5
 REGEX_BUDGET_RULE_ID = "SATSUMA-ENGINE-001"
 
 
+# 2.2.57: Satsuma's own exact command lines, never findings of these rules. The panel's
+# desktop enrollment runs pkexec with a fixed root-owned program whose own option is --user
+# (field 18.11 18:22: taken for "pkexec --user"). Only this exact form; any extra word,
+# shell or other path still matches. Kendi tam komutlarımız; fazladan her şey yine yakalanır.
+OWN_COMMANDS = {
+    'SATSUMA-PRIV-003': [r'^(?:/usr/bin/)?pkexec\s+/usr/bin/satsuma-enroll-desktop'
+                         r'(?:\s+--user\s+[a-z_][a-z0-9_.-]{0,31}|\s+--password-stdin)*\s*$'],
+}
+
+
 class RuleValidationError(ValueError):
     pass
 
@@ -649,6 +659,10 @@ class SmartRuleEngine:
         if base_score is not None and type(base_score) not in (int, float):
             raise RuleValidationError(f"{rule_id}: base_score must be numeric")
 
+        if rule_id in OWN_COMMANDS:
+            # The original rule files stay byte for byte; Satsuma's own exact commands are added here.
+            base_match = rule["base_match"] = dict(base_match)
+            base_match["cmd_not_regex"] = [*_as_list(base_match.get("cmd_not_regex") or []), *OWN_COMMANDS[rule_id]]
         rule["_file"] = str(path)
         rule["_id"] = rule_id
         rule["severity"] = severity

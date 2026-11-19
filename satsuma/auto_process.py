@@ -103,6 +103,9 @@ def _persist_decision(store, finding, record):
     return record
 
 
+STOP_MEMORY = 60.0      # seconds a stop sent for (pid, starttime, exe) is remembered, per store
+
+
 def respond(store, config, finding, response, *, approved_request=None):
     # Use one event's identity, never assemble PID/exe/starttime from unrelated
     # correlated events or capture a replacement identity after detection.
@@ -225,6 +228,25 @@ def respond(store, config, finding, response, *, approved_request=None):
                           request_id=request.get('request_id'),
                           reasons=[request.get('reason')] if request.get('reason') else [])
             return _persist_decision(store, finding, record)
+        # 2.2.57: one process, one stop. Several findings from the same process (three
+        # writes, three findings) asked privd three times and wrote each answer.
+        # Aynı süreç için tek durdurma kararı.
+        key = (pid, evidence_starttime(event), evidence_exe(event))
+        now = time.monotonic()
+        stopped = getattr(store, '_satsuma_stopped', None)
+        if stopped is None:
+            stopped = {}
+            try:
+                setattr(store, '_satsuma_stopped', stopped)
+            except (AttributeError, TypeError):
+                pass
+        for old_key in [k for k, at in stopped.items() if now - at > STOP_MEMORY]:
+            stopped.pop(old_key, None)
+        if key in stopped:
+            record.update(status='already_decided', signal_sent=False,
+                          decision_explanation='Bu süreç için durdurma kararı az önce verildi; yinelenmedi.')
+            return record
+        stopped[key] = now
         # Persist the authorization before sending any signal. ResponseWorker
         # retains integrity/pause/replay and critical-process/identity guards.
         store.add('actions', {**record, 'status': 'process_termination_authorized'})

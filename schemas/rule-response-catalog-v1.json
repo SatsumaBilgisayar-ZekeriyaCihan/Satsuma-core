@@ -14911,7 +14911,7 @@
       "schema_version": 1,
       "rule_id": "SATSUMA-PRIV-003",
       "name": "Şüpheli pkexec kullanımı",
-      "detection_sha256": "dea1933c6d7b20b02711c8eba02da30a25b4760092130ec31c768e6f973c3062",
+      "detection_sha256": "71f2f9b9bac80f22625e43454b94e273f93e1b1c6113fa600c6ee52aadcf94bd",
       "source": "sys_proc",
       "match": {
         "source": "sys_proc",
@@ -14919,6 +14919,9 @@
           "pkexec --user",
           "pkexec /tmp/",
           "pkexec /dev/shm/"
+        ],
+        "cmd_not_regex": [
+          "^(?:/usr/bin/)?pkexec\\s+/usr/bin/satsuma-enroll-desktop(?:\\s+--user\\s+[a-z_][a-z0-9_.-]{0,31}|\\s+--password-stdin)*\\s*$"
         ]
       },
       "current_actions": [

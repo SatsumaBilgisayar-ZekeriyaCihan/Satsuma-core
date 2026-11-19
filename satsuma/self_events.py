@@ -39,11 +39,38 @@ izlemeye devam eder (kanıt eksiksiz kalır), ama kurallara verilmez ve ayrı
 sayılır.
 """
 from pathlib import Path
+import subprocess
 import time
 
 from .trusted_process import system_service, trusted_path
 
 ORIGIN = 'satsuma'
+SYSTEMCTL = '/usr/bin/systemctl'
+PACKAGED = '/usr/lib/systemd/system/'
+SYSTEMD_EVERY = 2.0
+
+
+def _unix(value):
+    value = str(value or '').strip()
+    if value.startswith('@'):
+        try:
+            return float(value[1:])
+        except ValueError:
+            return None
+    return None
+
+
+def _stamp(value):
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        from datetime import datetime
+        return datetime.fromisoformat(str(value).replace('Z', '+00:00')).timestamp()
+    except (TypeError, ValueError):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
 _CACHE_SECONDS = 5.0
 _TRUST_SECONDS = 60.0
 NEVER_OWN = frozenset({'sh', 'bash', 'dash', 'zsh', 'ksh', 'fish', 'busybox', 'curl', 'wget', 'nc', 'ncat',
@@ -61,10 +88,74 @@ def _field(raw, key):
 
 
 class SelfClassifier:
-    def __init__(self, proc_root='/proc', clock=time.monotonic, trusted=trusted_path):
-        self.proc_root, self.clock, self.trusted = proc_root, clock, trusted
+    def __init__(self, proc_root='/proc', clock=time.monotonic, trusted=trusted_path, runner=subprocess.run,
+                 wall=time.time):
+        self.proc_root, self.clock, self.trusted, self.runner, self.wall = proc_root, clock, trusted, runner, wall
         self._units, self._paths = {}, {}
         self.own = self.other = 0
+        # 2.2.57: what systemd itself says about Satsuma units (field 2026-11-19: dns-refresh,
+        # a one-minute python3 -m satsuma.dnsmasq_control run, ended before its audit
+        # events were judged; its proctitle read "systemd-executor ...").
+        self._systemd = {}          # unit -> {'packaged': bool, ...}
+        self._mains = {}            # pid -> (unit, start, end) of runs systemd started
+        self._systemd_at = -SYSTEMD_EVERY
+
+    def _systemd_units(self):
+        """Satsuma units as systemd knows them, at most every SYSTEMD_EVERY seconds."""
+        now = self.clock()
+        if now - self._systemd_at < SYSTEMD_EVERY:
+            return self._systemd
+        self._systemd_at = now
+        try:
+            done = self.runner([SYSTEMCTL, 'show', '--timestamp=unix', '--type=service', '--all',
+                                '--property=Id,ExecMainPID,ExecMainStartTimestamp,ExecMainExitTimestamp,'
+                                'FragmentPath,DropInPaths', 'satsuma*.service'],
+                               capture_output=True, text=True, timeout=5)
+        except (OSError, subprocess.SubprocessError):
+            return self._systemd
+        if done.returncode:
+            return self._systemd
+        units = {}
+        for block in done.stdout.split('\n\n'):
+            row = dict(line.split('=', 1) for line in block.splitlines() if '=' in line)
+            unit = row.get('Id', '')
+            if not (unit.startswith('satsuma') and unit.endswith('.service')):
+                continue
+            drop_ins = row.get('DropInPaths', '').split()
+            # Only the packaged unit (read-only /usr on Atomic); an /etc copy or drop-in can change ExecStart.
+            packaged = (row.get('FragmentPath', '').startswith(PACKAGED)
+                        and all(path.startswith(PACKAGED) for path in drop_ins))
+            units[unit] = {'packaged': packaged}
+            try:
+                pid = int(row.get('ExecMainPID') or 0)
+            except ValueError:
+                pid = 0
+            if pid > 1 and packaged:
+                self._mains[pid] = (unit, _unix(row.get('ExecMainStartTimestamp')),
+                                    _unix(row.get('ExecMainExitTimestamp')))
+        if len(self._mains) > 4096:
+            self._mains = dict(list(self._mains.items())[-2048:])
+        self._systemd = units
+        return units
+
+    def _ended_main(self, raw):
+        """The packaged Satsuma unit whose main process this was, when it has already ended."""
+        try:
+            pid = int(_field(raw, 'pid'))
+        except (TypeError, ValueError):
+            return ''
+        if str(_field(raw, 'ppid') or '') not in ('1', ''):
+            return ''
+        self._systemd_units()
+        hit = self._mains.get(pid)
+        if not hit:
+            return ''
+        unit, start, end = hit
+        stamp = _stamp(raw.get('timestamp') or (raw.get('raw') or {}).get('timestamp'))
+        # The event must fall inside that run: a reused PID is not trusted.
+        if stamp is None or start is None or stamp < start - 1 or (end and stamp > end + 1):
+            return ''
+        return unit
 
     def _unit(self, pid):
         if pid in (None, ''):
@@ -103,10 +194,16 @@ class SelfClassifier:
         if not isinstance(raw, dict):
             return False
         unit = self.unit_of(raw)
+        if not unit:
+            unit = self._ended_main(raw)
         exe = str(_field(raw, 'exe') or '')
         name = exe.rsplit('/', 1)[-1].removesuffix(' (deleted)')
-        allowed = name not in NEVER_OWN and (not name.startswith(INTERPRETERS)
-                                              or OWN_CODE in str(_field(raw, 'cmd') or ''))
+        interpreter = name.startswith(INTERPRETERS)
+        # An interpreter runs Satsuma's code when its command says so, or when the unit
+        # is the packaged one (its ExecStart is ours; e.g. python3 -m satsuma.dnsmasq_control).
+        allowed = name not in NEVER_OWN and (not interpreter or OWN_CODE in str(_field(raw, 'cmd') or '')
+                                              or (unit.startswith('satsuma')
+                                                  and self._systemd_units().get(unit, {}).get('packaged')))
         own = bool(unit.startswith('satsuma') and exe.startswith('/') and allowed and self._trusted(exe))
         if own:
             self.own += 1
