@@ -473,9 +473,26 @@ def _suricata_eve_state(health):
     return 'FLOWING'
 
 
+# hidepid hides root processes from the reader's own user (2.2.62); the unit state is asked instead.
+UNIT_FOR_PROCESS = {'suricata': 'satsuma-suricata-ips.service'}
+
+
+def _unit_active(unit, runner=None):
+    import subprocess
+    runner = runner or subprocess.run
+    try:
+        out = runner(['/usr/bin/systemctl', 'is-active', unit], capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return out.stdout.strip() == 'active'
+
+
 def _proc_running(name):
     """Return RUNNING only when a matching process is definitely present."""
     target = str(name).lower()
+    unit = UNIT_FOR_PROCESS.get(target)
+    if unit and _unit_active(unit):
+        return 'RUNNING'
     try:
         for entry in Path('/proc').iterdir():
             if not entry.name.isdigit():
@@ -2565,7 +2582,10 @@ def main():
     try:
         import grp
         gid = grp.getgrnam(SOCKET_GROUP).gr_gid
-        os.chown(SOCKET_PATH, 0, gid)
+        # 2.2.62: the reader runs as its own user, so the socket stays its own; only the group
+        # is set (the dashboard reads through satsuma-reader membership).
+        if os.stat(SOCKET_PATH).st_gid != gid:
+            os.chown(SOCKET_PATH, -1, gid)
         os.chmod(SOCKET_PATH, SOCKET_MODE)
         print(f'[reader] socket: {SOCKET_PATH}', file=sys.stderr)
     except KeyError:

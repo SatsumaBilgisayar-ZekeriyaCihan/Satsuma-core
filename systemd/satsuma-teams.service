@@ -35,7 +35,10 @@ RuntimeDirectoryMode=0770
 PrivateDevices=true
 # Writable private temporary storage for bounded journal stderr capture.
 PrivateTmp=true
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_DAC_READ_SEARCH CAP_SYSLOG CAP_SYS_PTRACE CAP_KILL
-AmbientCapabilities=CAP_NET_ADMIN CAP_DAC_READ_SEARCH CAP_SYSLOG CAP_SYS_PTRACE CAP_KILL
+# 2.2.62 (faz 2): stopping processes and blocking addresses goes only through satsuma-privd; no fallback.
+# Süreç durdurma ve adres engelleme yalnızca privd üzerinden.
+Environment=SATSUMA_PRIVD_ONLY=1
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_SYSLOG CAP_SYS_PTRACE
+AmbientCapabilities=CAP_DAC_READ_SEARCH CAP_SYSLOG CAP_SYS_PTRACE
 [Install]
 WantedBy=multi-user.target

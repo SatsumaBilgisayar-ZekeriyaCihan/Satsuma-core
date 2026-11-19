@@ -71,7 +71,7 @@ AT_LEAST = {'kernel/unprivileged_bpf_disabled': 1, 'kernel/perf_event_paranoid':
 # Applied after boot by satsuma-module-lock; one way until reboot.
 LATE = {'kernel/modules_disabled': '1'}
 MODULE_LOCK_UNIT = 'satsuma-module-lock.service'
-MODULE_LOCK_AFTER = 300.0   # seconds of uptime; the timer runs at three minutes
+MODULE_LOCK_AFTER = 180.0   # seconds of uptime; the timer runs at two minutes (owner 2026-11-20)
 
 LOCKDOWN = 'lockdown=integrity'
 CMDLINE = (LOCKDOWN, 'init_on_alloc=1', 'init_on_free=1', 'slab_nomerge', 'page_alloc.shuffle=1',

@@ -12,6 +12,8 @@ Environment=PATH=/usr/sbin:/usr/bin
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/libexec/satsuma-quarantine-rollback boot
+# 2.2.62 (faz 2): no privilege gain through setuid or file capabilities.
+NoNewPrivileges=yes
 
 [Install]
 WantedBy=sysinit.target

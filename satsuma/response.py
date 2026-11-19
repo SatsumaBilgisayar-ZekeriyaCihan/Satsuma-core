@@ -177,7 +177,8 @@ class ResponseWorker:
         """
         if self.runner is not None or self.replay:
             return None
-        action = {'block_ip':'block_ip', 'unblock_ip':'unblock_ip', 'terminate':'kill_process'}.get(op)
+        action = {'block_ip':'block_ip', 'unblock_ip':'unblock_ip', 'terminate':'kill_process',
+                  'terminate_tree':'kill_process'}.get(op)
         if action:
             denied = self._guard(action, params.get('pid', params.get('ip')))
             if denied:
@@ -283,6 +284,12 @@ class ResponseWorker:
         pid = self._safe_pid(pid)
         if pid is None:
             return {'status': 'invalid_or_protected_pid', 'pid': pid}
+        # 2.2.62: privd sends the signal (it re-verifies the identity in its own process).
+        answer = self._privd('terminate', pid=int(pid), reason=str(reason)[:500],
+                             evidence=evidence if isinstance(evidence, dict) else None,
+                             context=context if isinstance(context, dict) else None)
+        if answer is not None:
+            return answer
         denied = self._guard('kill_process', pid)
         if denied:
             return denied
@@ -483,6 +490,14 @@ class ResponseWorker:
         evidence_denied = self._rule_evidence_guard('process_kill', evidence, context)
         if evidence_denied:
             return evidence_denied
+        try:
+            answer = self._privd('terminate_tree', pid=int(pid), reason=str(reason)[:500],
+                                 evidence=evidence if isinstance(evidence, dict) else None,
+                                 context=context if isinstance(context, dict) else None)
+        except (TypeError, ValueError):
+            answer = None
+        if answer is not None:
+            return answer
         pid = self._safe_pid(pid)
         if pid is None:
             return {'status': 'invalid_or_protected_pid', 'pid': pid}

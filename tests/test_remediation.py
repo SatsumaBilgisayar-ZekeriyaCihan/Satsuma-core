@@ -157,3 +157,20 @@ def test_unreachable_privd_raises_a_critical_finding_hourly(monkeypatch):
     T._remediate(store, fresh, request=lambda **p: None)
     T._remediate(store, fresh, request=lambda **p: None)
     assert len(found) == 1 and found[0]['rule_id'] == 'SATSUMA-PRIVD-001' and found[0]['severity'] == 'critical'
+
+
+def test_snapd_own_files_are_a_package_operation_but_nothing_else():
+    assert r.package_own_write('/usr/lib/snapd/snapd', '/etc/systemd/system/snap.network-manager.networkmanager.service')
+    assert r.package_own_write('/usr/lib/snapd/snapd', '/etc/udev/rules.d/70-snap.firefox.rules')
+    assert r.package_own_write('/usr/lib/snapd/snapd', '/etc/modules-load.d/snap.gnome-boxes.conf')
+    assert not r.package_own_write('/usr/lib/snapd/snapd', '/etc/cron.d/evil')
+    assert not r.package_own_write('/tmp/snapd', '/etc/systemd/system/snap.fake.service')   # a file named snapd is not snapd
+    assert not r.package_own_write('/usr/bin/tee', '/etc/systemd/system/snap.fake.service')
+    f = finding('SATSUMA-PERS-002', path='/etc/systemd/system/snap.x.service')
+    f['event']['exe'] = '/usr/lib/snapd/snapd'
+    assert r.plan(f) == []
+
+
+def test_a_deleted_file_is_already_gone_not_a_failure(tmp_path):
+    out = r._quarantine_file(str(tmp_path / 'gone.conf'), lambda row: None, runner=None)
+    assert out['status'] == 'already_gone'

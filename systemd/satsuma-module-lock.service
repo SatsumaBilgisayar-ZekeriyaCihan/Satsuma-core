@@ -17,4 +17,5 @@ ProtectHome=yes
 PrivateTmp=yes
 ReadWritePaths=/var/lib/satsuma-core
 CapabilityBoundingSet=CAP_SYS_MODULE CAP_DAC_OVERRIDE
-TimeoutStartSec=120
+# 2.2.62: after locking, rpm-ostree initramfs-etc may build a deployment (minutes).
+TimeoutStartSec=900

@@ -194,6 +194,13 @@ def respond(store, config, finding, response, *, approved_request=None):
                           reasons=['trusted_program_jit_memory'],
                           decision_explanation='Güvenilir yoldaki program JIT için yazılabilir+çalıştırılabilir bellek kurar; kaydedildi, durdurulmadı.')
             return _persist_decision(store, finding, record)
+        # 2.2.62: a package manager writing its own files is a package operation (field
+        # 2026-11-20: snapd's own snap.* files during "snap remove").
+        from .remediation import package_own_write
+        if package_own_write(evidence_exe(event) or event.get('exe'), event.get('file_path') or event.get('path')):
+            record.update(status='report_only', evaluation_only=True, reasons=['package_manager_own_files'],
+                          decision_explanation='Paket yöneticisi kendi dosyasını yazdı; süreç durdurulmadı.')
+            return _persist_decision(store, finding, record)
         # 2.2.59: limits on DeepSeek rules (satsuma.ai_guard): protected targets, the owner's
         # interactive admin tools, trusted programs' JIT memory, owner settings, stop limit.
         from . import ai_guard

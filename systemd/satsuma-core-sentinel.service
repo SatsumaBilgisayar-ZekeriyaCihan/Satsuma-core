@@ -24,7 +24,10 @@ ProtectSystem=strict
 ProtectHome=read-only
 ReadWritePaths=/var/lib/satsuma-core
 PrivateDevices=true
-CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_KILL
-AmbientCapabilities=CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_KILL
+# 2.2.62 (faz 2): stopping processes and blocking addresses goes only through satsuma-privd; no fallback.
+# Süreç durdurma ve adres engelleme yalnızca privd üzerinden.
+Environment=SATSUMA_PRIVD_ONLY=1
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH
+AmbientCapabilities=CAP_DAC_READ_SEARCH
 [Install]
 WantedBy=multi-user.target

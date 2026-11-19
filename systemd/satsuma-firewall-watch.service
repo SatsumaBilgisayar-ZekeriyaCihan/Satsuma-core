@@ -11,4 +11,6 @@ Type=oneshot
 User=root
 WorkingDirectory=/opt/satsuma-core
 ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -E -s -B -m satsuma.firewall_watch
+# 2.2.62 (faz 2): no privilege gain through setuid or file capabilities.
+NoNewPrivileges=yes
 TimeoutStartSec=180

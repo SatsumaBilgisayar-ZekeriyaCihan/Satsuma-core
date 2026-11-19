@@ -8,3 +8,5 @@ ConditionDirectoryNotEmpty=/var/lib/satsuma-core/quarantine-pending
 Environment=PATH=/usr/sbin:/usr/bin
 Type=oneshot
 ExecStart=/usr/libexec/satsuma-quarantine-rollback confirm
+# 2.2.62 (faz 2): no privilege gain through setuid or file capabilities.
+NoNewPrivileges=yes

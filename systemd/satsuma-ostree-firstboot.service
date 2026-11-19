@@ -11,6 +11,9 @@ Type=oneshot
 RemainAfterExit=yes
 TimeoutStartSec=900
 ExecStart=/usr/bin/sh /usr/libexec/satsuma-ostree-firstboot
+# No NoNewPrivileges on purpose: this runs the package's own %pre/%posttrans (useradd,
+# SELinux labelling), whose domain changes it would refuse and every update would stop.
+# Bilerek yok: paket kurulum betiklerini çalıştırır; kısıt güncellemeyi durdurur.
 
 [Install]
 WantedBy=multi-user.target

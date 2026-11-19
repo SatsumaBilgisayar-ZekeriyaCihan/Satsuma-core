@@ -52,10 +52,16 @@ class SmartRuleEngineTests(unittest.TestCase):
         self.assertEqual(root_shell[0]['classification'], 'indicator')
         self.assertEqual(root_shell[0]['actions'], ['log_only'])
 
+        self.engine.strict_mode = False
         findings = self.engine.match(self.event('modprobe iwlwifi', '2'))
         kernel = [f for f in findings if f.get('dedup_group') == 'kernel_module_admin']
         self.assertEqual(len(kernel), 1)
         self.assertEqual(kernel[0]['classification'], 'indicator')
+        # Strict mode (owner 2026-11-20): loading a module that is not loaded yet stops.
+        self.engine.strict_mode = True
+        kernel = [f for f in self.engine.match(self.event('modprobe iwlwifi', '2'))
+                  if f.get('dedup_group') == 'kernel_module_admin']
+        self.assertEqual(kernel[0]['classification'], 'suspicious')
 
     def test_rule_actions_are_canonical_strings(self):
         findings = self.engine.match(self.event('pkexec --user root /tmp/x', '3'))

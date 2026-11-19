@@ -12,6 +12,8 @@ Environment=PATH=/usr/sbin:/usr/bin
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/python3 -I -B /usr/libexec/satsuma-image mount
+# 2.2.62 (faz 2): no privilege gain through setuid or file capabilities.
+NoNewPrivileges=yes
 ExecStop=/usr/bin/python3 -I -B /usr/libexec/satsuma-image unmount
 TimeoutStartSec=120
 TimeoutStopSec=60

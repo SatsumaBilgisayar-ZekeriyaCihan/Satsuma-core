@@ -12,6 +12,8 @@ Environment=PATH=/usr/sbin:/usr/bin
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/network_modes_setup.py
+# 2.2.62 (faz 2): no privilege gain through setuid or file capabilities.
+NoNewPrivileges=yes
 
 [Install]
 WantedBy=multi-user.target

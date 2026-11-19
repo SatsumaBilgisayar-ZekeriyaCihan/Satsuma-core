@@ -151,3 +151,42 @@ def test_remediation_request_with_a_file_path_reaches_privd(tmp_path, monkeypatc
             os.environ.pop(privd.SERVER_ENV, None)
         else:
             os.environ[privd.SERVER_ENV] = old
+
+
+def test_privd_only_services_never_act_themselves(monkeypatch, tmp_path):
+    from satsuma import privd
+    monkeypatch.setenv(privd.ONLY_ENV, '1')
+    monkeypatch.delenv(privd.SERVER_ENV, raising=False)
+    monkeypatch.setattr(privd, 'SOCKET_PATH', tmp_path / 'missing.sock')
+    answer = privd.delegate('terminate', pid=1234, reason='x')
+    assert answer['status'] == 'privd_unavailable' and answer['executed'] is False
+    (tmp_path / 'dead.sock').write_text('')
+    monkeypatch.setattr(privd, 'SOCKET_PATH', tmp_path / 'dead.sock')
+    monkeypatch.setattr(privd, 'request', lambda op, **kw: (_ for _ in ()).throw(privd.PrivdUnavailable('refused')))
+    assert privd.delegate('block_ip', ip='203.0.113.9', reason='x')['status'] == 'privd_unavailable'
+    monkeypatch.delenv(privd.ONLY_ENV)
+    assert privd.delegate('block_ip', ip='203.0.113.9', reason='x') is None     # other callers still act
+
+
+def test_terminate_tree_is_a_privd_operation():
+    from satsuma import privd
+    calls = []
+
+    class Worker:
+        def kill_process_tree(self, pid, reason, evidence=None, context=None):
+            calls.append(pid)
+            return {'status': 'tree_terminated'}
+    out = privd.handle({'op': 'terminate_tree', 'pid': 4321, 'reason': 'test'}, {'pid': 1, 'uid': 0, 'gid': 0},
+                       Worker(), lambda row: None)
+    assert out['status'] == 'tree_terminated' and calls == [4321]
+
+
+def test_phase2_callers_hold_no_kill_capability():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1] / 'systemd'
+    for unit, net_admin in (('satsuma-teams.service', False), ('satsuma-core-sentinel.service', False),
+                            ('satsuma-core.service', True)):
+        text = (root / unit).read_text()
+        assert 'Environment=SATSUMA_PRIVD_ONLY=1' in text and 'CAP_KILL' not in text, unit
+        assert ('CAP_NET_ADMIN' in text) is net_admin, unit
+    assert 'SATSUMA_PRIVD_ONLY' not in (root / 'satsuma-privd.service').read_text()

@@ -16,6 +16,8 @@ INCLUDE_FILES = (
     "/opt/satsuma-core/run_satsuma_teams.py",
     "/etc/satsuma-core/config.json",
     "/etc/satsuma-core/policy.json",
+    "/etc/satsuma-core/policy.json.sig",
+    "/etc/satsuma-core/policy-signing.pub",
     "/etc/satsuma-core/satsuma-zack_gate.py",
     "/usr/local/bin/satsuma-zack",
     "/etc/satsuma-core/sudo_gate.py",

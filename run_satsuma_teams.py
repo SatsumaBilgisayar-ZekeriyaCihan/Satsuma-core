@@ -219,6 +219,24 @@ REMEDIATION_KEY = 'remediation_policy'
 PRIVD_ALARM_EVERY = 3600.0
 
 
+PRIVD_PROBE_EVERY = 3600.0
+
+
+def _privd_probe(store, now=None, request=None):
+    """Hourly: the real privd client and socket carry a file path (2.2.62, satsuma.self_test)."""
+    now = time.time() if now is None else now
+    last = store.get('privd_probe_at', None) or 0
+    if now - float(last) < PRIVD_PROBE_EVERY:
+        return None
+    store.set('privd_probe_at', now)
+    from satsuma import self_test
+    result = self_test.check_privd(request) if request else self_test.check_privd()
+    store.set('privd_probe_last', {**result, 'timestamp': now})
+    if not result['passed']:
+        _privd_unreachable(store, {'action': 'saatlik privd denetimi', 'path': result['detail']}, now)
+    return result
+
+
 def _privd_unreachable(store, action, now=None):
     """A critical finding when an undo could not reach privd (at most hourly; 2.2.60).
 
@@ -239,6 +257,45 @@ def _privd_unreachable(store, action, now=None):
         'advice': 'sudo systemctl restart satsuma-privd; sonra sudo satsuma-admin geri-alma durum',
         'enforcement_eligible': False}, 'self_health')
     return True
+
+
+POLICY_SIGNATURE_EVERY = 3600
+POLICY_REJECTED = ('POLICY_UNSIGNED', 'POLICY_SIGNATURE_INVALID', 'POLICY_KEY_SWAPPED', 'POLICY_KEY_INVALID')
+
+
+def _policy_signature(store, meta=None, now=None):
+    """Hourly: a finding while policy.json is unsigned, changed after signing or no key exists (2.2.62).
+
+    İmzasız ya da imzadan sonra değişmiş politika kullanılmaz; bu durum saat başı bulgu olarak görünür.
+    """
+    from satsuma.finding_store import record_finding
+    now = time.time() if now is None else now
+    if now - float(store.get('policy_signature_check', None) or 0) < POLICY_SIGNATURE_EVERY:
+        return None
+    store.set('policy_signature_check', now)
+    if meta is None:
+        from satsuma.config import load_with_policy
+        try:
+            meta = load_with_policy()[1]
+        except Exception as exc:
+            meta = {'status': 'error', 'rejected_code': getattr(exc, 'code', 'POLICY_INVALID'), 'error': str(exc)[:300]}
+    code = meta.get('rejected_code')
+    if meta.get('status') in ('last_valid', 'error') and code in POLICY_REJECTED:
+        finding = {'rule_id': 'SATSUMA-POLICY-SIG-002', 'severity': 'critical',
+                   'title': 'Politika dosyası imzasız ya da imzadan sonra değişmiş: kullanılmıyor',
+                   'summary': f"{code}: {meta.get('error', '')}"[:400],
+                   'advice': 'Değişikliği siz yaptıysanız: sudo satsuma-admin politika imzala. Siz yapmadıysanız '
+                             'dosyayı geri alın; Satsuma son imzalı politikayla çalışmaya devam ediyor.'}
+    elif meta.get('signature') == 'no_key':
+        finding = {'rule_id': 'SATSUMA-POLICY-SIG-001', 'severity': 'high',
+                   'title': 'Politika imza anahtarı yok: politika dosyası imzasız kabul ediliyor',
+                   'summary': '/etc/satsuma-core/policy.json herkesin değil yalnızca sizin imzanızla geçerli olmalı.',
+                   'advice': 'sudo satsuma-admin politika anahtar-olustur; sonra sudo satsuma-admin politika imzala'}
+    else:
+        return None
+    record_finding(store, {**finding, 'finding_id': f"{finding['rule_id']}:{int(now)}", 'classification': 'indicator',
+                           'source': 'self_health', 'timestamp': now, 'enforcement_eligible': False}, 'self_health')
+    return finding['rule_id']
 
 
 def _remediate(store, findings, request=None):
@@ -578,6 +635,8 @@ def _run_once(store, config, pipeline, smart_engine, rule_stats, run_teams=True)
         smart_engine.ai_overrides = ai_guard.overrides(store)
         from satsuma import strict_mode
         smart_engine.strict_mode = strict_mode.enabled(store)
+        _privd_probe(store)
+        _policy_signature(store)
         for rule_id in smart_engine.ai_runtime.take_alarms():
             store.add('findings', ai_guard.suspended_finding(rule_id))
     except Exception as exc:

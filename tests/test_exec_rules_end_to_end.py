@@ -186,7 +186,7 @@ def test_existing_integrity_warning_is_not_a_runtime_response_gate(harness,rid,c
 def test_single_ssh_tunnel_indicator_is_report_only_even_when_required_is_one(harness,mode):
     store,state,worker,config=harness
     cmd='ssh '+mode+' 1080 admin@example.invalid';state['exe']='/usr/bin/ssh'
-    detected=finding(store,'SATSUMA-EXFIL-010',cmd,state['exe']);assert detected
+    detected=finding(store,'SATSUMA-EXFIL-010',cmd,state['exe'],strict=False);assert detected
     assert detected['classification']=='indicator' and detected['severity']=='medium'
     from satsuma.rule_response import requirement_for
     assert requirement_for(detected,config,store) is None
@@ -211,7 +211,7 @@ def test_ssh_catalog_recommendation_does_not_activate_two_or_three_source_policy
 def test_ssh_explicit_two_source_policy_cannot_be_satisfied_by_one_indicator(harness):
     store,state,worker,config=harness;state['exe']='/usr/bin/ssh'
     store.set('rule_response_requirements',{'SATSUMA-EXFIL-010':{'minimum_sources':2,'freshness_seconds':60}})
-    detected=finding(store,'SATSUMA-EXFIL-010','ssh -D 1080 admin@example.invalid',state['exe'])
+    detected=finding(store,'SATSUMA-EXFIL-010','ssh -D 1080 admin@example.invalid',state['exe'],strict=False)
     result=AutoActionEngine(store,config,response=worker).process(detected)['process_response']
     assert not result['signal_sent'] and not state['signals']
     assert 'insufficient_independent_fresh_same_target_evidence' in result['reasons']
@@ -255,3 +255,10 @@ def test_existing_identity_gate_does_not_claim_boot_or_file_digest_verification(
         'boot_id':'different-boot','exe_dev':-1,'exe_ino':-1,'file_sha256':'0'*64})
     assert result['ok']  # These optional claims are not checked by this legacy function.
     assert not state['signals']
+
+
+def test_ssh_tunnel_stops_in_strict_mode(harness):
+    """Owner's inventory 2026-11-20: ssh is not used on this computer; in strict mode a tunnel stops."""
+    store,state,worker,config=harness;state['exe']='/usr/bin/ssh'
+    detected=finding(store,'SATSUMA-EXFIL-010','ssh -D 1080 admin@example.invalid',state['exe'])
+    assert detected['owner_strict'] and detected['severity']=='high'

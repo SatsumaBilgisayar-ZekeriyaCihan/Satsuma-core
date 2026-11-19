@@ -185,9 +185,14 @@ class Monitor:
                     result=self.response.block(ip,'Sentinel: operator explicitly approved listed IP',manual=True)
                     family=self.response.config['nft_family'];table=self.response.config['nft_table']
                     name=self.response.config.get('nft_set_v6','blocked_ips_v6') if ipaddress.ip_address(ip).version==6 else self.response.config['nft_set']
-                    probe=subprocess.run(['nft','list','set',family,table,name],capture_output=True,text=True,timeout=5)
-                    code,output=probe.returncode,probe.stdout
-                    result['nft_set_output']=output if code==0 else 'Set okunamadı'
+                    from .privd import privd_only
+                    if privd_only():
+                        # 2.2.62: no CAP_NET_ADMIN here; privd verified the set when it blocked.
+                        code,output=1,''
+                    else:
+                        probe=subprocess.run(['nft','list','set',family,table,name],capture_output=True,text=True,timeout=5)
+                        code,output=probe.returncode,probe.stdout
+                    result['nft_set_output']=output if code==0 else ('Set privd tarafından doğrulanır' if privd_only() else 'Set okunamadı')
                     result['drop_rule_verification']='Doğrulanmadı; set üyeliği trafik düşürme kanıtı değildir'
                     self.store.add('sentinel',dict(result,request_id=ident))
             self.store.db.execute("UPDATE sentinel_requests SET status='done' WHERE id=?",(ident,))

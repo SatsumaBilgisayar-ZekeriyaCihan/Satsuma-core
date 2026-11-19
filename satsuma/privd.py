@@ -15,10 +15,11 @@ process — protected gateway/DNS/loopback targets, process identity
 re-verification, operator pause. Every request, done or refused, is
 recorded as privd_audit.
 
-ResponseWorker hands these operations to privd when its socket exists; if
-privd is not reachable it still acts itself, so protection never stops.
-Stage 2 removes root from the calling services; only then can a taken-over
-service no longer block or kill on its own.
+ResponseWorker hands these operations to privd when its socket exists.
+Stage 2 (2.2.62): teams, core and sentinel run with SATSUMA_PRIVD_ONLY=1 and
+without CAP_KILL (teams and sentinel also without CAP_NET_ADMIN); they never
+fall back to acting themselves, so a taken-over service cannot kill or block
+on its own. Other callers still act themselves when privd is unreachable.
 
 satsuma-privd: adresleri engelleyen ve süreçleri durduran tek servis.
 
@@ -49,6 +50,8 @@ OPERATIONS = {
     'block_ip': ({'ip', 'reason'}, {'manual', 'raw_id', 'duration'}),
     'unblock_ip': ({'ip', 'reason'}, {'manual'}),
     'terminate': ({'pid', 'reason'}, {'evidence', 'context'}),
+    # 2.2.62 (faz 2): a process and its live descendants; callers no longer hold CAP_KILL.
+    'terminate_tree': ({'pid', 'reason'}, {'evidence', 'context'}),
     # 2.2.56: undo a one-shot attack (satsuma.remediation checks the action again here).
     'remediate': ({'action', 'reason'}, {'path', 'user', 'group', 'rule_id', 'finding_id'}),
 }
@@ -90,13 +93,28 @@ def request(op, *, socket_timeout=15, socket_path=SOCKET_PATH, **params):
         raise PrivdUnavailable('unreadable privd answer') from exc
 
 
+# 2.2.62 (faz 2): services started with this set hold neither CAP_KILL nor (teams, sentinel)
+# CAP_NET_ADMIN; they never act themselves. If privd cannot be reached the action is not done
+# and the failure is recorded (teams raises SATSUMA-PRIVD-001 hourly).
+# Bu ortamla çalışan servis işi kendisi yapmaz; privd yoksa iş yapılmaz ve kayda geçer.
+ONLY_ENV = 'SATSUMA_PRIVD_ONLY'
+
+
+def privd_only():
+    return os.environ.get(ONLY_ENV) == '1' and os.environ.get(SERVER_ENV) != '1'
+
+
 def delegate(op, **params):
     """privd's answer, or None when this process must act itself."""
-    if os.environ.get(SERVER_ENV) == '1' or not SOCKET_PATH.exists():
+    if os.environ.get(SERVER_ENV) == '1':
         return None
+    if not SOCKET_PATH.exists():
+        return {'status': 'privd_unavailable', 'executed': False, 'error': 'privd socket missing'} if privd_only() else None
     try:
         return request(op, **params)
-    except PrivdUnavailable:
+    except PrivdUnavailable as exc:
+        if privd_only():
+            return {'status': 'privd_unavailable', 'executed': False, 'error': str(exc)[:300]}
         return None
 
 
@@ -166,6 +184,9 @@ def handle(message, identity, worker, audit):
                                          store=store, audit=record_quarantine)
             if store is not None:
                 store.add('actions', result)
+        elif op == 'terminate_tree':
+            result = worker.kill_process_tree(message['pid'], message['reason'], evidence=message.get('evidence'),
+                                              context=message.get('context'))
         else:
             result = worker.terminate_process(message['pid'], message['reason'], evidence=message.get('evidence'),
                                               context=message.get('context'))

@@ -1,3 +1,4 @@
+import json
 """Validated configuration edits keep protection on its last good policy."""
 import copy,json
 from pathlib import Path
@@ -26,15 +27,19 @@ def test_valid_then_invalid_then_repaired_policy(tmp_path,monkeypatch):
     monkeypatch.setattr(policy,'POLICY_PATH',path)
     monkeypatch.setattr(config,'LAST_VALID_POLICY',cache)
     original=policy.from_legacy(config.DEFAULT);documents={path:original}
-    def read(selected):
+    def read(selected,raw_bytes=False):
         if Path(selected) not in documents:raise FileNotFoundError(str(selected))
+        if raw_bytes:return json.dumps(documents[Path(selected)]).encode()
         return copy.deepcopy(documents[Path(selected)])
+    # 2.2.62: no signing key in this test (signature state 'no_key'); signing has its own tests.
+    monkeypatch.setattr('satsuma.policy_signing.PUBLIC_PATH',tmp_path/'none.pub')
     monkeypatch.setattr(config,'_read_secure_json',read)
     monkeypatch.setattr(config.os,'geteuid',lambda:0)
     class Writer:
         def __init__(self,name):self.name=name
         def replace(self,value):
             if self.name=='configuration/last-valid-policy.json':documents[cache]=copy.deepcopy(value)
+        def read(self):raise FileNotFoundError(self.name)
     monkeypatch.setattr('satsuma.protected_storage.RootDataStore',Writer)
     first,meta,_=config.load_with_policy();assert meta['status']=='validated' and cache not in documents
     first,meta,_=config.load_with_policy(persist=True);assert meta['status']=='validated'

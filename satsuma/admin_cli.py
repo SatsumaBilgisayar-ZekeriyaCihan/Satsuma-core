@@ -61,11 +61,15 @@ def _parser() -> argparse.ArgumentParser:
     aide.add_argument("hedef", nargs="?", help="path of a listed change for 'geri-al'")
     undo = sub.add_parser("geri-alma", help="automatic undo of one-shot attacks: status, on, off (off asks for the admin password)")
     undo.add_argument("islem", choices=("durum", "ac", "kapat"))
+    sub.add_parser("oz-test", help="run every protection path for real on harmless targets (about 4 minutes)")
     strict = sub.add_parser("en-siki-mod", help="strictest mode: status, on, off (off asks for the admin password)")
     strict.add_argument("islem", choices=("durum", "ac", "kapat"))
     ai = sub.add_parser("deepseek-kural", help="DeepSeek rules: list; report only / disable (admin password) / back to normal")
     ai.add_argument("islem", choices=("liste", "yalniz-bildir", "devre-disi", "normal"))
     ai.add_argument("kural", nargs="?", help="SATSUMA-AI-... rule id")
+    pol = sub.add_parser("politika", help="signed policy: status, create the signing key, sign policy.json (admin password)")
+    pol.add_argument("islem", choices=("durum", "anahtar-olustur", "imzala"))
+    pol.add_argument("--yenile", action="store_true", help="replace an existing signing key")
     check = sub.add_parser("tam-kontrol", help="switch every function on, check the whole product and repair what is safe")
     check.add_argument("--yalniz-kontrol", action="store_true", help="report only; do not switch anything on or repair")
     # 2.2.38 (owner, 2026-11-18): maintenance kit, also run by satsuma-maintenance.timer.
@@ -388,6 +392,32 @@ def _remediation(args) -> int:
         store.close()
 
 
+def _self_test(args) -> int:
+    """2.2.62: field self-test (satsuma.self_test); PASS/FAIL per protection path."""
+    from . import enforcement, self_test
+    from .store import Store
+    store = Store()
+    try:
+        policy_on = bool(enforcement.policy(store).get('enabled'))
+        print('Satsuma öz test: her koruma yolu zararsız hedeflerle gerçekten çalıştırılıyor (yaklaşık 4 dakika).')
+        print('Bu sırada panelde test kayıtları görünecek; beklenen bir durumdur.\n')
+        mark = {True: 'GEÇTİ', False: 'KALDI', None: 'ATLANDI'}
+        checks = []
+        for key, check in self_test.CHECKS:
+            def announced(check=check, key=key):
+                print(f'  … {key}', flush=True)
+                return check()
+            checks.append((key, announced))
+        summary = self_test.run_all(store, checks=checks, policy_on=policy_on)
+        print()
+        for result in summary['results']:
+            print(f"  {mark[result['passed']]:8} {result['name']}: {result['detail']}")
+        print('\nSONUÇ: ' + ('tüm yollar çalışıyor' if summary['passed'] else 'EN AZ BİR KORUMA YOLU ÇALIŞMIYOR'))
+        return 0 if summary['passed'] else 1
+    finally:
+        store.close()
+
+
 def _strict(args) -> int:
     """2.2.61: strictest mode (satsuma.strict_mode); switching it off needs the admin password."""
     from . import strict_mode
@@ -412,6 +442,87 @@ def _strict(args) -> int:
         return 0
     finally:
         store.close()
+
+
+def _flatten(value, prefix=''):
+    if isinstance(value, dict):
+        out = {}
+        for key, item in value.items():
+            out.update(_flatten(item, f'{prefix}.{key}' if prefix else str(key)))
+        return out
+    return {prefix: value}
+
+
+def _policy_changes(new, old):
+    a, b = _flatten(old or {}), _flatten(new)
+    return sorted([(k, a.get(k, '(yok)'), b.get(k, '(silindi)')) for k in set(a) | set(b) if a.get(k) != b.get(k)])
+
+
+def _policy(args) -> int:
+    """2.2.62 (faz 2): policy.json is used only when signed with the owner's key."""
+    import hashlib, json
+    from . import policy_signing as ps
+    from .policy import POLICY_PATH
+    from .config import LAST_VALID_POLICY, _read_secure_json
+    if args.islem == 'durum':
+        record = ps.pinned()
+        print('İmza anahtarı: ' + (('VAR, parmak izi ' + record['fingerprint'][:16]) if record else 'YOK'))
+        try:
+            raw = _read_secure_json(POLICY_PATH, raw_bytes=True)
+            print('Politika: ' + ps.check(raw, POLICY_PATH) + ' (sha256 ' + hashlib.sha256(raw).hexdigest()[:16] + ')')
+        except ps.SignatureError as exc:
+            print('Politika: KULLANILMIYOR - ' + exc.code + ': ' + exc.detail)
+            print('Satsuma son imzalı politikayla çalışıyor.')
+        except (OSError, ValueError) as exc:
+            print('Politika okunamadı: ' + str(exc))
+        return 0
+    from .dashboard_auth import verify_admin_password
+    password = getpass.getpass('Satsuma yönetici parolası: ')
+    if not verify_admin_password(password):
+        print('Parola doğrulanamadı; hiçbir şey değişmedi.', file=sys.stderr)
+        return 1
+    if args.islem == 'anahtar-olustur':
+        if ps.pinned() and not args.yenile:
+            print('Anahtar zaten var. Değiştirmek için: satsuma-admin politika anahtar-olustur --yenile', file=sys.stderr)
+            return 1
+        record = ps.create_key(password)
+        print('İmza anahtarı oluşturuldu, parmak izi ' + record['fingerprint'][:16] + '.')
+        print('Şimdiki politikayı imzalamak için: sudo satsuma-admin politika imzala')
+        return 0
+    # imzala: show exactly what is being signed against the policy Satsuma uses now.
+    from .config_migration import migrate_config_document
+    raw = _read_secure_json(POLICY_PATH, raw_bytes=True)
+    try:
+        migrate_config_document(json.loads(raw.decode('utf-8')))
+    except Exception as exc:
+        print('Politika geçersiz, imzalanmadı: ' + str(exc)[:300], file=sys.stderr)
+        return 1
+    try:
+        current = _read_secure_json(LAST_VALID_POLICY)
+    except (OSError, ValueError):
+        current = None
+    changes = _policy_changes(json.loads(raw.decode('utf-8')), current)
+    print(f'{POLICY_PATH} (sha256 {hashlib.sha256(raw).hexdigest()[:16]}) imzalanacak.')
+    if current is None:
+        print('Karşılaştırılacak imzalı politika yok; dosyanın tamamı imzalanacak.')
+    elif not changes:
+        print('Satsuma\'nın kullandığı politikadan farkı yok.')
+    else:
+        print('Şimdi kullanılan politikadan farklar (bunları siz mi yaptınız?):')
+        for key, before, after in changes[:60]:
+            print(f'  {key}: {json.dumps(before, ensure_ascii=False)} -> {json.dumps(after, ensure_ascii=False)}')
+        if len(changes) > 60:
+            print(f'  ... ve {len(changes) - 60} fark daha')
+    if input('İmzalansın mı? (evet/hayır): ').strip().lower() != 'evet':
+        print('İmzalanmadı.')
+        return 1
+    try:
+        out = ps.sign_file(POLICY_PATH, password)
+    except ps.SignatureError as exc:
+        print(exc.code + ': ' + exc.detail, file=sys.stderr)
+        return 1
+    print('İmzalandı: ' + out['signature'] + '. Satsuma bir dakika içinde bu politikaya geçer.')
+    return 0
 
 
 def _ai_rules(args) -> int:
@@ -462,7 +573,7 @@ def main(argv=None) -> int:
     if args.command == 'cekirdek':
         return _kernel(args)
     if args.command in ('modem', 'tam-kontrol', 'karantina', 'ssh', 'sertlestirme', 'aide', 'bakim', 'geri-alma',
-                        'deepseek-kural', 'en-siki-mod'):
+                        'deepseek-kural', 'en-siki-mod', 'oz-test', 'politika'):
         if os.geteuid() != 0:
             print('Root yetkisi gerekli: sudo satsuma-admin ' + args.command, file=sys.stderr)
             return 1
@@ -474,6 +585,10 @@ def main(argv=None) -> int:
             return _ai_rules(args)
         if args.command == 'en-siki-mod':
             return _strict(args)
+        if args.command == 'politika':
+            return _policy(args)
+        if args.command == 'oz-test':
+            return _self_test(args)
         if args.command == 'ssh':
             return _ssh(args)
         if args.command == 'sertlestirme':

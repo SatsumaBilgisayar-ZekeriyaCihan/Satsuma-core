@@ -155,7 +155,8 @@ def load_manifest(path: Path) -> dict:
 
 def _violation_type_for(path: str) -> str:
     """Dosya değişmişse hangi violation tipi?"""
-    if path == "/etc/satsuma-core/policy.json":
+    if path in ("/etc/satsuma-core/policy.json", "/etc/satsuma-core/policy.json.sig",
+                "/etc/satsuma-core/policy-signing.pub"):
         return ViolationType.POLICY_INTEGRITY_VIOLATION.value
     if "/systemd/system/" in path:
         return ViolationType.SYSTEMD_UNIT_VIOLATION.value

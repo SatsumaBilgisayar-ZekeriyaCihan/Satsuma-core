@@ -34,7 +34,47 @@ STRICT_STOP = frozenset({
     'SATSUMA-IMP-001', 'SATSUMA-IMP-003', 'SATSUMA-IMP-005', 'SATSUMA-IMP-006',
     'SATSUMA-LAT-001', 'SATSUMA-LAT-002', 'SATSUMA-LAT-003', 'SATSUMA-LAT-004', 'SATSUMA-LAT-005',
     'SATSUMA-LAT-006',
+    # 2.2.62, owner's inventory 2026-11-20: tools this computer does not use (ssh 1 hit, rsync,
+    # mail client, kubectl/aws/docker, sudoedit, Steam/gamemode 0). Bu bilgisayarda kullanılmıyor.
+    'SATSUMA-COLL-005', 'SATSUMA-COLL-008', 'SATSUMA-COLL-016', 'SATSUMA-COLL-018', 'SATSUMA-COLL-019',
+    'SATSUMA-COLL-020', 'SATSUMA-EXFIL-005', 'SATSUMA-EXFIL-010', 'SATSUMA-SUDO-003', 'SATSUMA-EVAS-010',
+    'SATSUMA-ROOT-002',
 })
+
+# Module loading (owner 2026-11-20): from user space, loading a module that is not loaded yet and
+# every removal stop; the kernel's own request (parent kthreadd, PID 2) and a module already
+# loaded (modprobe does nothing) do not. File and forced loads are SATSUMA-GAP-073.
+# Kullanıcı alanından yüklü olmayan modülü yükleme ve her kaldırma durdurur; çekirdeğin isteği değil.
+MODULE_RULES = frozenset({'SATSUMA-PRIV-017', 'SATSUMA-ROOT-001', 'SATSUMA-LNX-EVAS-005', 'SATSUMA-EVAS-014'})
+
+
+def module_change_stops(event, sys_module='/sys/module'):
+    import shlex
+    from pathlib import Path
+    if str(event.get('ppid') or '') == '2':
+        return False
+    try:
+        tokens = shlex.split(str(event.get('cmd') or ''))
+    except ValueError:
+        tokens = str(event.get('cmd') or '').split()
+    if not tokens:
+        return False
+    program = Path(tokens[0]).name
+    args = tokens[1:]
+    if program == 'kmod' and args:
+        program, args = args[0], args[1:]
+    if program == 'rmmod' or (program == 'modprobe' and any(a in ('-r', '--remove') for a in args)):
+        return True
+    names = [a for a in args if not a.startswith('-')]
+    if program not in ('modprobe', 'insmod') or not names:
+        return False
+    # Satsuma's own preload before the module lock (satsuma.module_lock.PRELOAD), exact form only:
+    # these modules are on the allowlist anyway, so the exception gives nothing new to anyone.
+    from .module_lock import PRELOAD
+    if tokens[0] == '/usr/sbin/modprobe' and args[:1] == ['-q'] and len(args) == 2 and args[1] in PRELOAD:
+        return False
+    name = Path(names[0]).name.split('.ko')[0].replace('-', '_')
+    return not Path(sys_module, name).exists()
 
 # Kept as reports: what each would stop is the machine or the owner, not an attacker.
 EXCLUDED = {
@@ -45,30 +85,17 @@ EXCLUDED = {
     'SATSUMA-NET-203': 'NetworkManager resolv.conf yazar; internet giderdi.',
     'SATSUMA-NET-202': 'firewalld kendi yapılandırmasını yazar.',
     'SATSUMA-NET-201': 'Her yeni dinleyen uygulama (Steam, KDE Connect...) durdurulurdu.',
-    'SATSUMA-COLL-005': 'Thunderbird/Evolution kendi posta dosyalarını okur.',
     'SATSUMA-COLL-006': 'Firefox kendi geçmişini okur.',
     'SATSUMA-COLL-007': 'Firefox kendi çerezlerini okur.',
-    'SATSUMA-COLL-008': 'ssh known_hosts ve config okur.',
-    'SATSUMA-COLL-016': 'ssh kendi özel anahtarını okur.',
     'SATSUMA-COLL-017': 'gpg-agent kendi anahtarlarını okur.',
-    'SATSUMA-COLL-018': 'kubectl kendi yapılandırmasını okur.',
-    'SATSUMA-COLL-019': 'aws aracı kendi kimlik dosyasını okur.',
-    'SATSUMA-COLL-020': 'docker/podman kendi yapılandırmasını okur.',
-    'SATSUMA-PRIV-017': 'Açılışta sürücüleri modprobe yükler; dosyadan/zorla yükleme GAP-073 ile durdurulur.',
-    'SATSUMA-ROOT-001': 'Açılışta sürücüleri modprobe yükler (GAP-073 durdurur).',
-    'SATSUMA-LNX-EVAS-005': 'Açılışta sürücüleri modprobe yükler (GAP-073 durdurur).',
-    'SATSUMA-EVAS-014': 'udev sürücü kaldırır.',
     'SATSUMA-EVAS-015': 'systemd ve Satsuma açılışta sysctl yazar; çekirdek bekçisi her saniye geri yazar.',
     'SATSUMA-EVAS-013': 'Paket betikleri SELinux modülü kurar.',
-    'SATSUMA-EVAS-010': 'Steam, gamemode ve snap LD_PRELOAD kullanır; yazılabilir dizinden yükleme GAP-041 ile durdurulur.',
-    'SATSUMA-ROOT-002': 'Steam, gamemode ve snap LD_PRELOAD kullanır (GAP-041 durdurur).',
     'SATSUMA-EVAS-011': 'Firefox (snap), Steam ve birçok uygulama LD_LIBRARY_PATH ayarlar.',
     'SATSUMA-EVAS-012': 'rkhunter, chkrootkit, unhide: güvenlik taramaları (Satsuma da unhide çalıştırır).',
     'SATSUMA-ROOT-004': 'rkhunter, chkrootkit, unhide: güvenlik taramaları.',
     'SATSUMA-GAP-025': 'Sahibin kararı (2026-11-19): chattr +i sıkılaştırma için elle yapılıyor.',
     'SATSUMA-LNX-EVAS-001': 'Sahip kilitli dosyayı düzenlemek için chattr -i kullanır.',
     'SATSUMA-EVAS-009': 'Sahip kilitli dosyayı düzenlemek için chattr -i kullanır.',
-    'SATSUMA-SUDO-003': 'sudoedit sahibin dosya düzenleme aracıdır.',
     'SATSUMA-PRIV-001': 'sudo -i / sudo su: sahibin root kabuğu.',
     'SATSUMA-PRIV-028': 'sudo -i / sudo bash: sahibin root kabuğu.',
     'SATSUMA-DISC-001': 'uname, whoami, id: gündelik komutlar.',
@@ -79,9 +106,7 @@ EXCLUDED = {
     'SATSUMA-DISC-006': 'systemctl list-units: gündelik komut.',
     'SATSUMA-EXEC-010': 'Kabuk betiklerinin çoğu eval kullanır.',
     'SATSUMA-EXFIL-001': 'dig +short gündelik bir DNS sorgusudur.',
-    'SATSUMA-EXFIL-005': 'rsync -av /home yedek almanın olağan yoludur.',
     'SATSUMA-EXFIL-016': 'git clone/push (gh kullanıyorsunuz).',
-    'SATSUMA-EXFIL-010': 'ssh -L sahibin kendi kullanımı (saha geçmişi); ters tünel ssh -R GAP-034 ile durdurulur.',
     'SATSUMA-IMP-004': 'systemctl stop/disable sahibin servis yönetimidir.',
     'SATSUMA-LINUX-CLI-004': 'Yorumlayıcının kabuk açması paket betiklerinde olağandır.',
     'SATSUMA-DEV-003': 'Disk biçimlendirme (udisksd) ve ürün yazılımı güncellemesi (fwupd) ham diske yazar.',
@@ -96,17 +121,13 @@ def enabled(store):
     return not (isinstance(value, dict) and value.get('enabled') is False)
 
 
-# The owner upgrades with "rpm-ostree uninstall satsuma-core ... --install satsuma-core-X.rpm"
-# (installing a local RPM needs the admin password since 2.2.58): an upgrade stays an alarm.
-UPGRADE = re.compile(r'(?:--install(?:=|\s+)|\s-i\s+)\S*satsuma-core-\d+\.\d+\.\d+-\d+\.\w+\.\w+\.rpm(?:\s|$)')
-
-
 def apply(finding):
     """Raise a strict rule's finding so the ordinary stop path acts on it."""
-    if finding.get('rule_id') not in STRICT_STOP:
-        return finding
     event = finding.get('event') if isinstance(finding.get('event'), dict) else {}
-    if finding.get('rule_id') in ('SATSUMA-GAP-036', 'SATSUMA-GAP-075') and UPGRADE.search(str(event.get('cmd') or '')):
+    if finding.get('rule_id') in MODULE_RULES:
+        if not module_change_stops(event):
+            return finding
+    elif finding.get('rule_id') not in STRICT_STOP:
         return finding
     finding['owner_strict'] = True
     finding['log_only'] = False

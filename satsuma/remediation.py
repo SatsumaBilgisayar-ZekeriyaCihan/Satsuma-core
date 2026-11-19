@@ -87,13 +87,34 @@ PACKAGE_WRITERS = frozenset({'rpm-ostree', 'rpm-ostreed', 'rpm', 'dnf', 'dnf5', 
                              'packagekitd', 'systemd-sysusers', 'systemd-tmpfiles'})
 
 
+# Only the packaged binary (read-only /usr on Atomic); a file merely named snapd is not it.
+SNAPD = frozenset({'/usr/lib/snapd/snapd', '/usr/libexec/snapd/snapd'})
+
+
+def package_own_write(exe, path):
+    """A package manager writing its own files: never undone or stopped (2.2.62).
+
+    rpm-ostree, dnf, rpm... as before; snapd only for its own snap-named files
+    (snap.*.service, 70-snap.*.rules, modules-load.d/snap.*.conf) - field 2026-11-20:
+    "snap remove" deleted them and every deletion was taken for a persistence write.
+    snapd writing any other file is still undone and stopped.
+    Paket yöneticisinin kendi dosyası; snapd yalnız snap önekli dosyalarında muaf.
+    """
+    name = Path(str(exe or '')).name.removesuffix(' (deleted)')
+    if name in PACKAGE_WRITERS:
+        return True
+    leaf = Path(str(path or '')).name
+    full = str(exe or '').removesuffix(' (deleted)')
+    return full in SNAPD and bool(leaf) and leaf.startswith(('snap.', '70-snap.', 'snap-'))
+
+
 def plan(finding):
     """What to undo for one finding: a list of actions (possibly empty)."""
     rule = str(finding.get('rule_id') or '')
     if finding.get('trace_only'):
         return []
     info = _event(finding)
-    if Path(info['exe']).name in PACKAGE_WRITERS:
+    if package_own_write(info['exe'], info['path']):
         return []
     base = {'rule_id': rule, 'finding_id': finding.get('finding_id')}
     if rule in FIREWALL_RULES:
@@ -189,6 +210,9 @@ def _unconfirmed_keys(path, known, audit):
 
 def _quarantine_file(path, audit, runner, known_keys=()):
     from . import scan_quarantine as q
+    if not os.path.lexists(path):
+        # Deleted by the time privd acted (a removal, not a write): nothing to undo.
+        return {'status': 'already_gone', 'source': path}
     if Path(path).name in ('authorized_keys', 'authorized_keys2') and not os.path.islink(path):
         return _unconfirmed_keys(path, set(known_keys), audit)
     if os.path.islink(path):

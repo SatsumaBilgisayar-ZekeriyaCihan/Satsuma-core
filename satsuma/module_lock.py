@@ -1,7 +1,7 @@
 """One-way kernel module loading lock, applied after boot services settle.
 
 Wired in 2.2.30 (it was never run before; user report 2026-11-04): the
-satsuma-module-lock timer runs it three minutes after boot. Modules that
+satsuma-module-lock timer runs it two minutes after boot (three before 2.2.62). Modules that
 Satsuma's own features load later (WireGuard, nftables matches used by
 App Control and OpenSnitch) are loaded first, because once locked nothing
 can be loaded until the next reboot. A device plugged in afterwards whose
@@ -9,7 +9,7 @@ driver is not loaded yet will not work until reboot; that is the point.
 
 Tek yönlü çekirdek modülü yükleme kilidi; açılış servisleri oturduktan sonra
 uygulanır. 2.2.30'da bağlandı (daha önce hiç çalışmıyordu; kullanıcı bildirimi
-2026-11-04): satsuma-module-lock zamanlayıcısı onu açılıştan üç dakika sonra
+2026-11-04): satsuma-module-lock zamanlayıcısı onu açılıştan iki dakika sonra
 çalıştırır. Satsuma'nın kendi özelliklerinin sonradan yüklediği modüller
 (WireGuard, App Control ve OpenSnitch'in kullandığı nftables eşleşmeleri)
 önce yüklenir; kilitten sonra yeniden başlatmaya kadar hiçbir modül
@@ -25,7 +25,10 @@ from .host_store import HostStore
 CONTROL=Path('/proc/sys/kernel/modules_disabled')
 # Loaded before the lock: WireGuard, NFQUEUE and the nftables pieces Satsuma,
 # App Control and OpenSnitch add rules with later.
-PRELOAD=('wireguard','nfnetlink_queue','nft_queue','nft_ct','nft_socket','nft_reject_inet','nft_nat','nft_redir','xt_mark')
+# 2.2.62: bridge and tun for the owner's bridged virtual machine network (GNOME Boxes), which
+# usually starts after the lock. Köprülü sanal makine ağı için kilitten önce yüklenir.
+PRELOAD=('wireguard','nfnetlink_queue','nft_queue','nft_ct','nft_socket','nft_reject_inet','nft_nat','nft_redir','xt_mark',
+         'bridge','tun')
 
 
 def preload(runner=None):
@@ -59,6 +62,17 @@ def run(store=None):
             result={**lock(),'preloaded':loaded}
         except Exception as exc:
             result={'timestamp':time.time(),'status':'ERROR','error':str(exc)[:500],'control':str(CONTROL)}
+        if result['status']=='LOCKED':
+            try:
+                from .boot_lockdown import record_allowlist
+                result['allowlist']=record_allowlist()
+            except Exception as exc:
+                result['allowlist']={'status':'ERROR','error':str(exc)[:300]}
+            try:
+                from .boot_lockdown import sync_initramfs
+                result['initramfs']=sync_initramfs()
+            except Exception as exc:
+                result['initramfs']={'initramfs':'error','error':str(exc)[:300]}
         store.add('module_lock',result);store.set('module_lock_health',result)
         if result['status']!='LOCKED':raise RuntimeError(result['error'])
         return result

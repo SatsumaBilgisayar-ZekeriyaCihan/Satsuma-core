@@ -30,7 +30,11 @@ PrivateDevices=true
 ProtectKernelTunables=yes
 ProtectKernelModules=yes
 SystemCallFilter=~ptrace process_vm_readv process_vm_writev kcmp pidfd_getfd
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_DAC_READ_SEARCH CAP_SYS_PTRACE CAP_KILL
-AmbientCapabilities=CAP_NET_ADMIN CAP_DAC_READ_SEARCH CAP_SYS_PTRACE CAP_KILL
+# 2.2.62 (faz 2): stopping processes goes only through satsuma-privd; no fallback.
+# Süreç durdurma yalnızca privd üzerinden.
+# CAP_NET_ADMIN stays until faz 3: core reconciles its nftables policy (NftPolicyManager).
+Environment=SATSUMA_PRIVD_ONLY=1
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_DAC_READ_SEARCH CAP_SYS_PTRACE
+AmbientCapabilities=CAP_NET_ADMIN CAP_DAC_READ_SEARCH CAP_SYS_PTRACE
 [Install]
 WantedBy=multi-user.target

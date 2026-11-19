@@ -129,7 +129,7 @@ def validate(config):
         raise ValueError('sudo_autoblock_enabled must be boolean')
     return out
 
-def _read_secure_json(path):
+def _read_secure_json(path, raw_bytes=False):
     """Read a root-owned, non-symlink JSON file through a verified directory.
 
     This is the single raw-document read point used by the production config
@@ -151,12 +151,15 @@ def _read_secure_json(path):
                 raise PermissionError('configuration must be a regular file')
             if st.st_uid!=0 or st.st_mode & 0o022 or st.st_nlink != 1:
                 raise PermissionError('Configuration is not root protected')
-            with os.fdopen(os.dup(file_fd),encoding='utf-8') as stream:
-                return json.load(stream)
+            with os.fdopen(os.dup(file_fd),'rb') as stream:
+                raw=stream.read()
         finally:
             os.close(file_fd)
     finally:
         os.close(directory_fd)
+    if raw_bytes:
+        return raw
+    return json.loads(raw.decode('utf-8'))
 
 
 def load():
@@ -176,9 +179,17 @@ def load_with_policy(*, persist=False):
     from .policy import POLICY_PATH,digest
     policy_path=Path(POLICY_PATH)
     from .configuration_status import ConfigurationError
+    signature={}
     def document(path, code):
+        from .policy_signing import SignatureError, load_signed_json
         try:
+            if Path(path)==policy_path:
+                # 2.2.62 (faz 2): the policy is taken only with the owner's signature.
+                data,signature['state']=load_signed_json(path, lambda p: _read_secure_json(p, raw_bytes=True))
+                return migrate_config_document(data)
             return migrate_config_document(_read_secure_json(path))
+        except SignatureError as exc:
+            raise ConfigurationError(exc.code, path, exc.detail) from exc
         except (ValueError, OSError, TypeError, KeyError) as exc:
             raise ConfigurationError(code, path, str(exc)) from exc
     selected=policy_path if policy_path.exists() or policy_path.is_symlink() else Path('/etc/satsuma-core/config.json')
@@ -186,7 +197,8 @@ def load_with_policy(*, persist=False):
     try:
         config,policy=document(selected,code)
         meta={'schema_version':policy['schema_version'],'revision':policy['revision'],
-              'sha256':digest(policy),'path':str(selected),'status':'validated'}
+              'sha256':digest(policy),'path':str(selected),'status':'validated',
+              'signature':signature.get('state','not_policy_file')}
     except ConfigurationError as exc:
         # Only a previously validated, protected policy may sustain protection.
         # The invalid edited document is retained for the administrator to fix.

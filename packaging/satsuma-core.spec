@@ -2,7 +2,7 @@
 %global debug_package %{nil}
 %global _build_id_links none
 Name: satsuma-core
-Version: 2.2.61
+Version: 2.2.62
 Release: 1%{?dist}
 Summary: Satsuma Core security monitoring and response
 License: LicenseRef-Proprietary AND GPL-3.0-only AND Unlicense
@@ -14,6 +14,7 @@ Provides: user(satsuma-dns)
 Provides: group(satsuma-core)
 Provides: user(satsuma-core)
 Provides: group(satsuma-reader)
+Provides: user(satsuma-reader)
 Source0: %{name}-%{version}.tar.gz
 Requires: rpm
 Requires: gnupg2
@@ -219,6 +220,7 @@ g satsuma-priv -
 g satsuma-engine -
 u satsuma-engine - "Satsuma isolated deep engine" / /usr/sbin/nologin
 u satsuma-dns - "Satsuma DNS" / /usr/sbin/nologin
+u satsuma-reader -:satsuma-reader "Satsuma read-only dashboard channel" / /usr/sbin/nologin
 u satsuma-core - "Satsuma Core" /var/lib/satsuma-core /usr/sbin/nologin
 SATSUMA_SYSUSERS
 then
@@ -232,7 +234,7 @@ for identity in satsuma-dns satsuma-core satsuma-reader satsuma-engine; do
         echo "SATSUMA_ACCOUNT_SETUP_FAILED: group not resolvable: $identity" >&2; exit 1;
     }
 done
-for identity in satsuma-dns satsuma-core satsuma-engine; do
+for identity in satsuma-dns satsuma-core satsuma-engine satsuma-reader; do
     getent passwd "$identity" >/dev/null || {
         echo "SATSUMA_ACCOUNT_SETUP_FAILED: user not resolvable: $identity" >&2; exit 1;
     }
@@ -496,7 +498,7 @@ if [ -d /run/systemd/system ]; then systemctl daemon-reload >/dev/null 2>&1 || :
 %files
 %defattr(-,root,root,-)
 %license LICENSE
-%doc docs/RELEASE-2.2.38.md docs/RELEASE-2.2.39.md docs/RELEASE-2.2.40.md docs/RELEASE-2.2.41.md docs/RELEASE-2.2.42.md docs/RELEASE-2.2.43.md docs/RELEASE-2.2.44.md docs/RELEASE-2.2.45.md docs/RELEASE-2.2.46.md docs/RELEASE-2.2.47.md docs/RELEASE-2.2.48.md docs/RELEASE-2.2.49.md docs/RELEASE-2.2.50.md docs/RELEASE-2.2.51.md docs/RELEASE-2.2.52.md docs/RELEASE-2.2.53.md docs/RELEASE-2.2.54.md docs/RELEASE-2.2.55.md docs/RELEASE-2.2.56.md docs/RELEASE-2.2.57.md docs/RELEASE-2.2.58.md docs/RELEASE-2.2.59.md docs/RELEASE-2.2.60.md docs/RELEASE-2.2.61.md
+%doc docs/RELEASE-2.2.38.md docs/RELEASE-2.2.39.md docs/RELEASE-2.2.40.md docs/RELEASE-2.2.41.md docs/RELEASE-2.2.42.md docs/RELEASE-2.2.43.md docs/RELEASE-2.2.44.md docs/RELEASE-2.2.45.md docs/RELEASE-2.2.46.md docs/RELEASE-2.2.47.md docs/RELEASE-2.2.48.md docs/RELEASE-2.2.49.md docs/RELEASE-2.2.50.md docs/RELEASE-2.2.51.md docs/RELEASE-2.2.52.md docs/RELEASE-2.2.53.md docs/RELEASE-2.2.54.md docs/RELEASE-2.2.55.md docs/RELEASE-2.2.56.md docs/RELEASE-2.2.57.md docs/RELEASE-2.2.58.md docs/RELEASE-2.2.59.md docs/RELEASE-2.2.60.md docs/RELEASE-2.2.61.md docs/RELEASE-2.2.62.md
 %doc DEVICE-AND-SYSTEMD-RESEARCH.md VERSION NETWORK-IPS.md
 %{_docdir}/%{name}/examples
 %{_docdir}/%{name}/SELF-REPAIR-GUIDE.md

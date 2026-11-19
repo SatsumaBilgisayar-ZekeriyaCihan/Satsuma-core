@@ -1,8 +1,8 @@
 [Unit]
-Description=Lock kernel module loading three minutes after boot
+Description=Lock kernel module loading two minutes after boot
 
 [Timer]
-OnBootSec=3min
+OnBootSec=2min
 
 [Install]
 WantedBy=timers.target
