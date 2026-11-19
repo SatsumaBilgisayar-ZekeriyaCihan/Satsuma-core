@@ -194,6 +194,16 @@ def respond(store, config, finding, response, *, approved_request=None):
                           reasons=['trusted_program_jit_memory'],
                           decision_explanation='Güvenilir yoldaki program JIT için yazılabilir+çalıştırılabilir bellek kurar; kaydedildi, durdurulmadı.')
             return _persist_decision(store, finding, record)
+        # 2.2.59: limits on DeepSeek rules (satsuma.ai_guard): protected targets, the owner's
+        # interactive admin tools, trusted programs' JIT memory, owner settings, stop limit.
+        from . import ai_guard
+        if ai_guard.is_ai(finding.get('rule_id')):
+            blocked = ai_guard.stop_block(finding, store, pid, evidence_exe(event) or memory_extensions.get('host.exe'),
+                                          memory_rule=event.get('source') == 'memory')
+            if blocked:
+                record.update(status='report_only', evaluation_only=True, reasons=[blocked],
+                              decision_explanation='DeepSeek kuralı bu süreci durduramaz (' + blocked + '); bulgu bildirildi.')
+                return _persist_decision(store, finding, record)
         # A memory difference must reproduce now; a stale or forged one never
         # stops a process, with or without the blocking policy.
         memory_claim = finding.get('rule_id') == 'SATSUMA-RAM-005'
@@ -268,6 +278,8 @@ def respond(store, config, finding, response, *, approved_request=None):
                       signal_sent=result.get('signal_sent', False),
                       exit_verified=result.get('exit_verified', False))
         if record['signal_sent'] is True:
+            from .ai_guard import count_stop
+            count_stop(finding, store)
             # Visible in the findings list, not only in the action log.
             stopped = record['status'] == 'terminated' and record['exit_verified'] is True
             store.add('findings', {'source': 'satsuma_enforcement', 'classification': 'indicator',

@@ -521,6 +521,10 @@ class SmartRuleEngine:
         if env_dir and rules_dir is None and Path(env_dir) != selected:
             self.load_errors.append({"file": env_dir, "error": "SATSUMA_RULES_DIR ignored (audit G4)"})
         self.regex_budget_exceeded = 0
+        # 2.2.59: DeepSeek rules: owner settings (set by satsuma-teams from the store) and CPU strikes.
+        from .ai_guard import RuntimeGuard
+        self.ai_overrides: dict[str, str] = {}
+        self.ai_runtime = RuntimeGuard()
         self._regex_deadline: float | None = None
         self._load_rules()
 
@@ -558,6 +562,12 @@ class SmartRuleEngine:
                     signed = verify_installed_rule(yaml_file, loaded)
                 for index, raw_rule in enumerate(loaded, 1):
                     try:
+                        if ai and isinstance(raw_rule, dict):
+                            # 2.2.59: a DeepSeek rule must have linear regexes (ai_guard), or it is not loaded.
+                            from .ai_guard import regex_issues
+                            issues = regex_issues(raw_rule)
+                            if issues:
+                                raise RuleValidationError("ai_guard: " + ", ".join(issues)[:300])
                         rule = self._validate_rule(raw_rule, yaml_file, index, category_from_file)
                         from .ai_rule_package import digest
                         rule['_content_hash'] = digest({k:v for k,v in rule.items() if not k.startswith('_')})
@@ -796,13 +806,29 @@ class SmartRuleEngine:
         self._ext_memo = None
         view = self._view(event)
         for rule, compiled in self._candidates(view):
+            # 2.2.59: a DeepSeek rule runs after the bundled rules (it is loaded after them)
+            # with its own small CPU budget; it can never spend theirs (satsuma.ai_guard).
+            ai_rule = rule["_id"].startswith("SATSUMA-AI-")
+            if ai_rule:
+                if self.ai_overrides.get(rule["_id"]) == "disabled" or not self.ai_runtime.active(rule["_id"]):
+                    continue
+                outer_deadline = self._regex_deadline
+                from .ai_guard import RULE_BUDGET_SECONDS
+                own = time.thread_time() + RULE_BUDGET_SECONDS
+                self._regex_deadline = own if outer_deadline is None else min(own, outer_deadline)
             try:
                 try:
                     if not self._matches_compiled(compiled, view):
                         continue
                 except _RegexBudgetExceeded:
-                    starved.append(rule["_id"])
+                    if ai_rule:
+                        self.ai_runtime.strike(rule["_id"])
+                    else:
+                        starved.append(rule["_id"])
                     continue
+                finally:
+                    if ai_rule:
+                        self._regex_deadline = outer_deadline
                 if self._own_package_transaction(rule, event) or self._own_readonly_probe(rule, event):
                     continue
                 score = self._score(rule, event)
@@ -843,6 +869,8 @@ class SmartRuleEngine:
                     "rule_file": rule.get("_file"),
                     "dedup_group": rule.get("dedup_group", rule["_id"]),
                     "matched_rules": [rule["_id"]],
+                    **({"trace_only": True, "ai_owner_mode": "report_only"}
+                       if ai_rule and self.ai_overrides.get(rule["_id"]) == "report_only" else {}),
                 })
             except Exception as exc:
                 # Runtime matcher hatası bir rule-load problemi kadar ciddi değil,

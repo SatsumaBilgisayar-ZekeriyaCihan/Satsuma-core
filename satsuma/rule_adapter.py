@@ -302,6 +302,9 @@ def activate_rule(store, rule_id, *, authorized=False, reviewer='operator'):
         if not pkg.AI_ID.fullmatch(rule_id):
             raise ValueError('unsafe_rule_id')
         root = _secure_directory(ACTIVE_RULES_DIR)
+        from .ai_guard import MAX_ACTIVE
+        if sum(1 for d in root.iterdir() if pkg.AI_ID.fullmatch(d.name)) >= MAX_ACTIVE:
+            raise ValueError('active_ai_rule_limit_reached')
         target = root / rule_id
         if os.path.lexists(target):
             raise ValueError('activation_target_exists')

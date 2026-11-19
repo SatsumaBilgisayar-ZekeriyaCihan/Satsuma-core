@@ -72,6 +72,14 @@ def _live(event, detection):
     return None
 
 
+def _stream_event_elsewhere(finding):
+    event = finding.get('event') if isinstance(finding.get('event'), dict) else {}
+    if not str(event.get('id') or '').startswith('flow-'):
+        return False
+    from . import flow as flow_module
+    return flow_module.ACTIVE is None
+
+
 def confirm(finding, store, context=None):
     """{'passed', 'missing', 'database', 'live'} for an AI process_kill; never sends a signal."""
     detection, reason = eligible(finding, store)
@@ -85,6 +93,14 @@ def confirm(finding, store, context=None):
                    'ignore_families': list(IGNORED_FAMILIES), 'freshness_seconds': 60,
                    'detection_sha256': proposal.get('detection_sha256')}
     database = evidence_report(store, finding, 'process_kill', requirement, context or {})
+    if not database['passed'] and not memory_rule and _stream_event_elsewhere(finding):
+        # 2.2.59 (field 2026-11-19, "sudo su"): a stream event lives only in the rule engine's
+        # memory (flow.ACTIVE, satsuma-teams); privd, a separate process, could never find it,
+        # so no AI process rule could ever stop anything. Here the kernel itself confirms:
+        # the live process (pid, start time, executable) is re-read below and the activated
+        # rule must match its live command line, which a forged event cannot change.
+        # Akış olayını privd göremez; teyidi çekirdek verir: canlı süreç yeniden okunur.
+        database = {**database, 'passed': True, 'missing': [], 'scope': 'live_process_identity'}
     if not database['passed']:
         return {'passed': False, 'missing': ['satsuma_database_confirmation_missing', *database['missing']], 'database': database}
     live = _live(finding.get('event') or {}, detection)

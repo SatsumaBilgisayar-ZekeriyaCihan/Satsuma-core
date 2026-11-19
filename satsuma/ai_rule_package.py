@@ -95,6 +95,10 @@ def validate_detection(rule):
                 errors.append('memory telemetry action is not implemented')
         elif not any(key in match for key in ('cmd_contains', 'cmd_arg_contains', 'exe_contains', 'file_path', 'parent_contains')):
             errors.append('detection requires a positive, supported indicator matcher')
+        if not errors:
+            # 2.2.59: linear regexes, not broad, never Satsuma/systemd/the desktop (satsuma.ai_guard).
+            from .ai_guard import validation_issues
+            errors.extend(validation_issues(rule))
     return errors[:30]
 
 

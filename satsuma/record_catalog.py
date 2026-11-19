@@ -274,7 +274,10 @@ def render(kind, body, created=None):
         severity = SEVERITY_LABELS.get(str(item.get('severity')), _text(item.get('severity')))
         process = item.get('process') if isinstance(item.get('process'), dict) else {}
         window = item.get('window_events')
-        detail = ' · '.join(x for x in (_text(item.get('rule_id')), _first(process, 'exe', 'cmd', 'name'),
+        # 2.2.59: ten deep-engine ids are also rule-engine ids with another meaning
+        # (SATSUMA-PERSIST-001 is "cron write" here, "systemd unit" there); say whose it is.
+        detail = ' · '.join(x for x in (('derin motor kuralı ' + _text(item.get('rule_id'))) if item.get('rule_id') else '',
+                                         _first(process, 'exe', 'cmd', 'name'),
                                          f'{window} olaylık pencere' if isinstance(window, int) else '') if x)
         return {'text': (_first(item, 'rule_title', 'title') or rule_title(item.get('rule_id')) or _text(item.get('rule_id'))
                          or 'Kural') + ' · derin motor gözlemi',

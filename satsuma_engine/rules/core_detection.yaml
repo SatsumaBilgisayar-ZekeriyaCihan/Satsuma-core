@@ -125,9 +125,14 @@
   classification: likely
   confidence: high
   category: persistence
+  # 2.2.59 (field 2026-11-19): only a write. Fedora's hourly cron job runs the scripts in
+  # /etc/cron.hourly at minute 01; that execution carried the path and was taken for a write.
   match:
-    field: event.file_path
-    regex: ^/etc/(?:cron\.|cron\.d/|crontab)
+    all:
+    - field: event.file_path
+      regex: ^/etc/(?:cron\.|cron\.d/|crontab)
+    - field: event.operation
+      in: [write, attr, rename, unlink, create]
   mitre:
   - tactic: persistence
     technique: T1053.003

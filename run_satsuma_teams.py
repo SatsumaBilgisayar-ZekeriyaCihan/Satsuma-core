@@ -546,6 +546,14 @@ def _run_once(store, config, pipeline, smart_engine, rule_stats, run_teams=True)
             store.add('errors',{'component':'process_followup','error':type(exc).__name__})
             store.set('process_followup.health',{'updated_at':time.time(),'status':'ERROR','error':type(exc).__name__})
     smart_engine.refresh_managed_rules()
+    try:
+        # 2.2.59: the owner's DeepSeek rule settings, and rules suspended for burning CPU.
+        from satsuma import ai_guard
+        smart_engine.ai_overrides = ai_guard.overrides(store)
+        for rule_id in smart_engine.ai_runtime.take_alarms():
+            store.add('findings', ai_guard.suspended_finding(rule_id))
+    except Exception as exc:
+        store.add('errors', {'component': 'ai_guard', 'error': str(exc)[:300]})
     rule_stats = smart_engine.stats()
     store.set('deepseek_runtime', {'updated_at': time.time(), 'loaded': rule_stats.get('managed_packages', {}),
                                  'load_errors': rule_stats.get('load_errors', [])})

@@ -61,6 +61,9 @@ def _parser() -> argparse.ArgumentParser:
     aide.add_argument("hedef", nargs="?", help="path of a listed change for 'geri-al'")
     undo = sub.add_parser("geri-alma", help="automatic undo of one-shot attacks: status, on, off (off asks for the admin password)")
     undo.add_argument("islem", choices=("durum", "ac", "kapat"))
+    ai = sub.add_parser("deepseek-kural", help="DeepSeek rules: list; report only / disable (admin password) / back to normal")
+    ai.add_argument("islem", choices=("liste", "yalniz-bildir", "devre-disi", "normal"))
+    ai.add_argument("kural", nargs="?", help="SATSUMA-AI-... rule id")
     check = sub.add_parser("tam-kontrol", help="switch every function on, check the whole product and repair what is safe")
     check.add_argument("--yalniz-kontrol", action="store_true", help="report only; do not switch anything on or repair")
     # 2.2.38 (owner, 2026-11-18): maintenance kit, also run by satsuma-maintenance.timer.
@@ -383,11 +386,55 @@ def _remediation(args) -> int:
         store.close()
 
 
+def _ai_rules(args) -> int:
+    """2.2.59: DeepSeek rules per rule; weakening one needs the admin password.
+
+    DeepSeek kuralları: liste, yalnız bildir / devre dışı (parola), normale dön.
+    """
+    from . import ai_guard
+    from .store import Store
+    store = Store()
+    try:
+        modes = ai_guard.overrides(store)
+        if args.islem == 'liste':
+            try:
+                rows = store.db.execute("SELECT rule_id, status FROM rule_adapter_queue ORDER BY rule_id").fetchall()
+            except Exception:
+                rows = []
+            label = {'report_only': 'yalnız bildirir (sizin ayarınız)', 'disabled': 'devre dışı (sizin ayarınız)'}
+            for rule_id, status in rows:
+                if status == 'activated':
+                    print(rule_id + '  ' + label.get(modes.get(rule_id), 'durdurabilir (sınırlar içinde)'))
+            if not any(s == 'activated' for _, s in rows):
+                print('Etkin DeepSeek kuralı yok.')
+            print('Sınırlar: sudo/su/pkexec/gdb/strace, Satsuma, systemd ve masaüstü asla durdurulmaz; '
+                  'güvenilir programın JIT belleği yalnız bildirilir; 10 dakikada en çok 5 durdurma.')
+            return 0
+        if not args.kural or not ai_guard.is_ai(args.kural):
+            print('Kural kimliği gerekli: SATSUMA-AI-...', file=sys.stderr)
+            return 2
+        if args.islem in ('yalniz-bildir', 'devre-disi'):
+            from .dashboard_auth import verify_admin_password
+            if not verify_admin_password(getpass.getpass('Satsuma yönetici parolası: ')):
+                print('Parola doğrulanamadı; kural değişmedi.', file=sys.stderr)
+                return 1
+        mode = {'yalniz-bildir': 'report_only', 'devre-disi': 'disabled', 'normal': None}[args.islem]
+        ai_guard.set_override(store, args.kural, mode)
+        store.add('actions', {'action': 'ai_rule.override', 'rule_id': args.kural, 'status': mode or 'normal',
+                              'timestamp': time.time()})
+        print(args.kural + ': ' + {'report_only': 'yalnız bildirir', 'disabled': 'devre dışı', None: 'normal'}[mode]
+              + ' (en geç bir dakika içinde geçerli).')
+        return 0
+    finally:
+        store.close()
+
+
 def main(argv=None) -> int:
     args = _parser().parse_args(argv)
     if args.command == 'cekirdek':
         return _kernel(args)
-    if args.command in ('modem', 'tam-kontrol', 'karantina', 'ssh', 'sertlestirme', 'aide', 'bakim', 'geri-alma'):
+    if args.command in ('modem', 'tam-kontrol', 'karantina', 'ssh', 'sertlestirme', 'aide', 'bakim', 'geri-alma',
+                        'deepseek-kural'):
         if os.geteuid() != 0:
             print('Root yetkisi gerekli: sudo satsuma-admin ' + args.command, file=sys.stderr)
             return 1
@@ -395,6 +442,8 @@ def main(argv=None) -> int:
             return _quarantine(args)
         if args.command == 'geri-alma':
             return _remediation(args)
+        if args.command == 'deepseek-kural':
+            return _ai_rules(args)
         if args.command == 'ssh':
             return _ssh(args)
         if args.command == 'sertlestirme':
