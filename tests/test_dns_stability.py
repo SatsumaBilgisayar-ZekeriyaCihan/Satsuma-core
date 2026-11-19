@@ -53,6 +53,7 @@ def fake_systemctl(refuse=0, verbs=('start', 'restart'), active=False):
 
 def test_restart_refused_by_the_start_limit_is_reset_and_retried_once(env):
     dns._refresh(env.store, fake_systemctl(), env.dir)
+    env.state['dns_filter_restarted_at'] = 0  # 2.2.51: a full reload only after the 30-minute window
     env.extra.add('new-bad.example')          # a changed block list means a restart
     runner = fake_systemctl(refuse=1)
     assert dns._refresh(env.store, runner, env.dir)['status'] == 'configured'
@@ -89,6 +90,7 @@ def _daemon_answers_with_nothing(monkeypatch):
 def test_unchanged_upstream_and_a_silent_upstream_keep_the_new_valid_rules(env, monkeypatch):
     dns._refresh(env.store, fake_systemctl(), env.dir)
     before = (env.dir / 'blocked.conf').read_text()
+    env.state['dns_filter_restarted_at'] = 0  # 2.2.51: the full reload path
     env.extra.add('new-bad.example')
     _daemon_answers_with_nothing(monkeypatch)
     with pytest.raises(dns.UpstreamNotUsable):
@@ -158,3 +160,80 @@ def test_probe_that_times_out_raises_the_matching_error_kind(monkeypatch):
         with pytest.raises(kind) as caught:
             dns.probe(timeout=0)
         assert type(caught.value) is kind
+
+
+# -- 2.2.51: a newly blocked name is applied without a restart (no DNS gap)
+
+def hot_runner(active=True):
+    runner = fake_systemctl(active=active)
+    inner = runner
+
+    def wrapped(args, **kwargs):
+        if args[1] == 'show':
+            inner.calls.append(args[1:])
+            return SimpleNamespace(returncode=0, stdout='4242\n', stderr='')
+        return inner(args, **kwargs)
+    wrapped.calls = inner.calls
+    return wrapped
+
+
+def test_a_new_name_is_hot_added_with_sighup_not_a_restart(env, monkeypatch):
+    dns._refresh(env.store, fake_systemctl(), env.dir)
+    assert 'addn-hosts=' + str(env.dir / 'added.hosts') in (env.dir / 'dnsmasq.conf').read_text()
+    assert (env.dir / 'added.hosts').read_text() == ''
+    signals = []
+    monkeypatch.setattr(dns.os, 'kill', lambda pid, sig: signals.append((pid, sig)))
+    monkeypatch.setattr(dns.os, 'readlink', lambda path: '/usr/sbin/dnsmasq')
+    env.extra.add('new-bad.example')
+    runner = hot_runner()
+    assert dns._refresh(env.store, runner, env.dir)['status'] == 'hot_added'
+    assert (env.dir / 'added.hosts').read_text() == '0.0.0.0 new-bad.example\n:: new-bad.example\n'
+    assert 'new-bad.example' not in (env.dir / 'blocked.conf').read_text()
+    assert not any(c[0] == 'restart' for c in runner.calls)
+    import signal
+    assert signals == [(4242, signal.SIGHUP)]
+    # The next minute changes nothing and sends nothing.
+    again = hot_runner()
+    assert dns._refresh(env.store, again, env.dir)['status'] == 'unchanged' and len(signals) == 1
+    # After the window the full list (with subdomains) is loaded once and added.hosts is emptied.
+    env.state['dns_filter_restarted_at'] = 0
+    full = hot_runner()
+    assert dns._refresh(env.store, full, env.dir)['status'] == 'configured'
+    assert 'address=/new-bad.example/#' in (env.dir / 'blocked.conf').read_text()
+    assert (env.dir / 'added.hosts').read_text() == ''
+
+
+def test_sighup_goes_only_to_the_real_dnsmasq(env, monkeypatch):
+    signals = []
+    monkeypatch.setattr(dns.os, 'kill', lambda pid, sig: signals.append(pid))
+    monkeypatch.setattr(dns.os, 'readlink', lambda path: '/usr/bin/bash')
+    assert dns.reload_hosts(hot_runner()) is False and signals == []
+    none = lambda args, **k: SimpleNamespace(returncode=0, stdout='0\n', stderr='')
+    assert dns.reload_hosts(none) is False
+
+
+def test_a_failed_reload_is_reported(env, monkeypatch):
+    dns._refresh(env.store, fake_systemctl(), env.dir)
+    monkeypatch.setattr(dns.os, 'readlink', lambda path: '/usr/bin/bash')
+    env.extra.add('new-bad.example')
+    with pytest.raises(RuntimeError, match='re-read the added names'):
+        dns._refresh(env.store, hot_runner(), env.dir)
+
+
+def test_an_allowed_name_leaves_added_hosts_at_once(env, monkeypatch):
+    dns._refresh(env.store, fake_systemctl(), env.dir)
+    monkeypatch.setattr(dns.os, 'kill', lambda pid, sig: None)
+    monkeypatch.setattr(dns.os, 'readlink', lambda path: '/usr/sbin/dnsmasq')
+    env.extra.update({'a-bad.example', 'b-bad.example'})
+    dns._refresh(env.store, hot_runner(), env.dir)
+    env.state['dns_allowed_domains'] = ['a-bad.example']
+    assert dns._refresh(env.store, hot_runner(), env.dir)['status'] == 'hot_added'
+    assert 'a-bad.example' not in (env.dir / 'added.hosts').read_text()
+    assert 'b-bad.example' in (env.dir / 'added.hosts').read_text()
+
+
+def test_added_hosts_lists_only_new_names():
+    old = 'address=/a.example/#\nlocal=/a.example/\n'
+    new = old + 'address=/b.example/#\nlocal=/b.example/\n'
+    assert dns.added_hosts(old, new) == ('0.0.0.0 b.example\n:: b.example\n', 1)
+    assert dns.added_hosts(new, old) == ('', 0)

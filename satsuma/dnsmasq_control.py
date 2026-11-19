@@ -70,7 +70,10 @@ def verify_config(directory=DIRECTORY):
     import hmac
     from .package_trust import secure_read
     from installer.integrity import read_key, file_hmac
-    for name in ('dnsmasq.conf', 'blocked.conf'):
+    names = ['dnsmasq.conf', 'blocked.conf']
+    if (directory/ADDED).exists():
+        names.append(ADDED)
+    for name in names:
         path=directory/name
         secure_read(path, limit=128*1024*1024)
         signature=secure_read(Path(str(path)+'.sig'), limit=128)
@@ -116,6 +119,55 @@ def _ensure_running(runner):
     return _systemctl(runner, 'start')
 
 
+ADDED = 'added.hosts'
+
+
+def added_hosts(old_rules, new_rules):
+    """hosts lines for names blocked since the running list was loaded (2.2.51).
+
+    A hosts line blocks the name itself; subdomains follow at the next full
+    reload. Yeni engellenen adlar için hosts satırları; alt alan adları bir
+    sonraki tam yüklemede gelir.
+    """
+    def names(rules):
+        return {line[len('address=/'):-len('/#')] for line in (rules or '').splitlines()
+                if line.startswith('address=/') and line.endswith('/#')}
+    fresh = sorted(names(new_rules) - names(old_rules))
+    return ''.join(f'0.0.0.0 {name}\n:: {name}\n' for name in fresh), len(fresh)
+
+
+def _main_pid(runner):
+    shown = runner(['/usr/bin/systemctl', 'show', '-p', 'MainPID', '--value', SERVICE],
+                   capture_output=True, text=True, timeout=30)
+    try:
+        pid = int((shown.stdout or '').strip())
+    except ValueError:
+        return None
+    return pid if pid > 1 else None
+
+
+def reload_hosts(runner, kill=None, readlink=None):
+    """SIGHUP to the running dnsmasq: it re-reads added.hosts without a restart (no DNS gap).
+
+    The signal goes straight to the verified dnsmasq PID; ``systemctl kill``
+    would itself look like a process-stop command to Satsuma's rules.
+    Sinyal doğrulanmış dnsmasq PID'ine doğrudan gider.
+    """
+    import signal
+    kill = kill or os.kill
+    readlink = readlink or os.readlink
+    pid = _main_pid(runner)
+    if pid is None:
+        return False
+    try:
+        if readlink(f'/proc/{pid}/exe') != '/usr/sbin/dnsmasq':
+            return False
+        kill(pid, signal.SIGHUP)
+    except OSError:
+        return False
+    return True
+
+
 def _servers(config):
     return sorted(line for line in (config or '').splitlines() if line.startswith('server='))
 
@@ -152,16 +204,33 @@ def _refresh(store, runner=subprocess.run, directory=DIRECTORY):
     # 2.2.44: own network namespace (satsuma.dns_netns), never loopback.
     from .dns_netns import DNS_ADDR
     config = ('port=53\nlisten-address=' + DNS_ADDR + '\nbind-interfaces\nno-resolv\nno-hosts\n'
-              'cache-size=1000\n' + ''.join('server=' + server + '\n' for server in upstream_servers(policy['upstream'])) + 'conf-file=' + str(directory / 'blocked.conf') + '\n')
+              'cache-size=1000\n' + ''.join('server=' + server + '\n' for server in upstream_servers(policy['upstream'])) + 'conf-file=' + str(directory / 'blocked.conf') + '\n'
+              + 'addn-hosts=' + str(directory / ADDED) + '\n')
     block_path, config_path = directory / 'blocked.conf', directory / 'dnsmasq.conf'
     if block_path.exists() or config_path.exists():verify_config(directory)
     old_rules = block_path.read_text() if block_path.exists() else None
     old_config = config_path.read_text() if config_path.exists() else None
+    added_path = directory / ADDED
+    old_added = added_path.read_text() if added_path.exists() else None
+    hot = False
     if removals_wait(store, old_rules, rules, old_config == config, time.time()):
         # Only removals: the running filter keeps blocking a little longer
         # instead of a restart (and a DNS gap) every minute.
         rules = old_rules
+    elif hot_add_allowed(store, old_rules, rules, old_config == config, old_added is not None, time.time()):
+        # 2.2.51: new names go to added.hosts and dnsmasq re-reads it on SIGHUP;
+        # the full list (with subdomains) is reloaded at most every 30 minutes.
+        hosts, count = added_hosts(old_rules, rules)
+        if hosts != old_added:
+            atomic(added_path, hosts, gid)
+            hot = True
+        rules = old_rules
     if old_rules == rules and old_config == config:
+        if hot and policy.get('enabled'):
+            if not reload_hosts(runner):
+                raise RuntimeError('dnsmasq could not re-read the added names')
+            probe()
+            store.set('dns_filter_hot_added_at', time.time())
         verify_config(directory)
         if policy.get('enabled'):
             started = _ensure_running(runner)
@@ -170,9 +239,10 @@ def _refresh(store, runner=subprocess.run, directory=DIRECTORY):
             probe()
         health = record_readiness(store) if policy.get('enabled') else {'status': 'DISABLED'}
         store.set('dns_filter_health', {**health, 'blocked_count':len(blocked), 'updated_at':time.time()})
-        return {'ok': True, 'status': 'unchanged', 'count': len(blocked)}
+        return {'ok': True, 'status': 'hot_added' if hot else 'unchanged', 'count': len(blocked)}
     store.set('dns_filter_restarted_at', time.time())
-    atomic(block_path, rules, gid); atomic(config_path, config, gid)
+    old_added_text = old_added
+    atomic(block_path, rules, gid); atomic(config_path, config, gid); atomic(added_path, '', gid)
     checked = runner(['/usr/sbin/dnsmasq', '--test', '--conf-file=' + str(config_path)], capture_output=True, text=True, timeout=20)
     if checked.returncode:
         if old_rules is not None:
@@ -198,6 +268,7 @@ def _refresh(store, runner=subprocess.run, directory=DIRECTORY):
             # Restore both configuration files on *readiness* failure as well as start failure.
             if old_rules is not None and old_config is not None:
                 atomic(block_path,old_rules,gid);atomic(config_path,old_config,gid)
+                atomic(added_path,old_added_text or '',gid)
                 recovered=_systemctl(runner,'restart')
                 if recovered.returncode:raise RuntimeError('DNS activation and rollback both failed')
                 probe()
@@ -230,6 +301,15 @@ def removals_wait(store, old_rules, new_rules, same_config, now):
         return False
     old_lines, new_lines = set(old_rules.splitlines()), set(new_rules.splitlines())
     if not new_lines <= old_lines:
+        return False
+    return now - float(store.get('dns_filter_restarted_at', 0) or 0) < REMOVAL_RESTART_SECONDS
+
+
+def hot_add_allowed(store, old_rules, new_rules, same_config, added_file_ready, now):
+    """True when only names were added, the running config already reads added.hosts, and a restart was recent."""
+    if old_rules is None or old_rules == new_rules or not same_config or not added_file_ready:
+        return False
+    if not set(new_rules.splitlines()) - set(old_rules.splitlines()):
         return False
     return now - float(store.get('dns_filter_restarted_at', 0) or 0) < REMOVAL_RESTART_SECONDS
 

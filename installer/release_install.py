@@ -13,7 +13,7 @@ import tempfile
 FINGERPRINT = '913483F4FD53BAD88F35DD39073C0B49B01769D9'
 BUNDLE = 'satsuma-memory-update-bundle.tar.gz'
 PUBLIC_KEY = 'RPM-GPG-KEY-SatsumaBilgisayar'
-RPM_NAME = 'satsuma-core-2.2.50-1.fc44.x86_64.rpm'
+RPM_NAME = 'satsuma-core-2.2.51-1.fc44.x86_64.rpm'
 BUILD_PACKAGES = ['rpm-build', 'rpm-sign', 'cpio', 'tar', 'gzip', 'gcc', 'python3',
                   'python3-pytest', 'python3-pydantic', 'python3-psutil',
                   'python3-pyyaml', 'python3-jsonschema', 'python3-pyqt6-base',
@@ -134,8 +134,8 @@ def main(argv=None):
             inner = build / 'satsuma-memory-update'
             verify_signature(verify_home, inner / 'SHA256SUMS.asc', inner / 'SHA256SUMS')
             run(['sha256sum', '-c', 'SHA256SUMS'], cwd=inner)
-            extract(inner / 'satsuma-core-2.2.50.tar.gz', build)
-            source = build / 'satsuma-core-2.2.50'
+            extract(inner / 'satsuma-core-2.2.51.tar.gz', build)
+            source = build / 'satsuma-core-2.2.51'
             environment = {**os.environ, 'PYTHONPATH': '.', 'QT_QPA_PLATFORM': 'offscreen'}
             tests = ['test_memory_validation', 'test_memory_access', 'test_memory_hardening',
                      'test_memory_mounts', 'test_hardware_memory', 'test_auto_process', 'test_memory_status']
