@@ -956,6 +956,64 @@ class SmartRuleEngine:
         cache[id(rule)] = (rule, compiled)
         return compiled
 
+    # 2.2.55: the coverage_gaps rules match by regex, so the cmd_contains index could not
+    # place them and every event tried all of them (engine speed requirement 0.2 ms,
+    # owner 2026-11-04). Each names the programs whose stage it can match; "*" stands for
+    # the shells and wrappers that run a script or another command. Rules not listed stay
+    # generic (tried on every event). Program names are also looked up without a version
+    # suffix (python3.15 -> python).
+    # Regex ile eşleşen yeni kurallar yalnızca adı geçen programların olaylarında denenir.
+    PROGRAM_HINTS = {
+        'SATSUMA-GAP-001': ('python', 'python3', 'python2', '*'),
+        'SATSUMA-GAP-002': ('perl', '*'), 'SATSUMA-GAP-003': ('php', '*'),
+        'SATSUMA-GAP-004': ('nc', 'ncat', 'netcat', '*'), 'SATSUMA-GAP-005': ('mkfifo', 'mknod', '*'),
+        'SATSUMA-GAP-006': ('openssl', '*'), 'SATSUMA-GAP-007': ('curl', 'wget', '*'),
+        'SATSUMA-GAP-012': ('*',), 'SATSUMA-GAP-014': ('systemd-run', '*'),
+        'SATSUMA-GAP-016': ('useradd', 'usermod', '*'), 'SATSUMA-GAP-017': ('usermod', 'gpasswd', '*'),
+        'SATSUMA-GAP-018': ('tee', 'echo', 'printf', '*'), 'SATSUMA-GAP-019': ('chmod', '*'),
+        'SATSUMA-GAP-020': ('setcap', '*'), 'SATSUMA-GAP-021': ('auditctl', '*'),
+        'SATSUMA-GAP-022': ('pkill', 'killall', '*'), 'SATSUMA-GAP-023': ('nft', '*'),
+        'SATSUMA-GAP-024': ('journalctl', '*'), 'SATSUMA-GAP-025': ('chattr', '*'),
+        'SATSUMA-GAP-026': ('mount', '*'), 'SATSUMA-GAP-029': ('cat', 'dd', 'hexdump', 'xxd', 'od', 'tee', 'python', 'perl', 'evtest', '*'),
+        'SATSUMA-GAP-030': ('unshadow', 'john', 'hashcat', 'cat', 'less', 'more', 'head', 'tail', 'cp', 'base64', 'xxd', 'strings', '*'),
+        'SATSUMA-GAP-031': ('hydra', 'medusa', 'ncrack', 'patator', 'crowbar', '*'),
+        'SATSUMA-GAP-032': ('nmap', 'masscan', 'zmap', 'rustscan', 'naabu', '*'),
+        'SATSUMA-GAP-033': ('chisel', 'ngrok', 'frpc', 'frps', 'ligolo', 'ligolo-ng', 'rathole', 'bore', 'cloudflared', '*'),
+        'SATSUMA-GAP-034': ('ssh', '*'), 'SATSUMA-GAP-035': ('rm', '*'),
+        'SATSUMA-GAP-036': ('rpm-ostree', 'dnf', 'yum', 'rpm', 'dnf5', '*'),
+        'SATSUMA-GAP-037': ('rm', 'shred', 'truncate', 'mv', 'dd', 'sqlite3', '*'),
+        'SATSUMA-GAP-038': ('docker', 'podman', 'nerdctl', '*'), 'SATSUMA-GAP-039': ('*',),
+        'SATSUMA-GAP-041': ('*',), 'SATSUMA-GAP-042': ('useradd', 'adduser', 'newusers', '*'),
+        'SATSUMA-GAP-043': ('sudo', '*'), 'SATSUMA-GAP-044': ('strace', 'ltrace', '*'),
+        'SATSUMA-GAP-046': ('ostree', 'rpm-ostree', '*'), 'SATSUMA-GAP-048': ('touch', '*'),
+        'SATSUMA-GAP-049': ('shred', 'wipe', 'srm', '*'), 'SATSUMA-GAP-050': ('chattr', '*'),
+        'SATSUMA-GAP-051': ('ccencrypt', 'ccrypt', '7z', '7za', 'gpg', 'gpg2', 'openssl', '*'),
+        'SATSUMA-GAP-052': ('update-ca-trust', 'update-ca-certificates', 'certctl', 'trust', 'cp', 'mv', 'install', 'tee', 'ln', '*'),
+        'SATSUMA-GAP-054': ('tee', 'echo', 'printf', 'python', '*'), 'SATSUMA-GAP-055': ('trap', 'export', '*'),
+        'SATSUMA-GAP-056': ('tcpdump', 'tshark', 'dumpcap', 'ettercap', 'bettercap', 'arpspoof', 'dsniff', 'ngrep', 'responder', '*'),
+        'SATSUMA-GAP-057': ('sed', 'perl', 'awk', 'tee', 'cp', 'mv', 'install', 'ln', 'echo', 'printf', '*'),
+        'SATSUMA-GAP-058': ('auditctl', '*'),
+        'SATSUMA-GAP-059': ('cat', 'less', 'more', 'strings', 'tail', 'head', 'cp', 'base64', 'tac', 'awk', 'sed', '*'),
+        'SATSUMA-GAP-060': ('xwd', 'import', 'ffmpeg', '*'),
+        'SATSUMA-GAP-061': ('gcc', 'cc', 'clang', 'g++', 'c++', 'clang++', 'tcc', 'go', '*'),
+        'SATSUMA-GAP-063': ('*',), 'SATSUMA-GAP-064': ('kill', 'pkill', 'killall', 'echo', '*'),
+        'SATSUMA-GAP-065': ('tor', 'torsocks', 'torify', 'proxychains', 'proxychains4', 'systemctl', 'ssh', '*'),
+        'SATSUMA-GAP-066': ('sshpass', 'chpasswd', 'passwd', '*'), 'SATSUMA-GAP-067': ('mkdir', '*'),
+        'SATSUMA-GAP-068': ('python', 'perl', 'ruby', 'node', '*'),
+        'SATSUMA-GAP-070': ('cp', 'cat', 'find', 'sqlite3', 'tar', 'zip', '7z', '7za', 'rsync', 'scp', 'base64', 'strings', 'dd', '*'),
+        'SATSUMA-GAP-071': ('rm', 'cp', 'mv', 'shred', 'truncate', 'tar', '*'),
+    }
+
+    @staticmethod
+    def _hint_names(names) -> set:
+        out = set()
+        for name in names:
+            if name == '*':
+                out |= _SHELLS | set(_WRAPPERS) | {'busybox', 'xargs', 'watch', 'flock', 'script', 'su', 'runuser', 'pkexec'}
+            else:
+                out.add(name)
+        return out
+
     def _rule_index(self) -> tuple:
         """Rules grouped by the program their cmd_contains needs.
 
@@ -983,7 +1041,11 @@ class SmartRuleEngine:
             for term in terms or ():
                 wanted = _wanted(term)
                 names.add(wanted[0].rsplit("/", 1)[-1] if wanted else None)
-            if not terms or None in names:
+            hint = self.PROGRAM_HINTS.get(rule.get("_id"))
+            if hint and not terms:
+                for name in self._hint_names(hint):
+                    by_program.setdefault(name, []).append(position)
+            elif not terms or None in names:
                 generic.append(position)
             else:
                 for name in names:
@@ -996,9 +1058,17 @@ class SmartRuleEngine:
         if not by_program:
             return entries
         picked = set(generic)
-        for tokens, _ in _stages(view["cmd"], view["exe"]):
+        # The command line's own program and the kernel's executable count too: a shell
+        # running a -c script is replaced by the script's commands in _stages, but the
+        # regex rules are also tried on the whole command line.
+        outer = [(_argv(view["cmd"])[:1] or [""])[0], view["exe"]]
+        for tokens in [*(t for t, _ in _stages(view["cmd"], view["exe"])), *([o] for o in outer if o)]:
             if tokens:
-                picked.update(by_program.get(tokens[0].rsplit("/", 1)[-1], ()))
+                name = tokens[0].rsplit("/", 1)[-1]
+                picked.update(by_program.get(name, ()))
+                bare = name.rstrip("0123456789.")
+                if bare != name:
+                    picked.update(by_program.get(bare, ()))
         return [entries[i] for i in sorted(picked)]
 
     def _view(self, event: dict[str, Any]) -> dict[str, Any]:
