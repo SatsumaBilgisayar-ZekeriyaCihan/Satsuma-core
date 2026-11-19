@@ -524,6 +524,7 @@ class SmartRuleEngine:
         # 2.2.59: DeepSeek rules: owner settings (set by satsuma-teams from the store) and CPU strikes.
         from .ai_guard import RuntimeGuard
         self.ai_overrides: dict[str, str] = {}
+        self.strict_mode = True       # 2.2.61: the owner switches it with satsuma-admin en-siki-mod
         self.ai_runtime = RuntimeGuard()
         self._regex_deadline: float | None = None
         self._load_rules()
@@ -872,6 +873,7 @@ class SmartRuleEngine:
                     **({"trace_only": True, "ai_owner_mode": "report_only"}
                        if ai_rule and self.ai_overrides.get(rule["_id"]) == "report_only" else {}),
                 })
+
             except Exception as exc:
                 # Runtime matcher hatası bir rule-load problemi kadar ciddi değil,
                 # fakat sessizce tüm motoru düşürmez.
@@ -894,7 +896,14 @@ class SmartRuleEngine:
             result = account_change.TRACKER.check() if self.account_tracker is None else self.account_tracker.check()
             for finding in findings:
                 account_change.apply(finding, result)
-        return self._deduplicate(findings)
+        result = self._deduplicate(findings)
+        if self.strict_mode:
+            # 2.2.61 (owner, 2026-11-20): report-only rules that may stop (satsuma.strict_mode).
+            # After deduplication, so raising a rule does not change which rule is primary.
+            from .strict_mode import apply as strict_apply
+            for finding in result:
+                strict_apply(finding)
+        return result
 
     # Tests and the teams service may give their own tracker; None uses the shared one.
     account_tracker = None

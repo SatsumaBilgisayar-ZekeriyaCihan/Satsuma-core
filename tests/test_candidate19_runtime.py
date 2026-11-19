@@ -78,7 +78,9 @@ def test_runtime_rule_error_is_not_no_match():
  ('/dev/mem','read','SATSUMA-DEV-001'),('/dev/input/event2','read','SATSUMA-DEV-002'),
  ('/dev/nvme0n1','write','SATSUMA-DEV-003')])
 def test_device_access_is_indicator_without_destructive_action(path,operation,rid):
-    findings=SmartRuleEngine().match(dict(source='audit',action='file_access',file_path=path,operation=operation))
+    # 2.2.61: with the strictest mode off (DEV-001 stops in that mode, satsuma.strict_mode).
+    engine=SmartRuleEngine();engine.strict_mode=False
+    findings=engine.match(dict(source='audit',action='file_access',file_path=path,operation=operation))
     assert any(rid in f.get('matched_rules',[f['rule_id']]) for f in findings)
     assert all(f['classification']=='indicator' for f in findings)
     assert all(not {'kill_process','block_ip','quarantine_file'} & set(f['actions']) for f in findings)

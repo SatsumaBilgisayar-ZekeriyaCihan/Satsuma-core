@@ -107,7 +107,8 @@ def sudo_autoblock(finding, sudo_enabled=True):
 
 def automatic_allowed(finding, sudo_enabled=True):
     """Classes any automatic response may act on: not plain activity indicators."""
-    if str(finding.get('rule_id', '')) in ALARM_ONLY or finding.get('trace_only'):
+    if finding.get('trace_only') or (str(finding.get('rule_id', '')) in ALARM_ONLY
+                                     and not _strict_stops(finding)):
         return False
     if str(finding.get('rule_id', '')) in ATTACK_INDICATORS or sudo_autoblock(finding, sudo_enabled):
         return True
@@ -128,8 +129,14 @@ def automatic_allowed(finding, sudo_enabled=True):
 ALARM_ONLY = frozenset({'SATSUMA-GAP-025', 'SATSUMA-GAP-036', 'SATSUMA-GAP-037', 'SATSUMA-GAP-052', 'SATSUMA-GAP-075'})
 
 
+def _strict_stops(finding):
+    """2.2.61: in the strictest mode these alarm-only rules stop too, except the owner's chattr (GAP-025)."""
+    return bool(finding.get('owner_strict')) and str(finding.get('rule_id')) != 'SATSUMA-GAP-025'
+
+
 def eligible(finding, sudo_enabled=True):
-    if str(finding.get('rule_id', '')) in ALARM_ONLY or finding.get('trace_only'):
+    if finding.get('trace_only') or (str(finding.get('rule_id', '')) in ALARM_ONLY
+                                     and not _strict_stops(finding)):
         return False
     if str(finding.get('rule_id', '')) in ATTACK_INDICATORS or sudo_autoblock(finding, sudo_enabled):
         return True

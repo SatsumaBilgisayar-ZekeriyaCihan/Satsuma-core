@@ -576,6 +576,8 @@ def _run_once(store, config, pipeline, smart_engine, rule_stats, run_teams=True)
         # 2.2.59: the owner's DeepSeek rule settings, and rules suspended for burning CPU.
         from satsuma import ai_guard
         smart_engine.ai_overrides = ai_guard.overrides(store)
+        from satsuma import strict_mode
+        smart_engine.strict_mode = strict_mode.enabled(store)
         for rule_id in smart_engine.ai_runtime.take_alarms():
             store.add('findings', ai_guard.suspended_finding(rule_id))
     except Exception as exc:

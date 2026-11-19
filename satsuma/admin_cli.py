@@ -61,6 +61,8 @@ def _parser() -> argparse.ArgumentParser:
     aide.add_argument("hedef", nargs="?", help="path of a listed change for 'geri-al'")
     undo = sub.add_parser("geri-alma", help="automatic undo of one-shot attacks: status, on, off (off asks for the admin password)")
     undo.add_argument("islem", choices=("durum", "ac", "kapat"))
+    strict = sub.add_parser("en-siki-mod", help="strictest mode: status, on, off (off asks for the admin password)")
+    strict.add_argument("islem", choices=("durum", "ac", "kapat"))
     ai = sub.add_parser("deepseek-kural", help="DeepSeek rules: list; report only / disable (admin password) / back to normal")
     ai.add_argument("islem", choices=("liste", "yalniz-bildir", "devre-disi", "normal"))
     ai.add_argument("kural", nargs="?", help="SATSUMA-AI-... rule id")
@@ -386,6 +388,32 @@ def _remediation(args) -> int:
         store.close()
 
 
+def _strict(args) -> int:
+    """2.2.61: strictest mode (satsuma.strict_mode); switching it off needs the admin password."""
+    from . import strict_mode
+    from .store import Store
+    store = Store()
+    try:
+        if args.islem == 'durum':
+            print('En sıkı mod: ' + ('AÇIK' if strict_mode.enabled(store) else 'KAPALI'))
+            print(f'Ek olarak durduran kural: {len(strict_mode.STRICT_STOP)}; '
+                  f'sistemi bozacağı için yalnız bildiren: {len(strict_mode.EXCLUDED)}')
+            for rule_id, why in sorted(strict_mode.EXCLUDED.items()):
+                print(f'  {rule_id}: {why}')
+            return 0
+        if args.islem == 'kapat':
+            from .dashboard_auth import verify_admin_password
+            if not verify_admin_password(getpass.getpass('Satsuma yönetici parolası: ')):
+                print('Parola doğrulanamadı; en sıkı mod açık kaldı.', file=sys.stderr)
+                return 1
+        store.set(strict_mode.STORE_KEY, {'enabled': args.islem == 'ac', 'changed_at': time.time()})
+        store.add('actions', {'action': 'strict_mode.' + args.islem, 'status': 'done', 'timestamp': time.time()})
+        print('En sıkı mod ' + ('açıldı' if args.islem == 'ac' else 'kapatıldı') + ' (en geç bir dakika içinde geçerli).')
+        return 0
+    finally:
+        store.close()
+
+
 def _ai_rules(args) -> int:
     """2.2.59: DeepSeek rules per rule; weakening one needs the admin password.
 
@@ -434,7 +462,7 @@ def main(argv=None) -> int:
     if args.command == 'cekirdek':
         return _kernel(args)
     if args.command in ('modem', 'tam-kontrol', 'karantina', 'ssh', 'sertlestirme', 'aide', 'bakim', 'geri-alma',
-                        'deepseek-kural'):
+                        'deepseek-kural', 'en-siki-mod'):
         if os.geteuid() != 0:
             print('Root yetkisi gerekli: sudo satsuma-admin ' + args.command, file=sys.stderr)
             return 1
@@ -444,6 +472,8 @@ def main(argv=None) -> int:
             return _remediation(args)
         if args.command == 'deepseek-kural':
             return _ai_rules(args)
+        if args.command == 'en-siki-mod':
+            return _strict(args)
         if args.command == 'ssh':
             return _ssh(args)
         if args.command == 'sertlestirme':

@@ -69,9 +69,13 @@ def test_attack_is_caught_and_stopped(cmd, exe):
     ('update-ca-trust', 'SATSUMA-GAP-052'),
 ])
 def test_alarm_only_rules_alarm_but_never_stop(cmd, rule):
+    # 2.2.61 (owner, 2026-11-20): in the strictest mode (default) GAP-036/037/052 stop;
+    # the owner's chattr (GAP-025) stays an alarm. With the mode off all four only alarm.
     found = hits(cmd, uid='0')
-    assert rule in found and not enforcement.eligible(found[rule])
-    assert found[rule]['classification'] == 'suspicious'
+    assert rule in found and found[rule]['classification'] == 'suspicious'
+    assert enforcement.eligible(found[rule]) is (rule != 'SATSUMA-GAP-025')
+    relaxed = {k: v for k, v in found[rule].items() if k != 'owner_strict'}
+    assert not enforcement.eligible(relaxed)
 
 
 OWNER = ['sudo su', 'su -', '/usr/sbin/usermod -a -G satsuma-reader satsumabilgisayar', '/usr/bin/auditctl -R /etc/audit/audit.rules',

