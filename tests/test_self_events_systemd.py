@@ -41,7 +41,15 @@ def test_not_own_when_outside_the_run_or_another_pid():
     c, _ = classifier()
     assert not c.is_own(event(ts=1795109200.0))      # reused PID after that run
     assert not c.is_own(event(pid='45117'))
-    assert not c.is_own(event(ppid='3000'))          # not a unit's main process
+    assert not c.is_own(event(ppid='3000'))          # parent is not a unit's main process
+
+
+def test_child_of_an_ended_run_is_own_but_not_a_shell():
+    c, _ = classifier()
+    child = {**event(pid='45120', ppid='45116'), 'exe': '/usr/sbin/nft', 'cmd': 'nft delete table inet satsuma'}
+    assert c.is_own(child)
+    assert not c.is_own({**child, 'exe': '/usr/bin/bash'})
+    assert not c.is_own({**child, 'exe': '/usr/bin/python3.15', 'cmd': 'python3 -c x', 'ppid': '500'})
 
 
 def test_unit_from_etc_is_never_trusted():

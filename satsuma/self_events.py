@@ -144,10 +144,16 @@ class SelfClassifier:
             pid = int(_field(raw, 'pid'))
         except (TypeError, ValueError):
             return ''
-        if str(_field(raw, 'ppid') or '') not in ('1', ''):
-            return ''
+        parent = str(_field(raw, 'ppid') or '')
         self._systemd_units()
-        hit = self._mains.get(pid)
+        if parent in ('1', ''):
+            hit = self._mains.get(pid)
+        else:
+            # A program the unit's main process started (nft, ip...); shells stay excluded in is_own.
+            try:
+                hit = self._mains.get(int(parent))
+            except ValueError:
+                hit = None
         if not hit:
             return ''
         unit, start, end = hit

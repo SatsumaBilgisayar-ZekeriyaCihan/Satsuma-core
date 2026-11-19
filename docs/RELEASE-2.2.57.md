@@ -14,7 +14,7 @@ değiştirme") olarak durdurulmaya çalışılıyordu. Sebepler:
 
 Artık kanıt systemd'nin kendi kaydıdır: paketle gelen (salt okunur /usr/lib/systemd/system, /etc'den
 değiştirilmemiş) bir Satsuma biriminin `ExecMainPID`'i olan ve olay zamanı o çalışmanın içinde kalan süreç
-Satsuma'nındır. Böyle bir birimin python süreci Satsuma kodu sayılır. Kabuklar ve indirme araçları yine asla
+Satsuma'nındır. Böyle bir birimin python süreci Satsuma kodu sayılır; o çalışmanın başlattığı programlar (nft, ip...) da Satsuma'nındır. Kabuklar ve indirme araçları yine asla
 kendi sayılmaz; /etc'deki birimler ve yeniden kullanılan PID'ler güvenilmez. Kural genişletilmedi:
 `/etc/satsuma-core/dns/`'e başka bir sürecin yazması hâlâ kritik bulgudur.
 
