@@ -353,7 +353,9 @@ def block(worker,ip,reason,raw_id=None,manual=False,duration=0):
     if protected == 'target_review_required' and worker.config.get('subnet_limit_authorized') is True:
         protected = None  # This explicitly enabled per-IP limit also covers local-network peers.
     if protected:return {'status':protected,'ip':ip}
-    if worker.store.get('operator_allow_ips',[]) and ip in worker.store.get('operator_allow_ips',[]):return {'status':'operator_allowlisted','ip':ip}
+    from .net_allow import allowed
+    covering=allowed(worker.store,ip)
+    if covering:return {'status':'operator_allowlisted','ip':ip,'allowed_by':covering}
     # Explicit operator IP-limit policies cover the remote peer in both
     # directions. Generic automatic callers retain ORIGINAL-incoming scope.
     bidirectional = (worker.config.get('subnet_limit_authorized') is True

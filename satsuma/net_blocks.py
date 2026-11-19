@@ -173,6 +173,10 @@ def _networks(rows):
 
 
 def add(store, text, reason='', uid=None, runner=subprocess.run, gateways=None, addresses=None):
+    from .net_allow import overlapping
+    clash = overlapping(store, parse(text))
+    if clash:
+        raise ValueError('Bu aralık izin verilen aralıkla çakışıyor: ' + ', '.join(clash) + '. Önce izni kaldırın.')
     network = parse(text)
     rows = stored(store)
     if any(ipaddress.ip_network(row['network']) == network for row in rows):

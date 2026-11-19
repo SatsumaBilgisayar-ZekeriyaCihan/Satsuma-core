@@ -24,6 +24,8 @@ SIMPLE = {
     'integrity_rebaseline': 'Yeni dosya referansı kaydedildi.', 'quarantine_restore': 'Dosya karantinadan geri yüklendi.',
     'modem_inventory': 'Modem adayları listelendi.',
     'block_network': 'Aralık engellendi; bu adreslere giden ve gelen her bağlantı düşürülüyor.',
+    'allow_network': 'Aralığa izin verildi; bu adresler artık otomatik olarak engellenmeyecek.',
+    'unallow_network': 'Aralığın izni kaldırıldı; otomatik korumalar bu adreslere yeniden uygulanır.',
     'unblock_network': 'Aralığın engeli kaldırıldı.',
 }
 JOBS = {

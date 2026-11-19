@@ -175,7 +175,7 @@ def _event(item):
 
 def _target(item):
     parts = []
-    for key, label in (('ip', ''), ('domain', ''), ('path', ''), ('exe', ''), ('pid', 'PID '), ('rule_id', '')):
+    for key, label in (('ip', ''), ('network', ''), ('domain', ''), ('path', ''), ('exe', ''), ('pid', 'PID '), ('rule_id', '')):
         value = _text(item.get(key), 120)
         if value:
             parts.append(label + value)
@@ -184,6 +184,9 @@ def _target(item):
 
 ACTION_LABELS = {
     'process.terminate': 'Süreç durdurma', 'network.connection_kill': 'Bağlantı kesme',
+    'firewall.restore': 'Güvenlik duvarı tablosu geri kuruldu', 'network_range_allow': 'Aralığa izin verildi',
+    'network_range_unallow': 'Aralığın izni kaldırıldı', 'network_range_block': 'Aralık engellendi',
+    'network_range_unblock': 'Aralığın engeli kaldırıldı',
     'suricata.network_block': 'Ağ engeli', 'otx.indicator_block': 'OTX engeli', 'evidence': 'Kanıt',
     'record': 'Kayıt', 'correlation_request': 'Korelasyon isteği',
 }
@@ -266,6 +269,12 @@ def render(kind, body, created=None):
                          or 'Kural') + ' · derin motor gözlemi',
                 'detail': detail, 'chip': severity, 'tone': 'warn' if item.get('severity') in ('critical', 'high') else 'info',
                 'time': stamp}
+    if kind == 'actions' and item.get('action') == 'firewall.restore':
+        state = {'restored': ('Geri kuruldu', 'ok'), 'restore_failed': ('Geri kurulamadı', 'crit'),
+                 'budget_exhausted': ('30 dakikada 3 onarım yapıldı; yalnızca bildiriliyor', 'crit')}
+        chip, tone = state.get(item.get('status'), (_text(item.get('status')), 'warn'))
+        return {'text': 'Güvenlik duvarı tablosu silinmişti: ' + ', '.join(item.get('missing_tables') or []),
+                'detail': 'Yeniden başlatılan: ' + ', '.join(item.get('units') or []), 'chip': chip, 'tone': tone, 'time': stamp}
     if kind == 'actions':
         label = ACTION_LABELS.get(item.get('action'), _text(item.get('action')) or 'İşlem')
         outcome = action_outcome(item) or _first(item, 'status')

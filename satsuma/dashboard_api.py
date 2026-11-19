@@ -2397,6 +2397,7 @@ def m_protection(params=None):
             result['dns_health'] = get('dns_filter_health', {}) or {}
             result['allowed_domains'] = sorted(get('dns_allowed_domains', []) or [])[:500]
             result['allow_ips'] = list(get('operator_allow_ips', []) or [])[:500]
+            result['allow_networks'] = [row for row in (get('operator_allow_networks', []) or []) if isinstance(row, dict)][:256]
             result['network_blocks'] = [row for row in (get('manual_network_blocks', []) or []) if isinstance(row, dict)][:256]
             from .custom_dns_lists import status as list_status
 

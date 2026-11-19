@@ -48,7 +48,7 @@ def weakens(method, params):
         return True  # Explicit password for every decision and mode change.
     if method == 'rule_response_set_requirement':
         return True  # Per-rule evidence-policy edits require fresh administrator authentication.
-    if method in ('integrity_rebaseline', 'allow_ip', 'allow_domain', 'unblock', 'unblock_network'):
+    if method in ('integrity_rebaseline', 'allow_ip', 'allow_domain', 'unblock', 'unblock_network', 'allow_network'):
         return True
     if method == 'lan_access':
         return enabled is True
@@ -423,6 +423,21 @@ class OperatorController:
             current.add(ip) if method == 'allow_ip' else current.discard(ip)
             self.store.set('operator_allow_ips', sorted(current))
             result = {'ok': True, 'allow_ips': sorted(current)}
+        elif method in ('allow_network', 'unallow_network'):
+            # 2.2.50 (owner, 2026-11-19): always allow a range, e.g. a VPN provider's servers.
+            from . import net_allow
+            if method == 'allow_network':
+                result = {'ok': True, **net_allow.add(self.store, params.get('network', ''), params.get('reason', ''), uid)}
+                network = net_allow.parse(params.get('network', ''))
+                lifted = []
+                worker = ResponseWorker(self.store, {**self.config, 'response_enabled': True})
+                for ip in net_allow.blocked_inside(list((self.store.get('persistent_blocks', {}) or {}).values()), network):
+                    outcome = worker.unblock_ip(ip, 'İzin verilen aralık: ' + str(network), manual=True)
+                    if isinstance(outcome, dict) and outcome.get('status') not in ('failed', 'error'):
+                        lifted.append(ip)
+                result['unblocked'] = lifted
+            else:
+                result = {'ok': True, **net_allow.remove(self.store, params.get('network', ''), uid)}
         elif method in ('block_network', 'unblock_network'):
             # 2.2.47 (owner, 2026-11-18): block a whole range such as 192.168.0.0/16 (satsuma.net_blocks).
             from . import net_blocks

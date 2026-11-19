@@ -652,13 +652,41 @@ class Guard:
         if (not srcip.is_global or srcip.is_multicast or srcip.is_loopback
                 or srcip.is_unspecified or src in self.own_ips):
             return False
-        if self.core_store is not None and src in self.core_store.get('operator_allow_ips',[]):
+        if self.operator_allowed(src):
             return False
         if str(srcip) in self.resolvers():
             return False
         if any(srcip in n for n in self.trusted if n.version == srcip.version):
             return False
         return self.protected_dest(dst)
+
+    def operator_allowed(self, ip):
+        """The owner's allow entry (address or range, 2.2.50) covering ``ip``, or None."""
+        if self.core_store is None:
+            return None
+        from satsuma.net_allow import allowed
+        return allowed(self.core_store, ip)
+
+    def release_allowed(self):
+        """Lift this guard's blocks that an allowed address or range now covers (2.2.50)."""
+        released = []
+        if self.core_store is None:
+            return released
+        for (ip,) in self.db.execute('SELECT ip FROM blocks').fetchall():
+            covering = self.operator_allowed(ip)
+            if not covering:
+                continue
+            try:
+                if self.nft.contains(ip):
+                    self.nft.unblock(ip)
+            except RuntimeError as exc:
+                self.write('warning', component='allow_release', ip=ip, detail=str(exc)[:200])
+                continue
+            self.db.execute('DELETE FROM blocks WHERE ip=?', (ip,))
+            self.db.commit()
+            self.write('UNBLOCKED', ip=ip, reason='operator_allowlisted', allowed_by=covering)
+            released.append(ip)
+        return released
 
     def block(self, ip, reason, **fields):
         ip = str(ipaddress.ip_address(ip))
@@ -667,9 +695,10 @@ class Guard:
             if runtime.get('status') not in (None,'HEALTHY'):
                 self.write('ACTION_UNSUPPORTED',ip=ip,reason='integrity_observe_only',**fields)
                 return {'status':'integrity_observe_only','ip':ip}
-            if ip in self.core_store.get('operator_allow_ips',[]):
-                self.write('ACTION_UNSUPPORTED',ip=ip,reason='operator_allowlisted',**fields)
-                return {'status':'operator_allowlisted','ip':ip}
+            covering = self.operator_allowed(ip)
+            if covering:
+                self.write('ACTION_UNSUPPORTED',ip=ip,reason='operator_allowlisted',allowed_by=covering,**fields)
+                return {'status':'operator_allowlisted','ip':ip,'allowed_by':covering}
         persisted = bool(self.db.execute('SELECT 1 FROM blocks WHERE ip=?', (ip,)).fetchone())
         if self.cfg['mode'] == 'block':
             if not self.boot_provider().get('response_unlocked'):
@@ -740,7 +769,7 @@ class Guard:
         if any(peer in net for net in self.trusted if net.version == peer.version):
             return False
         if self.core_store is not None:
-            if dst in self.core_store.get('operator_allow_ips', []):
+            if self.operator_allowed(dst):
                 return False
             dns = self.core_store.get('dns_policy', {}) or {}
             resolvers = set(dns.get('expected_dns_servers', []) or [])
@@ -1116,6 +1145,7 @@ class Guard:
             now = time.monotonic()
             if now >= next_peer:
                 try:
+                    self.release_allowed()
                     self.check_peers()
                 except (OSError, RuntimeError, ValueError, sqlite3.Error) as exc:
                     self.write('warning', component='peer_watch', detail=str(exc)[:200])

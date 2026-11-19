@@ -57,7 +57,7 @@ ENABLED = (
     'satsuma-deep-engine.service', 'satsuma-teams.service', 'satsuma-reader.service',
     'satsuma-operator.service', 'satsuma-guardian.service', 'satsuma-network-modes.service',
     'satsuma-core-audit.service', 'satsuma-core-otx.service', 'satsuma-core-subnet.service',
-    'satsuma-core-finding.service', 'satsuma-core-security-scan.timer', 'satsuma-core-dns-refresh.timer',
+    'satsuma-core-finding.service', 'satsuma-core-security-scan.timer', 'satsuma-core-dns-refresh.timer', 'satsuma-firewall-watch.timer',
     'satsuma-module-lock.timer', 'satsuma-flow-guard.service', 'satsuma-maintenance.timer',
 )
 IDENTITIES = {'group': ('satsuma-dns', 'satsuma-core', 'satsuma-reader', 'satsuma-engine', 'satsuma-priv'),
