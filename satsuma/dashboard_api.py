@@ -227,10 +227,26 @@ def _finding_title(finding):
     return 'Bulgu'
 
 
+CONFIDENCE_LABELS = {'low': 'Düşük', 'medium': 'Orta', 'high': 'Yüksek'}
+STATUS_LABELS = {'NEW': 'Yeni', 'REVIEW': 'İnceleme bekliyor', 'RESOLVED': 'Çözüldü', 'DISMISSED': 'Kapatıldı',
+                 'ACKNOWLEDGED': 'Görüldü', 'QUARANTINED': 'Karantinada'}
+EVENT_LABELS = {'file_integrity': 'Dosya bütünlüğü', 'exec': 'Program çalıştırma', 'connect': 'Bağlantı',
+                'finding': 'Bulgu', 'hidden_pid': 'Gizli süreç', 'dns': 'DNS sorgusu', 'alert': 'Trafik uyarısı'}
+
+
+def _finding_labels(finding, row):
+    """Turkish labels beside the stored codes (2.2.53: "medium", "finding", "NEW" were shown as they are)."""
+    return {'confidence_label': CONFIDENCE_LABELS.get(row['confidence'], row['confidence']),
+            'status_label': STATUS_LABELS.get(row['status'], row['status']),
+            'event_label': EVENT_LABELS.get(row['event_type'], row['event_type'])}
+
+
 def _finding_rule_id(finding):
     value = finding.get('rule_id')
     if value:
         return str(value)
+    if finding.get('source') == 'critical_guardian':
+        return 'SATSUMA-GUARD-PATH'   # findings written before 2.2.53 carried no rule id
     matched = finding.get('matched_rules')
     if isinstance(matched, list) and matched:
         return str(matched[0])
@@ -239,6 +255,8 @@ def _finding_rule_id(finding):
 
 def _finding_event_type(finding):
     event = finding.get('event') if isinstance(finding.get('event'), dict) else {}
+    if finding.get('source') == 'critical_guardian' and not finding.get('type'):
+        return 'file_integrity'
     return str(
         finding.get('type') or event.get('action') or finding.get('kind') or '-'
     )[:120]
@@ -321,7 +339,7 @@ def _normalize_core_finding(body, row_id, ticket_map, summary_only=False):
     ts = _epoch(next((value for value in (finding.get('timestamp'), event.get('timestamp'),
                                           body.get('_record_created')) if value is not None and value != ''), None))
     ticket = ticket_map.get(finding_id)
-    return {
+    row = {
         'finding_id': finding_id,
         'timestamp': ts,
         'title': _finding_title(finding),
@@ -344,6 +362,7 @@ def _normalize_core_finding(body, row_id, ticket_map, summary_only=False):
         'origin': 'core',
         'record_id': row_id,
     }
+    return {**row, **_finding_labels(finding, row)}
 
 
 def _normalize_host_finding(body, finding_id, ticket_map, summary_only=False):
@@ -361,7 +380,7 @@ def _normalize_host_finding(body, finding_id, ticket_map, summary_only=False):
             if ticket.get('finding_id') == finding_id:
                 link = ticket
                 break
-    return {
+    row = {
         'finding_id': str(finding_id),
         'timestamp': ts,
         'title': _finding_title(body),
@@ -381,6 +400,7 @@ def _normalize_host_finding(body, finding_id, ticket_map, summary_only=False):
         'raw': body,
         'origin': 'host',
     }
+    return {**row, **_finding_labels(body, row)}
 
 
 def _dns_items(core_db, limit=500):

@@ -19,7 +19,7 @@ def test_priority_before_recency_and_process_attribution():
     view = fields({'timestamp': '2026-10-16T01:00:00Z', 'event': {'process': {'name': 'nginx', 'pid': 42}}})
     assert view['process_name'] == 'nginx' and view['pid'] == '42'
     assert view['time_label'] != 'Bilinmiyor'
-    assert fields({})['pid'] == 'Bilinmiyor'
+    assert fields({})['pid'] == '—'   # 2.2.53: no process is not "unknown"
     assert fields({'timestamp': float('nan')})['time_label'] == 'Bilinmiyor'
 
 

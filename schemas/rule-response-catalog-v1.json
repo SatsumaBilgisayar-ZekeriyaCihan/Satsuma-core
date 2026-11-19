@@ -3610,14 +3610,13 @@
       "schema_version": 1,
       "rule_id": "SATSUMA-POLKIT-001",
       "name": "Şüpheli pkexec hedef/argüman kullanımı",
-      "detection_sha256": "55785139290f34db55dc303ca8a9dfd620257461d0c5ba9249a6e7e515a0c7dd",
+      "detection_sha256": "b03d3e02b27eb1b6239803b6870d1463df71290c3d78e40dd750b5970d0a550c",
       "source": "sys_proc",
       "match": {
         "source": "sys_proc",
-        "cmd_contains": [
-          "pkexec --user",
-          "pkexec /tmp/",
-          "pkexec /dev/shm/"
+        "cmd_regex_cs": [
+          "^(?:\\S*/)?pkexec(?:\\s+--(?:disable-internal-agent|keep-cwd))*\\s+--user(?:\\s|=)",
+          "^(?:\\S*/)?pkexec(?:\\s+--(?:disable-internal-agent|keep-cwd))*(?:\\s+--user(?:\\s+|=)\\S+)?(?:\\s+--(?:disable-internal-agent|keep-cwd))*\\s+(?:/tmp/|/dev/shm/|/var/tmp/)"
         ]
       },
       "current_actions": [

@@ -153,7 +153,8 @@ def process_fields(item):
             pid = obj.get('pid') or obj.get('host.pid') or obj.get('process_pid')
             if pid is not None and str(pid).isdigit() and str(pid) not in pids:
                 pids.append(str(pid))
-    return ', '.join(names[:4]) or 'Bilinmiyor', ', '.join(pids[:4]) or 'Bilinmiyor'
+    # 2.2.53: a finding with no process (file integrity, network) shows a dash, not "unknown".
+    return ', '.join(names[:4]) or '—', ', '.join(pids[:4]) or '—'
 
 
 def fields(item):

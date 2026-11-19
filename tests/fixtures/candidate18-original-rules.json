@@ -230,7 +230,7 @@
     "rules/collection.yaml": "59359681e30c29909d7ff237f0285bf40fd858322200e587030b18614ba555ad",
     "rules/command_control.yaml": "d1534121c9079dc3194b3e9772831456899d720bccbe535faa90c8360ffc84af",
     "rules/credential_access.yaml": "96f888966d6f0125e4603e204bd94f281e6ff6bc7d1355d17d670ab5cc2af84b",
-    "rules/custom_linux_exploits.yaml": "1f32e25b9c33e860e1d7e2de8636a459b975093fc8dcaf62708e2e107a07099f",
+    "rules/custom_linux_exploits.yaml": "2ae8e0966fdd492484e7ef6ad8927f063554a3cf9dfb9b87195b8c89d8f0c799",
     "rules/defense_evasion.yaml": "8670b0bc4fd5d9a15e7fc8093117c16d23c8b12db0b30ba6873f445ca1c25353",
     "rules/discovery.yaml": "6142df5bd93e4db73a63f413f8d5944b59b4e07a2810721085fc6e797241eb8e",
     "rules/execution.yaml": "556017519a40f7da0483fa4f057c918e0bc62a7ea9e27385e43c98c6a891174c",

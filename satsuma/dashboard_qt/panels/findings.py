@@ -86,12 +86,11 @@ class FindingsPanel(ReadOnlyModulePanel):
         ('Süreç', 'process_name'),
         ('PID', 'pid'),
         ('Başlık', 'title'),
-        ('Güven', 'confidence'),
-        ('Rule ID', 'rule_id'),
+        ('Güven', 'confidence_label'),
+        ('Kural', 'rule_id'),
         ('Kaynak', 'source'),
-        ('Hedef sistem', 'target_scope'),
-        ('Olay', 'event_type'),
-        ('Durum', 'status'),
+        ('Olay', 'event_label'),
+        ('Durum', 'status_label'),
     )
     FILTERS = (
         ('classification', 'Sınıflama', ['indicator', 'suspicious', 'likely', 'confirmed']),
