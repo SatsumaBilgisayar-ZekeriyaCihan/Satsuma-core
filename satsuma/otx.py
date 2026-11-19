@@ -482,7 +482,7 @@ def run_domains(store, cfg, core_cfg):
                 blocked.pop(name, None)
             store.add('otx_domains', {'timestamp': now, 'domain': name, 'eligible': eligible, 'reason': reason})
         except Exception as exc:
-            store.add('errors', {'component': 'otx_domain', 'timestamp': now, 'error': str(exc)[:300]})
+            store.add('errors', {'component': 'otx_domain', 'domain': name, 'timestamp': now, 'error': str(exc)[:300]})
     store.set('otx_domain_cache', cache)
     before = {name for name, item in (store.get('dns_blocked_domains', {}) or {}).items() if item.get('expires_at', 0) > now}
     kept = {name: item for name, item in blocked.items()

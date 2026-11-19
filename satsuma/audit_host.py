@@ -106,7 +106,7 @@ class AuditReader:
                 self.stream=os.fdopen(fd,'rb');self.identity=[info.st_dev,info.st_ino]
                 saved=self.store.get('audit_cursor',{})
                 if saved.get('identity')==self.identity and saved.get('offset',0)<=info.st_size:self.stream.seek(saved['offset'])
-                elif saved:self.store.add('host_errors',{'timestamp':time.time(),'status':'AUDIT_SOURCE_CHANGED','detail':'Stored inode unavailable or file truncated; current file read from start; rotated files may be missing.'})
+                elif saved and not saved.get('rotation_followed'):self.store.add('host_errors',{'timestamp':time.time(),'status':'AUDIT_SOURCE_CHANGED','detail':'Stored inode unavailable or file truncated; current file read from start; rotated files may be missing.'})
             for _ in range(500):
                 start=self.stream.tell();line=self.stream.readline(65537)
                 if not line:break
@@ -124,7 +124,10 @@ class AuditReader:
             if not self.groups:self.store.set('audit_cursor',{'identity':self.identity,'offset':self.stream.tell()})
             info=self.path.stat();rotated=[info.st_dev,info.st_ino]!=self.identity
             if rotated and self.stream.tell()>=os.fstat(self.stream.fileno()).st_size:
+                # 2.2.51: the old file was read to its end; the new one starts at 0. Not an error
+                # (every auditd rotation was reported as AUDIT_SOURCE_CHANGED, field 2026-11-19).
                 self.flush(all=True);self.stream.close();self.stream=None
+                self.store.set('audit_cursor',{'identity':None,'offset':0,'rotation_followed':True,'previous':self.identity})
             elif not rotated and info.st_size<self.stream.tell():
                 self.flush(all=True);self.stream.seek(0);self.store.add('host_errors',{'timestamp':time.time(),'status':'AUDIT_TRUNCATED'})
         except (OSError,ValueError) as exc:self.status='UNAVAILABLE: '+str(exc)[:180]

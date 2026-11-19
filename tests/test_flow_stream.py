@@ -63,7 +63,8 @@ def test_sender_and_receiver_round_trip(tmp_path):
 
 def test_sender_without_engine_counts_a_failure(tmp_path):
     sender = F.FlowSender(tmp_path / 'missing.sock')
-    assert sender.send({'a': 1}) is False and sender.failed == 1
+    # 2.2.52: the event waits for the engine instead of being lost.
+    assert sender.send({'a': 1}) is True and sender.failed == 0 and len(sender.backlog) == 1
 
 
 def test_host_events_stream_and_never_reach_the_database(tmp_path):

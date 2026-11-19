@@ -39,10 +39,12 @@ kuralların penceresine hiç girmez.
 """
 from collections import OrderedDict, deque
 import itertools
+import collections
 import json
 import os
 from pathlib import Path
 import queue
+import select
 import socket
 import threading
 import time
@@ -77,26 +79,78 @@ def _trim(event):
     return json.dumps(cut(event), ensure_ascii=False, default=str)[:MAX_DATAGRAM]
 
 
+BACKLOG = 20000
+
+
 class FlowSender:
-    def __init__(self, path=SOCKET):
+    """Datagrams to the rule engine; a full or restarting receiver no longer loses events (2.2.52).
+
+    Field 2026-11-19: "Olay gönderilemedi" and "Toplayıcı olay düşürdü" together.
+    A non-blocking sendto fails at once when the receiver's queue is full (a
+    Unix datagram socket holds only a few hundred) or while it restarts; the
+    event was lost and counted twice. Events now wait, in order, in a bounded
+    backlog and go out on the next send or flush. Only a backlog overflow is a
+    loss (``dropped``); ``retried`` counts the transient refusals.
+    Alıcı doluysa ya da yeniden başlıyorsa olay sırasıyla bekler; yalnızca
+    bekleme kuyruğu taşarsa kayıp sayılır.
+    """
+    def __init__(self, path=SOCKET, backlog=BACKLOG):
         self.path = str(path)
         self.sock = None
-        self.sent = self.failed = 0
+        self.sent = self.failed = self.dropped = self.retried = 0
+        self.backlog = collections.deque()
+        self.limit = backlog
+
+    def _open(self):
+        if self.sock is None:
+            self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+            self.sock.setblocking(False)
+        return self.sock
+
+    def _try(self, data, wait=0.02):
+        """True when the datagram left; a full receiver gets one short wait."""
+        for attempt in (0, 1):
+            try:
+                self._open().sendto(data, self.path)
+                self.sent += 1
+                return True
+            except (BlockingIOError, InterruptedError):
+                self.retried += 1
+                if attempt == 0 and wait:
+                    select.select([], [self.sock], [], wait)
+                    continue
+                return False
+            except OSError:
+                # Receiver gone or restarting: reopen on the next try.
+                self.retried += 1
+                if self.sock is not None:
+                    self.sock.close()
+                    self.sock = None
+                return False
+        return False
+
+    def flush(self):
+        """Send what waits, oldest first; stop at the first refusal."""
+        while self.backlog:
+            if not self._try(self.backlog[0], wait=0):
+                return False
+            self.backlog.popleft()
+        return True
 
     def send(self, event):
-        try:
-            if self.sock is None:
-                self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-                self.sock.setblocking(False)
-            self.sock.sendto(_trim(event).encode(), self.path)
-            self.sent += 1
+        data = _trim(event).encode()
+        if self.flush() and self._try(data):
             return True
-        except OSError:
+        if len(self.backlog) >= self.limit:
+            self.dropped += 1
             self.failed += 1
-            if self.sock is not None:
-                self.sock.close()
-                self.sock = None
             return False
+        self.backlog.append(data)
+        return True
+
+    def health(self):
+        return {'sent': self.sent, 'failed': self.failed, 'dropped': self.dropped,
+                'retried': self.retried, 'waiting': len(self.backlog)}
 
 
 class FlowReceiver:

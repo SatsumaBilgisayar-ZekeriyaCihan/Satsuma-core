@@ -151,6 +151,7 @@ class ReadOnlyModulePanel(BasePanel):
         detail_scroll.setWidgetResizable(True)
         detail_scroll.setFrameShape(QFrame.Shape.NoFrame if hasattr(QFrame, 'Shape') else QFrame.NoFrame)
         detail_scroll.setWidget(self.detail_view)
+        self.detail_scroll = detail_scroll
         box.addWidget(detail_scroll, 1)
         details_button=QPushButton('Teknik ayrıntıları göster')
         details_button.setObjectName('quiet')
@@ -169,6 +170,8 @@ class ReadOnlyModulePanel(BasePanel):
         split.setStretchFactor(0, 3)
         split.setStretchFactor(1, 2)
         self.table.itemSelectionChanged.connect(self._show_details)
+        # 2.2.51: each selected record is read from its first line.
+        self.table.itemSelectionChanged.connect(lambda: self.detail_scroll.verticalScrollBar().setValue(0))
         self._layout.addWidget(split, 1)
 
     def _show_details(self):

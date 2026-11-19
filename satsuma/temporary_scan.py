@@ -173,7 +173,8 @@ def run_once(store, *, roots=TARGETS, scanner=scan_fd, automatic=True, clock=tim
         except (OSError, ValueError, RuntimeError, KeyError) as exc:
             errors += 1
             store.add('temporary_scan_error', {'timestamp': time.time(), 'path': str(path),
-                                              'error': type(exc).__name__})
+                                              'error': type(exc).__name__, 'reason': str(exc)[:200],
+                                              'errno': getattr(exc, 'errno', None)})
             # A missing daemon is a run failure, not a negative scan of 10000
             # files. Other file-specific failures remain isolated.
             if scanning:

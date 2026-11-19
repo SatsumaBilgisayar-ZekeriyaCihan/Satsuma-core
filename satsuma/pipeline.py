@@ -338,8 +338,13 @@ class Pipeline:
 
     def flow_health(self):
         sender = getattr(self, '_flow_sender', None)
-        return {'sent': sender.sent if sender else 0, 'failed': sender.failed if sender else 0,
-                'dropped': getattr(self, 'flow_dropped', 0), 'updated_at': time.time()}
+        if sender is None:
+            return {'sent': 0, 'failed': 0, 'dropped': getattr(self, 'flow_dropped', 0), 'retried': 0,
+                    'waiting': 0, 'updated_at': time.time()}
+        # Called with every health update: events waiting for a busy receiver go out here too.
+        sender.flush()
+        # 2.2.52: one loss is one count (it was counted as both failed and dropped).
+        return {**sender.health(), 'failed': 0, 'dropped': sender.dropped, 'updated_at': time.time()}
 
     def ingest_host(self, raw):
         """Host olaylari -> normalized. ``action`` yoksa ``kind`` kullanilir."""

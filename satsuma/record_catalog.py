@@ -62,7 +62,7 @@ KINDS = {
     'temporary_scan_detection': _k('Tarayıcı bellek taraması bulguları', 'Geçici bellek taramasının yakaladıkları',
         'Tarayıcı ve benzeri programların belleğinde ClamAV taramasının bulduğu imzalar.',
         'Tarayıcı üzerinden gelen saldırılar burada görünür.', group='protection'),
-    'temporary_scan_error': _k('Tarayıcı bellek taraması hataları', 'Taramanın yapılamadığı durumlar',
+    'temporary_scan_error': _k('Geçici dosya taraması hataları', 'Taranamayan geçici dosyalar',
         'Geçici bellek taramasının okuyamadığı ya da tamamlayamadığı süreçler.',
         'Tekrarlıyorsa tarama o programı göremiyor demektir.', group='health'),
     'memory_anomalies': _k('Bellek anormallikleri', 'Bellekte olağan dışı alanlar',
@@ -249,6 +249,17 @@ def _deep_review(item, stamp):
     return {'text': rule + ': ' + state.lower(), 'detail': detail, 'chip': state, 'tone': tone, 'time': stamp}
 
 
+COMPONENT_NAMES = {'otx_domain': 'OTX alan adı sorgusu başarısız', 'otx': 'OTX sorgusu başarısız',
+                   'dns_filter': 'DNS filtresi hatası', 'suricata': 'Suricata hatası'}
+HOST_STATUS = {
+    'AUDIT_SOURCE_CHANGED': ('Denetim günlüğü baştan okundu (Satsuma yeniden başladığında günlük değişmişti)', 'warn'),
+    'AUDIT_TRUNCATED': ('Denetim günlüğü kısaldı; baştan okunuyor', 'crit'),
+}
+ERROR_TYPES = {'PermissionError': 'izin yok', 'FileNotFoundError': 'dosya taranmadan silindi',
+               'ConnectionError': 'clamd bağlantısı yok', 'ConnectionRefusedError': 'clamd bağlantıyı reddetti',
+               'TimeoutError': 'clamd zaman aşımı', 'RuntimeError': 'dosya tarama sırasında değişti', 'OSError': 'okuma hatası'}
+
+
 def render(kind, body, created=None):
     """One record as {'text', 'detail', 'chip', 'tone', 'time'}; secrets are masked first."""
     item = redact(body) if isinstance(body, (dict, list, str)) else body
@@ -318,8 +329,20 @@ def render(kind, body, created=None):
         flow = ' → '.join(x for x in (_first(item, 'src_ip'), _first(item, 'dest_ip')) if x)
         return {'text': _first(alert, 'signature', 'title', 'summary') or 'Trafik uyarısı', 'detail': flow,
                 'chip': _first(alert, 'category', 'severity'), 'tone': 'warn', 'time': stamp}
-    if kind in ('errors', 'host_errors', 'temporary_scan_error'):
-        return {'text': _first(item, 'component', 'status', 'source') or 'Hata',
+    if kind == 'temporary_scan_error':
+        reason = _first(item, 'reason') or ERROR_TYPES.get(str(item.get('error')), _text(item.get('error')))
+        return {'text': 'Geçici dosya taranamadı', 'detail': ' · '.join(x for x in (_text(item.get('path'), 160), reason) if x),
+                'chip': 'Hata', 'tone': 'warn', 'time': stamp}
+    if kind == 'host_errors' and item.get('status') in HOST_STATUS:
+        text, tone = HOST_STATUS[item['status']]
+        return {'text': text, 'detail': _first(item, 'detail', 'error'), 'chip': 'Uyarı' if tone == 'warn' else 'Hata',
+                'tone': tone, 'time': stamp}
+    if kind in ('errors', 'host_errors'):
+        component = _text(item.get('component'))
+        text = COMPONENT_NAMES.get(component, component) or _first(item, 'status', 'source') or 'Hata'
+        if item.get('domain'):
+            text += ': ' + _text(item.get('domain'), 120)
+        return {'text': text,
                 'detail': _first(item, 'error', 'detail', 'reason', 'message'), 'chip': 'Hata', 'tone': 'crit', 'time': stamp}
     text = _first(item, 'summary', 'title', 'message', 'signature', 'reason', 'status', 'action', 'event', 'type')
     return {'text': text or describe(kind)['name'], 'detail': _target(item) or _first(item, 'detail', 'error', 'cmd'),
@@ -460,7 +483,7 @@ def timeline(connections, view='important', hours=24, search='', before=None, li
                     entry = describe(kind)
                     items.append({'id': f'{db_name}:{rid}', 'db': db_name, 'kind': kind, 'kind_name': entry['name'],
                                   'kind_what': entry['what'], 'kind_why': entry['why'], 'created': created,
-                                  'level': 'Hata' if kind in ERROR_KINDS else TONE_LABELS.get(line['tone'], 'Bilgi'),
+                                  'level': 'Hata' if kind in ERROR_KINDS and line['tone'] == 'crit' else TONE_LABELS.get(line['tone'], 'Bilgi'),
                                   **line, 'raw': redact(decoded)})
         except Exception as exc:
             errors[db_name] = str(exc)[:200]
