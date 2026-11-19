@@ -123,7 +123,7 @@ def automatic_allowed(finding, sudo_enabled=True):
 # Kritik alarm verir, süreci durdurmaz: sahibi bunları bilerek de çalıştırır.
 # GAP-025 (chattr +i): the owner locks files by hand to harden the machine (2026-11-19);
 # an attacker locks his persistence the same way. Alarm, never a stop.
-ALARM_ONLY = frozenset({'SATSUMA-GAP-025', 'SATSUMA-GAP-036', 'SATSUMA-GAP-037'})
+ALARM_ONLY = frozenset({'SATSUMA-GAP-025', 'SATSUMA-GAP-036', 'SATSUMA-GAP-037', 'SATSUMA-GAP-052'})
 
 
 def eligible(finding, sudo_enabled=True):

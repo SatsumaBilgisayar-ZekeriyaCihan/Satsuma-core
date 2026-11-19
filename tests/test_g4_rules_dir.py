@@ -20,7 +20,7 @@ def test_environment_variable_cannot_empty_the_rule_set(monkeypatch, tmp_path):
     monkeypatch.setenv('SATSUMA_RULES_DIR', str(tmp_path))
     engine = SmartRuleEngine()
     assert engine.rules_dir == ROOT / 'rules'
-    assert len(engine.rules) == 281  # RAM-106/107 retired; 2.2.54: +50 coverage_gaps rules
+    assert len(engine.rules) == 302  # RAM-106/107 retired; 2.2.54: +50, 2.2.55: +21 coverage_gaps rules
     # The attempt is reported, so health shows DEGRADED instead of RUNNING.
     assert {'file': str(tmp_path), 'error': 'SATSUMA_RULES_DIR ignored (audit G4)'} in engine.load_errors
     assert engine.stats()['invalid_files'] >= 1

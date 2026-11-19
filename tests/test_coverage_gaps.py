@@ -40,6 +40,19 @@ ATTACKS = [
     ('rm -rf --no-preserve-root /', None), ('systemd-run --user --on-calendar=minutely /tmp/x', None),
     ('find . -exec /bin/sh -p ; -quit', None), ('env LD_PRELOAD=/tmp/x.so /usr/bin/ls', None),
     ('ostree admin undeploy 1', None), ('podman run -v /:/mnt --rm -it alpine chroot /mnt sh', None),
+    # 2.2.55: Atomic Red Team techniques that had no rule.
+    ('ccencrypt -T -K passwd /tmp/passwd', None), ('7z a -ppasswd /tmp/passwd.zip /etc/passwd', None),
+    ('openssl rsautl -encrypt -inkey /tmp/pub.pem -pubin -in /etc/passwd -out /tmp/x', None),
+    ('sh -c echo "import os; os.system(1)" > /home/u/.local/lib/python3.15/site-packages/x.pth', '/usr/bin/sh'),
+    ('bash -c trap "nohup sh /tmp/x.sh" EXIT', '/usr/bin/bash'), ('tcpdump -c 5 -nnni ens33', None),
+    ('sed -i 1s,^,auth sufficient pam_succeed_if.so uid >= 0\\n,g /etc/pam.d/su-l', None),
+    ('auditctl -a always,exit -F arch=b64 -S execve -k CMDS', '/usr/sbin/auditctl'), ('cat /home/u/.bash_history', None),
+    ('xwd -root -out /tmp/d.xwd', None), ('gcc /tmp/x.c', None), ('sh /tmp/image.png', '/usr/bin/sh'),
+    ('/home/u/.../sh -c echo', '/home/u/.../sh'), ('kill -SIGTERM $(pgrep auditd)', '/usr/bin/bash'),
+    ('torsocks curl http://x.onion', None), ('sshpass -p x ssh root@localhost', None),
+    ('mkdir /var/tmp/.hidden-directory', None), ('python3 -c from zipfile import ZipFile; ZipFile(1).write(/etc/shadow)', None),
+    ('python3 /tmp/LaZagne/Linux/laZagne.py browsers', None),
+    ('cp /home/u/.mozilla/firefox/x.default/key4.db /tmp/', None), ('rm -rf /var/spool/mail/copy', None),
 ]
 
 
@@ -53,6 +66,7 @@ def test_attack_is_caught_and_stopped(cmd, exe):
     ('rpm-ostree uninstall satsuma-core', 'SATSUMA-GAP-036'),
     ('rm -f /var/lib/satsuma-core/core.db', 'SATSUMA-GAP-037'),
     ('chattr +i /dev/shm', 'SATSUMA-GAP-025'),
+    ('update-ca-trust', 'SATSUMA-GAP-052'),
 ])
 def test_alarm_only_rules_alarm_but_never_stop(cmd, rule):
     found = hits(cmd, uid='0')
@@ -68,7 +82,11 @@ OWNER = ['sudo su', 'su -', '/usr/sbin/usermod -a -G satsuma-reader satsumabilgi
          'ssh -L 8080:localhost:80 user@host', 'curl -o /tmp/x.json https://api.example.com/x', 'journalctl -b -u upower',
          'podman run --rm -it fedora bash', 'systemd-run --user --scope firefox', 'rm -rf build/', 'bash -x test.sh',
          'sqlite3 /var/lib/satsuma-core/core.db .tables', 'LD_PRELOAD=/usr/lib64/libjemalloc.so app', 'killall firefox',
-         '/usr/bin/pkexec /usr/bin/satsuma-enroll-desktop --user u --password-stdin', 'cat /var/lib/satsuma-core/.ostree-installed']
+         '/usr/bin/pkexec /usr/bin/satsuma-enroll-desktop --user u --password-stdin', 'cat /var/lib/satsuma-core/.ostree-installed',
+         'gpg --encrypt -r me notes.txt', 'gpg -d secret.gpg', '7z x archive.7z', 'git log', 'history', 'passwd',
+         'passwd -S u', 'mkdir /tmp/build', 'mkdir -p /tmp/.X11-unix', 'gcc main.c -o main', 'sh install.sh',
+         'ssh -L 5432:db:5432 host', 'cp notes.txt /home/u/Belgeler/', 'firefox --profile /home/u/.mozilla/firefox/x.default',
+         'kill -9 12345', 'pkill -f opera', 'python3 -c print(1)', 'python3 script.py /etc/passwd']
 
 
 @pytest.mark.parametrize('cmd', OWNER)
