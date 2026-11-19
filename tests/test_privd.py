@@ -60,7 +60,7 @@ def test_end_to_end_over_a_real_unix_socket(tmp_path, monkeypatch):
             if path.exists():
                 break
             threading.Event().wait(0.01)
-        answer = privd.request('terminate', path=path, pid=4242, reason='attack', context={'rule_id': 'R'})
+        answer = privd.request('terminate', socket_path=path, pid=4242, reason='attack', context={'rule_id': 'R'})
         thread.join(5)
         assert answer == {'status': 'terminated', 'signal_sent': True}
         assert worker.calls == [('terminate', 4242, {'rule_id': 'R'})]
@@ -119,3 +119,35 @@ def test_verified_peer_with_wrong_group_is_not_authorized():
         # an explicitly synthetic non-root identity for this negative branch.
         identity={'pid':4321,'uid':65534,'gid':65534}
     assert not privd.allowed(identity,group_lookup=lambda name:SimpleNamespace(gr_gid=identity['gid']+1))
+
+
+def test_remediation_request_with_a_file_path_reaches_privd(tmp_path, monkeypatch):
+    """2.2.60 (field 2026-11-19): ``path=<file>`` was taken for the socket path; every
+    quarantine request connected to the file itself and got "Connection refused"."""
+    from satsuma import remediation
+    monkeypatch.setattr(privd, 'allowed', lambda identity: True)
+    monkeypatch.setattr(remediation, 'execute',
+                        lambda action, store=None, audit=None: {'status': 'quarantined', 'got': action})
+    sock = tmp_path / 'privd.sock'
+
+    class Store:
+        def add(self, kind, record): pass
+    thread = threading.Thread(target=privd.serve, kwargs={'path': sock, 'worker_factory': lambda: (Store(), FakeWorker()),
+                                                          'once': True}, daemon=True)
+    old = os.environ.get(privd.SERVER_ENV)
+    thread.start()
+    try:
+        for _ in range(200):
+            if sock.exists():
+                break
+            threading.Event().wait(0.01)
+        answer = privd.request('remediate', socket_path=sock, action='quarantine_file', path='/etc/cron.d/x',
+                               rule_id='SATSUMA-PERS-001', reason='r')
+        thread.join(5)
+        assert answer['status'] == 'quarantined'
+        assert answer['got']['path'] == '/etc/cron.d/x' and answer['got']['action'] == 'quarantine_file'
+    finally:
+        if old is None:
+            os.environ.pop(privd.SERVER_ENV, None)
+        else:
+            os.environ[privd.SERVER_ENV] = old

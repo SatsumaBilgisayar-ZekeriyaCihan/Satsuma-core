@@ -58,8 +58,15 @@ class PrivdUnavailable(Exception):
     pass
 
 
-def request(op, timeout=15, path=SOCKET_PATH, **params):
-    """Send one intent to privd and return its answer."""
+def request(op, *, socket_timeout=15, socket_path=SOCKET_PATH, **params):
+    """Send one intent to privd and return its answer.
+
+    2.2.60: the socket's own settings have names no request field uses. They were
+    ``timeout`` and ``path``, and remediation's ``path=<file>`` was taken for the socket:
+    every quarantine request connected to the file itself ("Connection refused") from
+    2.2.56 to 2.2.59 (field 2026-11-19). Soket ayarları istek alanlarıyla çakışmaz.
+    """
+    timeout, path = socket_timeout, socket_path
     payload = json.dumps({'op': op, **params}, ensure_ascii=False, default=str).encode()
     if len(payload) > MAX_REQUEST:
         raise ValueError('privd request too large')

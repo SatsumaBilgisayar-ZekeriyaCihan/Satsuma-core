@@ -216,6 +216,31 @@ def _automatic_actions(store, config, findings):
 REMEDIATION_KEY = 'remediation_policy'
 
 
+PRIVD_ALARM_EVERY = 3600.0
+
+
+def _privd_unreachable(store, action, now=None):
+    """A critical finding when an undo could not reach privd (at most hourly; 2.2.60).
+
+    Field 2026-11-19: quarantine requests failed silently for four releases.
+    Geri alma privd'ye ulaşamazsa kritik bulgu verilir; sessiz arıza kalmaz.
+    """
+    from satsuma.finding_store import record_finding
+    now = time.time() if now is None else now
+    last = store.get('privd_unreachable_alarm', None) or 0
+    if now - float(last) < PRIVD_ALARM_EVERY:
+        return False
+    store.set('privd_unreachable_alarm', now)
+    record_finding(store, {
+        'finding_id': f'SATSUMA-PRIVD-001:{int(now)}', 'rule_id': 'SATSUMA-PRIVD-001', 'severity': 'critical',
+        'classification': 'indicator', 'source': 'self_health', 'timestamp': now,
+        'title': 'Koruma yardımcısı (privd) yanıt vermiyor: otomatik geri alma yapılamadı',
+        'summary': f"{action.get('action')} {action.get('path') or action.get('user') or ''}".strip(),
+        'advice': 'sudo systemctl restart satsuma-privd; sonra sudo satsuma-admin geri-alma durum',
+        'enforcement_eligible': False}, 'self_health')
+    return True
+
+
 def _remediate(store, findings, request=None):
     """Undo what one-shot attack commands left behind (satsuma.remediation, 2.2.56).
 
@@ -244,6 +269,7 @@ def _remediate(store, findings, request=None):
             if result is None:
                 store.add('actions', {**params, 'action': 'remediation.' + action['action'], 'status': 'privd_unavailable',
                                       'timestamp': time.time()})
+                _privd_unreachable(store, action)
             done += 1
     return done
 

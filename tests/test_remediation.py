@@ -140,3 +140,20 @@ def test_admin_switch_off_needs_the_password(monkeypatch, tmp_path):
     monkeypatch.setattr(admin_cli.getpass, 'getpass', lambda prompt='': 'right')
     assert admin_cli._remediation(NS(islem='kapat')) == 0 and saved['remediation_policy']['enabled'] is False
     assert admin_cli._remediation(NS(islem='ac')) == 0 and saved['remediation_policy']['enabled'] is True
+
+
+def test_unreachable_privd_raises_a_critical_finding_hourly(monkeypatch):
+    import run_satsuma_teams as T
+    import satsuma.finding_store as fs
+    found = []
+    monkeypatch.setattr(fs, 'record_finding', lambda store, finding, source: found.append(finding) or {'written': True})
+
+    class Store(dict):
+        def get(self, k, d=None): return super().get(k, d)
+        def set(self, k, v): self[k] = v
+        def add(self, kind, body): pass
+    store = Store()
+    fresh = [finding('SATSUMA-PERS-001', path='/etc/cron.d/x')]
+    T._remediate(store, fresh, request=lambda **p: None)
+    T._remediate(store, fresh, request=lambda **p: None)
+    assert len(found) == 1 and found[0]['rule_id'] == 'SATSUMA-PRIVD-001' and found[0]['severity'] == 'critical'
