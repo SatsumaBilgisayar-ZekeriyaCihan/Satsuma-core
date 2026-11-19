@@ -5,6 +5,7 @@ Installer invokes `install` before enabling the Satsuma on-access service.
 `verify` checks configuration without modifying the host.
 """
 import os
+import sys
 from pathlib import Path
 import pwd
 import stat
@@ -110,8 +111,42 @@ def migrate_link_paths(config=CONFIG):
     return True
 
 
+SELINUX_BOOLEAN = 'antivirus_can_scan_system'
+
+
+def allow_selinux_scan(runner=None):
+    """Let clamd read the files clamonacc hands it under SELinux (2.2.54).
+
+    Field 2026-11-19: with the boolean off, clamd (antivirus_t) could not read files
+    in the home folders and dropped the descriptors clamonacc passed it ("Control
+    message truncated"); on-access protection blocked nothing. Fedora documents this
+    boolean for clamd scanning the system. Returns what was done; never raises.
+    SELinux açıkken clamd'nin ev klasörlerindeki dosyaları okuyabilmesi için gerekli.
+    """
+    import subprocess
+    run = runner or subprocess.run
+    try:
+        mode = run(['/usr/sbin/getenforce'], capture_output=True, text=True, timeout=10).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return 'no_selinux'
+    if mode not in ('Enforcing', 'Permissive'):
+        return 'selinux_disabled'
+    try:
+        state = run(['/usr/sbin/getsebool', SELINUX_BOOLEAN], capture_output=True, text=True, timeout=10).stdout
+        if state.strip().endswith('--> on'):
+            return 'already_on'
+        done = run(['/usr/sbin/setsebool', '-P', SELINUX_BOOLEAN, '1'], capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return 'failed: ' + str(exc)[:200]
+    return 'enabled' if done.returncode == 0 else 'failed: ' + (done.stderr or done.stdout)[-200:]
+
+
 def install():
     if os.geteuid() != 0: raise PermissionError('root required')
+    selinux = allow_selinux_scan()
+    if selinux.startswith('failed'):
+        print('SATSUMA: SELinux ' + SELINUX_BOOLEAN + ' could not be enabled; on-access scanning may be denied: '
+              + selinux, file=sys.stderr)
     trusted_file(CONFIG)
     current = CONFIG.read_text()
     if START in current or END in current:

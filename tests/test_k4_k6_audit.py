@@ -185,3 +185,36 @@ def test_removed_suppression_on_a_locked_kernel_asks_for_reboot(real):
     report = ar.apply(kernel('2', listing, []), real['path'], [], real['lstat'], real['readlink'],
                       backup_dir=real['path'].parent / 'backup')
     assert report['status'] == 'REBOOT_REQUIRED' and report['neutralized'][0]['lines'] == ['-a task,never']
+
+
+def test_atomic_homes_root_and_usr_local_are_watched_under_their_real_paths():
+    """2.2.54: on Fedora Atomic /home, /root and /usr/local are links into /var."""
+    entries = everything_real({
+        '/home': (LINK, 'var/home'), '/root': (LINK, 'var/roothome'), '/usr/local': (LINK, '../var/usrlocal'),
+        '/var': (DIR, None), '/var/home': (DIR, None), '/var/home/u': (DIR, None), '/var/home/u/.ssh': (DIR, None),
+        '/var/home/u/.config': (DIR, None), '/var/roothome': (DIR, None), '/var/usrlocal': (DIR, None),
+        '/var/spool': (DIR, None), '/var/spool/cron': (DIR, None)})
+    lstat, readlink = fake_fs(entries)
+    targets, refused = ar.watch_targets(['/home/u'], lstat, readlink)
+    text = ar.render(targets)
+    assert refused == []
+    assert '-w /var/home/u/.ssh -p rwa -k satsuma_home_ssh' in text
+    # Not there yet, but its folder is: watched so that its creation is seen.
+    assert '-w /var/home/u/.bashrc -p wa -k satsuma_home' in text
+    assert '-w /var/home/u/.config/autostart -p wa -k satsuma_home' in text
+    # Folder missing: not watched (audit cannot place it).
+    assert '.config/systemd/user' not in text
+    assert '-w /var/roothome/.bashrc -p wa -k satsuma_home' in text
+    assert '-w /var/spool/cron -p wa -k satsuma_cron' in text
+    assert '-w /var/usrlocal -p wa -k satsuma_local' in text
+    assert '-w /usr/local ' not in text and '-w /home/u' not in text
+    lines = text.splitlines()
+    assert lines[1:3] == ['-b 8192', '--loginuid-immutable'] and lines[-1] == '-e 2'
+
+
+def test_a_planted_home_link_is_still_refused():
+    entries = everything_real({'/home': (LINK, '/tmp/evil')})
+    lstat, readlink = fake_fs(entries)
+    targets, refused = ar.watch_targets(['/home/u'], lstat, readlink)
+    assert {'path': '/home/u/.local/share/fonts', 'reason': 'symlink'} in refused or not any(
+        t[0].startswith('/home/u') for t in targets)

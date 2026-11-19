@@ -107,6 +107,8 @@ def sudo_autoblock(finding, sudo_enabled=True):
 
 def automatic_allowed(finding, sudo_enabled=True):
     """Classes any automatic response may act on: not plain activity indicators."""
+    if str(finding.get('rule_id', '')) in ALARM_ONLY or finding.get('trace_only'):
+        return False
     if str(finding.get('rule_id', '')) in ATTACK_INDICATORS or sudo_autoblock(finding, sudo_enabled):
         return True
     classification = str(finding.get('classification', '')).lower()
@@ -115,7 +117,18 @@ def automatic_allowed(finding, sudo_enabled=True):
     return classification == 'indicator' and str(finding.get('severity', '')).lower() == 'critical'
 
 
+# 2.2.54: critical alarm, never a stop. The owner runs these on purpose (rpm-ostree
+# uninstall satsuma-core before installing a new version, field log 2026-11-18), and the
+# command has finished long before a stop could arrive; the alarm is what matters.
+# Kritik alarm verir, süreci durdurmaz: sahibi bunları bilerek de çalıştırır.
+# GAP-025 (chattr +i): the owner locks files by hand to harden the machine (2026-11-19);
+# an attacker locks his persistence the same way. Alarm, never a stop.
+ALARM_ONLY = frozenset({'SATSUMA-GAP-025', 'SATSUMA-GAP-036', 'SATSUMA-GAP-037'})
+
+
 def eligible(finding, sudo_enabled=True):
+    if str(finding.get('rule_id', '')) in ALARM_ONLY or finding.get('trace_only'):
+        return False
     if str(finding.get('rule_id', '')) in ATTACK_INDICATORS or sudo_autoblock(finding, sudo_enabled):
         return True
     return (str(finding.get('classification', '')).lower(), str(finding.get('severity', '')).lower()) in ENFORCED

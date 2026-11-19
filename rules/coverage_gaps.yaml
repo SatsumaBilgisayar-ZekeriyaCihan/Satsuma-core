@@ -1,0 +1,807 @@
+# Satsuma Core 2.2.54: attacks with no rule (field coverage analysis, 2026-11-19).
+# A corpus of 109 Linux techniques run through the engine left 51 without any rule;
+# these rules close them. Patterns are written for the command line as the kernel
+# reports it (arguments joined by spaces, no shell quotes), not for shell text.
+# Rules listed in satsuma.enforcement.ALARM_ONLY raise a critical alarm but never stop
+# a process (the owner runs the same command on purpose, e.g. a Satsuma upgrade).
+# 2.2.54: kuralı olmayan saldırılar. Kalıplar çekirdeğin bildirdiği komut satırına
+# (tırnaksız, boşlukla birleştirilmiş argümanlar) göre yazıldı.
+- id: SATSUMA-GAP-001
+  name: Python ters shell (soket + kabuk/yönlendirme)
+  mitre: {tactic: Execution, technique: T1059.006}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\bpython[\d.]*\b)(?>.*?\s-c\s)(?>.*?(?:socket\.socket|create_connection|socket\(\)))(?>.*?(?:dup2|pty\.spawn|subprocess|/bin/(?:ba|z|da)?sh\b|\bexec\())'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+  false_positives: [Soket ve kabuğu birlikte kullanan elle yazılmış tek satırlık bakım betiği.]
+- id: SATSUMA-GAP-002
+  name: Perl ters shell
+  mitre: {tactic: Execution, technique: T1059}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\bperl\b)(?>.*?(?:\s-[eE]\s|-MIO::Socket))(?>.*?(?:\bSocket\b|IO::Socket|socket\())(?>.*?(?:/bin/(?:ba|z|da)?sh\b|\bexec\b|STDIN|STDOUT))'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+  false_positives: [Perl ile yazılmış ağ bakım tek satırlığı.]
+- id: SATSUMA-GAP-003
+  name: PHP ters shell
+  mitre: {tactic: Execution, technique: T1059}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\bphp[\d.]*\b)(?>.*?\s-r\s)(?>.*?\bfsockopen\b)'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-004
+  name: Netcat/ncat ile kabuk bağlama
+  mitre: {tactic: Execution, technique: T1059}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?(?:^|[\s/])n(?:c|cat|etcat)(?:\.\w+)?\s).*?(?:^|\s)(?:-e|-c|--exec|--sh-exec|--lua-exec)[\s=]'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-005
+  name: Adlandırılmış boru ile kabuk aktarma (mkfifo + ağ aracı)
+  mitre: {tactic: Execution, technique: T1059.004}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\b(?:mkfifo|mknod)\b)(?>.*?\b(?:nc|ncat|netcat|openssl|telnet|socat)\b)'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-006
+  name: OpenSSL ile şifreli ters shell
+  mitre: {tactic: Command and Control, technique: T1573}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\bopenssl\s+s_client\b)(?>.*?(?:/bin/(?:ba|z|da)?sh\b|\bsh\s+-i\b|mkfifo|-quiet\s+-connect))'
+    - '^(?>.*?(?:/bin/(?:ba|z|da)?sh|\bsh)\s+-i\b)(?>.*?\bopenssl\s+s_client\b)'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-007
+  name: Geçici klasöre indirip çalıştırma
+  mitre: {tactic: Command and Control, technique: T1105}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\b(?:curl|wget)\b)(?>.*?\s(?:-o|-O|--output|--output-document)[\s=]?/(?:tmp|dev/shm|var/tmp|run/user/\d+)/)(?>.*?(?:chmod\s+(?:[ugoa]*\+[rw]*x|[0-7]*[1357]\b)|\s/(?:tmp|dev/shm|var/tmp|run/user/\d+)/\S+\s*$))'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-008
+  name: Geçici klasörden program çalıştırma (/tmp, /run/user)
+  mitre: {tactic: Defense Evasion, technique: T1620}
+  severity: high
+  base_match:
+    source: sys_proc
+    exe_regex:
+    - '^/tmp/(?!\.)(?!rpmostree-)'
+    - '^/run/user/\d+/'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.exe]
+  false_positives: [Kendini /tmp altına açan kurulum programı.]
+- id: SATSUMA-GAP-009
+  name: Çekirdek iş parçacığı kılığında kullanıcı programı
+  mitre: {tactic: Defense Evasion, technique: T1036.004}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^\[[\w/:.+-]{1,40}\]$'
+    exe_regex:
+    - '^/(?:home|var/home|root|var/roothome|tmp|var/tmp|dev/shm|run/user)/'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd, sys_proc.exe]
+- id: SATSUMA-GAP-010
+  name: ld.so.preload yazma (her programa kütüphane enjeksiyonu)
+  mitre: {tactic: Persistence, technique: T1574.006}
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path: [/etc/ld.so.preload]
+    operation: write
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [audit.file_path]
+- id: SATSUMA-GAP-011
+  name: Udev kuralı ekleme
+  mitre: {tactic: Persistence, technique: T1546}
+  severity: high
+  base_match:
+    source: audit
+    action: file_access
+    file_path: [/etc/udev/rules.d/*]
+    operation: write
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [audit.file_path]
+  false_positives: [Elle eklenen aygıt izni kuralı.]
+- id: SATSUMA-GAP-012
+  name: binfmt_misc kaydı (dosya açılınca kod çalıştırma)
+  mitre: {tactic: Persistence, technique: T1546}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - 'binfmt_misc/register'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-013
+  name: binfmt.d yapılandırması yazma
+  mitre: {tactic: Persistence, technique: T1546}
+  severity: high
+  base_match:
+    source: audit
+    action: file_access
+    file_path: [/etc/binfmt.d/*]
+    operation: write
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [audit.file_path]
+- id: SATSUMA-GAP-014
+  name: systemd-run ile zamanlanmış geçici görev
+  mitre: {tactic: Persistence, technique: T1053.006}
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\bsystemd-run\b).*?\s--on-(?:calendar|active|boot|startup|unit-active|unit-inactive)\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-015
+  name: Oturum ortamı ve kabuk başlangıç dosyası yazma
+  mitre: {tactic: Persistence, technique: T1546.004}
+  severity: high
+  base_match:
+    source: audit
+    action: file_access
+    file_path:
+    - /home/*/.zshrc
+    - /home/*/.bash_login
+    - /home/*/.pam_environment
+    - /home/*/.config/environment.d/*
+    - /home/*/.local/share/systemd/user/*
+    - /root/.zshrc
+    - /root/.bash_login
+    - /root/.pam_environment
+    - /root/.config/environment.d/*
+    operation: write
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [audit.file_path]
+  false_positives: [Kullanıcının kendi kabuk ayarını düzenlemesi.]
+- id: SATSUMA-GAP-016
+  name: UID 0 ya da kopya UID ile hesap oluşturma
+  mitre: {tactic: Persistence, technique: T1136.001}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\buser(?:add|mod)\b).*?\s(?:-o|--non-unique)\b'
+    - '^(?>.*?\buser(?:add|mod)\b).*?\s(?:-u|--uid)[\s=]*0+\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-017
+  name: Hesabı yönetici grubuna ekleme (wheel/sudo)
+  mitre: {tactic: Privilege Escalation, technique: T1098}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\busermod\b).*?\s-a?G\s*\S*\b(?:wheel|sudo|adm)\b'
+    - '^(?>.*?\bgpasswd\b).*?\s(?:-a|--add)\s+\S+\s+(?:wheel|sudo|adm)\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+  false_positives: [Yöneticinin bilerek yeni yönetici eklemesi.]
+- id: SATSUMA-GAP-018
+  name: Komutla parolasız sudo yetkisi ekleme
+  mitre: {tactic: Privilege Escalation, technique: T1548.003}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?NOPASSWD).*?(?:>>?\s*/etc/sudoers|\btee\b)'
+    - '^(?>.*?\btee\b).*?/etc/sudoers'
+    - '>>?\s*/etc/sudoers'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-019
+  name: SUID biti verme
+  mitre: {tactic: Privilege Escalation, technique: T1548.001}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\bchmod\b).*?\s(?:[ua]?\+[rwx]*s[rwx]*|[4-7][0-7]{3})(?:\s|$)'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-020
+  name: Programa tehlikeli yetenek verme (setcap)
+  mitre: {tactic: Privilege Escalation, technique: T1548}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\bsetcap\b).*?\bcap_(?:setuid|setgid|sys_admin|sys_ptrace|sys_module|dac_override|dac_read_search|chown|fowner|bpf|net_admin)\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-021
+  name: Audit kayıtlarını silme ya da kapatma
+  mitre: {tactic: Defense Evasion, technique: T1562.012}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '\bauditctl\b\s+(?:-D\b|-e\s*[01]\b|--loginuid-immutable\s+0)'
+    - '^(?>.*?\bauditctl\b).*?\s-a\s+(?:never|exit,never|never,exit|task,never|never,task)\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: DEFENSE_TAMPERING
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-022
+  name: Güvenlik bileşenini öldürme (clamd, auditd, suricata, Satsuma)
+  mitre: {tactic: Defense Evasion, technique: T1562.001}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '\b(?:pkill|killall)\b(?:\s+-\S+)*\s+(?:-f\s+)?\S*(?:clamd|clamonacc|auditd|suricata|satsuma|freshclam|systemd-journald)'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: DEFENSE_TAMPERING
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-023
+  name: Satsuma güvenlik duvarı tablosunu silme
+  mitre: {tactic: Defense Evasion, technique: T1562.004}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\bnft\b).*?\b(?:delete|flush|destroy)\s+(?:table|chain|set|map)\s+(?:(?:inet|ip|ip6|netdev|bridge|arp)\s+)?satsuma_(?!health_probe\b)'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: DEFENSE_TAMPERING
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-024
+  name: Sistem günlüğünü temizleme (journal vacuum/rotate)
+  mitre: {tactic: Defense Evasion, technique: T1070.002}
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\bjournalctl\b).*?--(?:vacuum-(?:time|size|files)|rotate)\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+  false_positives: [Disk dolduğunda yöneticinin günlük temizlemesi.]
+- id: SATSUMA-GAP-025
+  name: Dosyayı değiştirilemez/yalnız ekleme yapma (chattr +i/+a)
+  mitre: {tactic: Defense Evasion, technique: T1222.002}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '\bchattr\b(?:\s+-[RVf]+)*\s+\+[a-zA-Z]*[ia]'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+  false_positives: [Yöneticinin bilerek dosya kilitlemesi; ostree temizliğini durdurabilir.]
+- id: SATSUMA-GAP-026
+  name: /proc üzerine bind mount ile süreç gizleme
+  mitre: {tactic: Defense Evasion, technique: T1564}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\bmount\b)(?>.*?(?:--bind|--rbind|-o\s*\S*bind)\b).*?\s/proc/\d+\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-027
+  name: SELinux kalıcı olarak kapatma (/etc/selinux/config)
+  mitre: {tactic: Defense Evasion, technique: T1562.001}
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path: [/etc/selinux/config]
+    operation: write
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: DEFENSE_TAMPERING
+  requires: [audit.file_path]
+- id: SATSUMA-GAP-028
+  name: Başka bir sürecin belleğini okuma (/proc/PID/mem)
+  mitre: {tactic: Credential Access, technique: T1003.007}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '(?:\s|=)/proc/\d+/mem\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-029
+  name: Klavye/giriş aygıtını doğrudan okuma
+  mitre: {tactic: Collection, technique: T1056.001}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\b(?:cat|dd|hexdump|xxd|od|tee|python[\d.]*|perl|evtest)\b).*?(?:\s|=)/dev/input/(?:event\d+|by-id|by-path)'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+  false_positives: [Aygıt sorunu ararken evtest kullanımı.]
+- id: SATSUMA-GAP-030
+  name: Parola özetlerini okuma ve kırma
+  mitre: {tactic: Credential Access, technique: T1003.008}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '\bunshadow\b'
+    - '^(?:\S*/)?(?:john|hashcat)\b'
+    - '^(?:\S*/)?(?:cat|less|more|head|tail|cp|base64|xxd|strings)\b.*?\s/etc/g?shadow-?(?:\s|$)'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-031
+  name: Parola deneme (brute force) aracı
+  mitre: {tactic: Credential Access, technique: T1110}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?:\S*/)?(?:hydra|medusa|ncrack|patator|crowbar)\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-032
+  name: Ağ tarayıcısı (nmap, masscan)
+  mitre: {tactic: Discovery, technique: T1046}
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?:\S*/)?(?:nmap|masscan|zmap|rustscan|naabu)\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+  false_positives: [Yöneticinin kendi ağını taraması.]
+- id: SATSUMA-GAP-033
+  name: Tünel aracı (chisel, ngrok, frp, ligolo)
+  mitre: {tactic: Command and Control, technique: T1572}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?:\S*/)?(?:chisel|ngrok|frpc|frps|ligolo(?:-ng)?|rathole|bore)\b'
+    - '^(?>.*?\bcloudflared\b).*?\btunnel\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+  false_positives: [Geliştiricinin bilerek tünel açması.]
+- id: SATSUMA-GAP-034
+  name: SSH ile ters port yönlendirme
+  mitre: {tactic: Command and Control, technique: T1572}
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?:\S*/)?ssh\b.*?\s-[a-zA-Z]*R\s*\S*\d'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-035
+  name: Kök dizini silme
+  mitre: {tactic: Impact, technique: T1485}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\brm\b).*?--no-preserve-root\b'
+    - '\brm\s+(?:-[a-zA-Z]*\s+)*-[a-zA-Z]*[rR][a-zA-Z]*\s+(?:-\S+\s+)*/(?:\*)?(?:\s|$)'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-036
+  name: Satsuma'yı kaldırma girişimi
+  mitre: {tactic: Defense Evasion, technique: T1562.001}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\brpm-ostree\b)(?>.*?\b(?:uninstall|remove)\b).*?\bsatsuma-core\b'
+    - '^(?>.*?\brpm-ostree\b)(?>.*?\boverride\s+remove\b).*?\bsatsuma-core\b'
+    - '^(?>.*?\b(?:dnf|yum|rpm)\b)(?>.*?\s(?:remove|erase|-e|--erase)\s).*?\bsatsuma-core\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: DEFENSE_TAMPERING
+  requires: [sys_proc.cmd]
+  false_positives: [Sahibinin güncelleme için Satsuma'yı kaldırması; yalnızca alarm verir, durdurmaz.]
+- id: SATSUMA-GAP-037
+  name: Satsuma kayıt veritabanını silme ya da değiştirme
+  mitre: {tactic: Defense Evasion, technique: T1070}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?:\S*/)?(?:rm|shred|truncate|mv|dd)\b.*?/var/lib/satsuma-core/(?:core\.db|host/host\.db|evidence|self-health|quarantine)'
+    - '^(?:\S*/)?sqlite3\b(?>.*?/var/lib/satsuma-core/).*?\b(?:delete|drop|update|insert|replace|vacuum|attach)\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: DEFENSE_TAMPERING
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-039
+  name: Kabuğun /dev/tcp ile uzak bağlantı açması
+  mitre: {tactic: Execution, technique: T1059.004}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '(?:<>|>&?|<)\s*/dev/(?:tcp|udp)/[\w.-]+/\d+'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+  false_positives: [Kabuk betiğiyle port açık mı denetimi.]
+- id: SATSUMA-GAP-038
+  name: Kapsayıcıdan ana makine kök dizinine erişim
+  mitre: {tactic: Privilege Escalation, technique: T1611}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\b(?:docker|podman|nerdctl)\b)(?>.*?\brun\b).*?(?:\s-v\s*|--volume[\s=])/:/'
+    - '^(?>.*?\b(?:docker|podman|nerdctl)\b)(?>.*?\brun\b)(?>.*?--pid[\s=]host\b).*?--privileged\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-040
+  name: Ayrıcalıklı kabuk (-p) ile yetki koruma
+  mitre: {tactic: Privilege Escalation, technique: T1548.001}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '(?:^|[\s/])(?:ba|da|z)?sh\s+(?:-[a-oq-zA-Z]*p[a-zA-Z]*)(?:\s|$)'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-041
+  name: Yazılabilir klasörden LD_PRELOAD ile kütüphane enjeksiyonu
+  mitre: {tactic: Defense Evasion, technique: T1574.006}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\bLD_PRELOAD=)(?>(?:[^\s:]*:)*)/(?:tmp|dev/shm|var/tmp|home|var/home|root|var/roothome|run/user)/'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-042
+  name: Yeni kullanıcı hesabı oluşturma
+  mitre: {tactic: Persistence, technique: T1136.001}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?:\S*/)?(?:useradd|adduser|newusers)\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+  false_positives: [Yöneticinin bilerek hesap açması.]
+- id: SATSUMA-GAP-043
+  name: Sudo yetkilerini listeleme (yetki keşfi)
+  mitre: {tactic: Discovery, technique: T1069.001}
+  severity: low
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?:\S*/)?sudo\s+(?:-n\s+)?(?:-l|--list|-ll)\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: low
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-044
+  name: Çalışan sürece izleyici bağlama (strace/ltrace -p)
+  mitre: {tactic: Credential Access, technique: T1055.008}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?:\S*/)?(?:strace|ltrace)\b.*?\s(?:-p|--attach)[\s=]*\d'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+  false_positives: [Geliştiricinin hata ayıklaması.]
+- id: SATSUMA-GAP-045
+  name: Özel anahtar ve parola arama
+  mitre: {tactic: Credential Access, technique: T1552.001}
+  severity: high
+  base_match:
+    source: sys_proc
+    exe_regex: ['/(?:grep|egrep|rg|ag|ack|find|locate)$']
+    cmd_arg_contains: ['PRIVATE', 'id_rsa', 'id_ed25519', 'id_ecdsa', '.aws/credentials', 'wallet.dat', '.kdbx', 'logins.json']
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd, sys_proc.exe]
+- id: SATSUMA-GAP-046
+  name: Geri dönüş sistem kopyasını silme (ostree)
+  mitre: {tactic: Impact, technique: T1490}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '\bostree\s+admin\s+(?:undeploy|pin\s+--unpin|pin\s+-u)\b'
+    - '\brpm-ostree\s+cleanup\s+(?:-\S*[rb]\S*|--rollback|--base)\b'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-047
+  name: Satsuma yapılandırmasını Satsuma dışından değiştirme
+  mitre: {tactic: Defense Evasion, technique: T1562.001}
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path: [/etc/satsuma-core/*]
+    operation: write
+    cmd_not_regex: ['satsuma-(?:admin|kur|setup|dashboard|operator|enroll|ostree)|/opt/satsuma-core/|\brpm\b|rpm-ostree|ostree']
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: DEFENSE_TAMPERING
+  requires: [audit.file_path]
+- id: SATSUMA-GAP-048
+  name: Sistem dosyasının zaman damgasını sahteleme
+  mitre: {tactic: Defense Evasion, technique: T1070.006}
+  severity: medium
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?:\S*/)?touch\b(?>.*?\s(?:-r|--reference|-d|--date|-t)[\s=]).*?\s/(?:etc|usr|boot|var/lib|var/log|opt)/'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-049
+  name: Günlük ve sistem dosyasını iz bırakmadan silme (shred)
+  mitre: {tactic: Defense Evasion, technique: T1070.004}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?:\S*/)?(?:shred|wipe|srm)\b.*?\s/(?:var/log|etc|var/lib|root|var/roothome|boot)/'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-050
+  name: Sistem dosyasındaki kilidi kaldırma (chattr -i)
+  mitre: {tactic: Defense Evasion, technique: T1222.002}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?>.*?\bchattr\b(?:\s+-[RVf]+)*\s+-[a-zA-Z]*[ia][a-zA-Z]*\s).*?(?:^|\s)/(?:etc|usr|boot|var/lib/satsuma-core|opt/satsuma-core)(?:/|\s|$)'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]

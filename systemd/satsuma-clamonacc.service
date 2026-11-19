@@ -10,6 +10,9 @@ ConditionPathExists=/etc/clamd.d/scan.conf
 [Service]
 Type=simple
 User=root
+# 2.2.54 (field 2026-11-19): clamd's socket is clamscan:virusgroup 0660 and this unit
+# has no CAP_DAC_OVERRIDE, so root could not connect ("Could not connect to clamd").
+SupplementaryGroups=virusgroup
 Environment=PATH=/usr/sbin:/usr/bin
 ExecStartPre=/usr/bin/python3 -I -B /opt/satsuma-core/installer/onaccess_setup.py verify
 ExecStart=/usr/bin/clamonacc --foreground --verbose --config-file=/etc/clamd.d/scan.conf --fdpass

@@ -63,9 +63,36 @@ WATCHES = [
     ('/usr/share/locale', 'satsuma_locale'),
     ('/usr/lib/locale', 'satsuma_locale'),
     ('/usr/lib64/gconv', 'satsuma_locale'),
+    # 2.2.54 (field 2026-11-19): user crontabs, and /usr/local's real folder on Fedora
+    # Atomic (/usr/local is a link there and was refused, so nothing watched it).
+    ('/var/spool/cron', 'satsuma_cron'),
+    ('/var/usrlocal', 'satsuma_local'),
 ]
 # Per-user font directories (font attacks), relative to each home.
 USER_FONT_DIRS = ('.local/share/fonts', '.fonts')
+# 2.2.54 (field 2026-11-19): the persistence and key rules (authorized_keys, .bashrc,
+# autostart, user systemd units) looked at home folders that audit never watched, so
+# they could not fire. Only these entries are watched, not the whole home; .ssh also
+# for reads (private keys). (relative path, key, permissions)
+# Ev klasörünün tamamı değil yalnızca bu girişler izlenir; .ssh okumalar için de.
+HOME_ENTRIES = (
+    ('.ssh', 'satsuma_home_ssh', 'rwa'),
+    ('.bashrc', 'satsuma_home', 'wa'),
+    ('.bash_profile', 'satsuma_home', 'wa'),
+    ('.bash_login', 'satsuma_home', 'wa'),
+    ('.profile', 'satsuma_home', 'wa'),
+    ('.zshrc', 'satsuma_home', 'wa'),
+    ('.pam_environment', 'satsuma_home', 'wa'),
+    ('.config/autostart', 'satsuma_home', 'wa'),
+    ('.config/systemd/user', 'satsuma_home', 'wa'),
+    ('.config/environment.d', 'satsuma_home', 'wa'),
+    ('.local/share/systemd/user', 'satsuma_home', 'wa'),
+)
+ROOT_HOME_ENTRIES = tuple(e for e in HOME_ENTRIES if not e[0].startswith('.config/autostart'))
+# Audit itself (2.2.54, field auditctl -s: backlog_limit 64, loginuid unlocked): a
+# queue big enough for bursts, and a login uid that a root process cannot rewrite to
+# hide who started it. Placed before -e 2. Yoğun anlar için kuyruk; oturum kimliği kilitli.
+AUDIT_SETTINGS = ('-b 8192', '--loginuid-immutable')
 
 
 def user_homes(passwd='/etc/passwd'):
@@ -73,11 +100,32 @@ def user_homes(passwd='/etc/passwd'):
     try:
         for line in Path(passwd).read_text().splitlines():
             parts = line.split(':')
-            if len(parts) >= 7 and parts[2].isdigit() and 1000 <= int(parts[2]) < 60000 and parts[5].startswith('/home/'):
+            if (len(parts) >= 7 and parts[2].isdigit() and 1000 <= int(parts[2]) < 60000
+                    and parts[5].startswith(('/home/', '/var/home/'))):
                 homes.append(parts[5])
     except OSError:
         pass
     return sorted(set(homes))
+
+
+def real_path(path, readlink=os.readlink, lstat=os.lstat):
+    """The path with a known distribution link at its start replaced by its target.
+
+    Only the links in DISTRIBUTION_LINKS are followed (Fedora Atomic: /home -> var/home,
+    /root -> var/roothome); any other link stays and is refused by classify.
+    """
+    for link, targets in DISTRIBUTION_LINKS.items():
+        if path == link or path.startswith(link + '/'):
+            try:
+                if not stat.S_ISLNK(lstat(link).st_mode):
+                    return path
+                target = readlink(link)
+            except OSError:
+                return path
+            if target in targets:
+                base = os.path.normpath(os.path.join(os.path.dirname(link), target))
+                return base + path[len(link):]
+    return path
 
 
 # The merged-/usr links Fedora itself ships, with their only valid targets.
@@ -85,6 +133,8 @@ def user_homes(passwd='/etc/passwd'):
 DISTRIBUTION_LINKS = {
     '/bin': {'usr/bin'}, '/sbin': {'usr/sbin', 'usr/bin'}, '/lib': {'usr/lib'},
     '/lib64': {'usr/lib64'}, '/usr/sbin': {'bin'},
+    # Fedora Atomic / ostree (2.2.54). Their targets are watched under the real path.
+    '/home': {'var/home'}, '/root': {'var/roothome'}, '/usr/local': {'../var/usrlocal'},
 }
 
 
@@ -103,18 +153,30 @@ def classify(path, lstat=os.lstat, readlink=os.readlink):
     return 'ok'
 
 
-def watch_targets(homes=None, lstat=os.lstat, readlink=os.readlink):
+def watch_targets(homes=None, lstat=os.lstat, readlink=os.readlink, root_home='/root'):
     """Watch list plus the paths refused, without following any link.
 
     A distribution link (e.g. /usr/sbin -> bin on merged Fedora) is skipped:
     its target is already watched. Any other link is refused and reported.
+    Home entries (HOME_ENTRIES) are watched under their real path, also when they
+    do not exist yet, as long as their folder exists: audit then sees them created.
     """
     targets, refused = [], []
-    paths = list(WATCHES)
+    paths = [(p, k, 'wa', False) for p, k in WATCHES]
+    entries = []
     for home in user_homes() if homes is None else homes:
-        paths += [(os.path.join(home, rel), 'satsuma_fonts') for rel in USER_FONT_DIRS]
-    for path, key in paths:
+        home = real_path(home, readlink, lstat)
+        paths += [(os.path.join(home, rel), 'satsuma_fonts', 'wa', False) for rel in USER_FONT_DIRS]
+        entries += [(os.path.join(home, rel), key, perm) for rel, key, perm in HOME_ENTRIES]
+    root = real_path(root_home, readlink, lstat)
+    entries += [(os.path.join(root, rel), key, perm) for rel, key, perm in ROOT_HOME_ENTRIES]
+    paths += [(p, k, perm, True) for p, k, perm in entries]
+    for path, key, perm, may_be_missing in paths:
         kind = classify(path, lstat, readlink)
+        if kind == 'missing' and may_be_missing:
+            parent = os.path.dirname(path)
+            if classify(parent, lstat, readlink) == 'ok':
+                kind = 'ok'
         # A parent that is a link redirects the watch just the same.
         parent = os.path.dirname(path)
         while kind == 'ok' and parent not in ('/', ''):
@@ -122,18 +184,22 @@ def watch_targets(homes=None, lstat=os.lstat, readlink=os.readlink):
                 kind = 'symlink'
             parent = os.path.dirname(parent)
         if kind == 'ok':
-            targets.append((path, key))
+            targets.append((path, key) if perm == 'wa' else (path, key, perm))
         elif kind == 'symlink':
             refused.append({'path': path, 'reason': 'symlink'})
     return targets, refused
 
 
 def render(targets):
-    lines = [HEADER, *EXEC_RULES]
-    for path, key in targets:
+    lines = [HEADER, *AUDIT_SETTINGS, *EXEC_RULES]
+    for target in targets:
+        path, key = target[0], target[1]
+        perm = target[2] if len(target) > 2 else 'wa'
         if any(ch.isspace() for ch in path):
             raise ValueError('watch path with whitespace: ' + path)
-        lines.append(f'-w {path} -p wa -k {key}')
+        if not set(perm) <= set('rwxa'):
+            raise ValueError('bad watch permissions: ' + perm)
+        lines.append(f'-w {path} -p {perm} -k {key}')
     lines.append('-e 2')
     return '\n'.join(lines) + '\n'
 
@@ -251,7 +317,7 @@ def apply(runner=subprocess.run, path=RULE_FILE, homes=None, lstat=os.lstat, rea
         status = 'REBOOT_REQUIRED' if removed and enabled == '2' else 'SYSCALL_AUDIT_SUPPRESSED'
     report = {'status': status, 'updated_at': time.time(), 'rule_file': str(path),
               'neutralized': neutralized,
-              'watches': [p for p, _ in targets], 'refused_symlinks': refused,
+              'watches': [target[0] for target in targets], 'refused_symlinks': refused,
               'immutable': enabled == '2'}
     return report
 

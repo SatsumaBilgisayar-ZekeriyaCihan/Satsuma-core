@@ -192,7 +192,9 @@ def test_health_uses_repaired_service_state_and_keeps_original_evidence(monkeypa
         def get(self,key,default=None):return values.get(key,default)
         def close(self):pass
     monkeypatch.setattr(sm,'Store',FakeStore)
-    monkeypatch.setattr(h,'command',lambda args,timeout=8:json.dumps({'packet_drop_verified':True}) if args[0]=='/usr/bin/unshare' else '')
+    # 2.2.54: the on-access and ostree checks read 'systemctl show'; a healthy machine answers active.
+    monkeypatch.setattr(h,'command',lambda args,timeout=8:json.dumps({'packet_drop_verified':True}) if args[0]=='/usr/bin/unshare'
+                        else 'LoadState=loaded\nActiveState=active\nResult=success' if args[-1]=='--property=LoadState,ActiveState,Result' else '')
     monkeypatch.setattr(importlib.util,'module_from_spec',lambda *a:NS(Nft=lambda:NS(verify_layout=lambda:None)))
     monkeypatch.setattr(importlib.util,'spec_from_file_location',lambda *a:NS(loader=NS(exec_module=lambda module:None)))
     monkeypatch.setattr(app_firewall,'status',lambda:{'status':'ACTIVE','enabled':True})

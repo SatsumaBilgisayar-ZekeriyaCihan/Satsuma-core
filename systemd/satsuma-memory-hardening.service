@@ -6,7 +6,9 @@ After=local-fs.target
 # running before it lets those defaults overwrite the hardened values.
 After=systemd-sysctl.service
 Before=network-pre.target satsuma-early-guard.service satsuma-core.service satsuma-teams.service
-Before=systemd-coredump.socket
+# 2.2.54: no Before=systemd-coredump.socket. systemd-sysctl already starts after the
+# coredump socket, so that line closed an ordering cycle and systemd dropped the socket
+# at every boot (field journal 2026-11-19). The values are set after systemd-sysctl.
 RequiresMountsFor=/dev /dev/shm /opt/satsuma-core
 Requires=satsuma-image.service
 After=satsuma-image.service

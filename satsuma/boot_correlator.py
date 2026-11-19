@@ -35,6 +35,25 @@ WINDOW = 600
 SETTLE = 300
 NEAR = 10
 SEVERITY_ORDER = {'info': 0, 'low': 1, 'medium': 2, 'high': 3, 'critical': 4}
+# 2.2.54 (field 2026-11-19): known boot messages that are not security problems. They
+# were grouped as "kernel" and took the severity of an unrelated critical finding seen
+# within NEAR seconds, so every boot showed a critical "kernel problem". The debugfs
+# lines come from Satsuma's own debugfs=off kernel option (kernel_profile.CMDLINE).
+# Güvenlik sorunu olmayan bilinen açılış mesajları; debugfs satırları Satsuma'nın kendi
+# debugfs=off ayarından gelir.
+import re as _re
+BENIGN_MESSAGES = _re.compile('|'.join((
+    r'failed to create debugfs director',
+    r'TDX not supported by the host platform',
+    r'bridge has subordinate \S+ but max busn',
+    r"dracut-crypt-generator' failed with exit status",
+    r'overlay: No changes allowed in reconfigure',
+)), _re.I)
+
+
+def relevant(entries):
+    """Journal entries without the known harmless boot messages."""
+    return [e for e in entries if not BENIGN_MESSAGES.search(str(e.get('message') or ''))]
 CORE_DB = '/var/lib/satsuma-core/core.db'
 
 
@@ -235,7 +254,7 @@ def run(store, manual=False, runner=subprocess.run, now=time.time, current_boot=
     previous = store.get('boot_correlation_previous', {}) or {}
     if previous.get('boot_id') == current_boot:
         previous = store.get('boot_correlation_before', {}) or {}
-    entries = entries if entries is not None else journal(start, runner)
+    entries = relevant(entries if entries is not None else journal(start, runner))
     if failed is None:
         audit = store.get('systemd_audit', {}) or {}
         if audit.get('updated_at', 0) >= start:

@@ -2,7 +2,7 @@
 %global debug_package %{nil}
 %global _build_id_links none
 Name: satsuma-core
-Version: 2.2.53
+Version: 2.2.54
 Release: 1%{?dist}
 Summary: Satsuma Core security monitoring and response
 License: LicenseRef-Proprietary AND GPL-3.0-only AND Unlicense
@@ -496,7 +496,7 @@ if [ -d /run/systemd/system ]; then systemctl daemon-reload >/dev/null 2>&1 || :
 %files
 %defattr(-,root,root,-)
 %license LICENSE
-%doc docs/RELEASE-2.2.38.md docs/RELEASE-2.2.39.md docs/RELEASE-2.2.40.md docs/RELEASE-2.2.41.md docs/RELEASE-2.2.42.md docs/RELEASE-2.2.43.md docs/RELEASE-2.2.44.md docs/RELEASE-2.2.45.md docs/RELEASE-2.2.46.md docs/RELEASE-2.2.47.md docs/RELEASE-2.2.48.md docs/RELEASE-2.2.49.md docs/RELEASE-2.2.50.md docs/RELEASE-2.2.51.md docs/RELEASE-2.2.52.md docs/RELEASE-2.2.53.md
+%doc docs/RELEASE-2.2.38.md docs/RELEASE-2.2.39.md docs/RELEASE-2.2.40.md docs/RELEASE-2.2.41.md docs/RELEASE-2.2.42.md docs/RELEASE-2.2.43.md docs/RELEASE-2.2.44.md docs/RELEASE-2.2.45.md docs/RELEASE-2.2.46.md docs/RELEASE-2.2.47.md docs/RELEASE-2.2.48.md docs/RELEASE-2.2.49.md docs/RELEASE-2.2.50.md docs/RELEASE-2.2.51.md docs/RELEASE-2.2.52.md docs/RELEASE-2.2.53.md docs/RELEASE-2.2.54.md
 %doc DEVICE-AND-SYSTEMD-RESEARCH.md VERSION NETWORK-IPS.md
 %{_docdir}/%{name}/examples
 %{_docdir}/%{name}/SELF-REPAIR-GUIDE.md
@@ -515,6 +515,18 @@ if [ -d /run/systemd/system ]; then systemctl daemon-reload >/dev/null 2>&1 || :
 /usr/lib/systemd/system/satsuma*
 %dir /usr/lib/systemd/system/nftables.service.d
 /usr/lib/systemd/system/nftables.service.d/90-satsuma.conf
+%dir /usr/lib/systemd/system/accounts-daemon.service.d
+/usr/lib/systemd/system/accounts-daemon.service.d/90-satsuma-userns.conf
+%dir /usr/lib/systemd/system/chrony-wait.service.d
+/usr/lib/systemd/system/chrony-wait.service.d/90-satsuma-userns.conf
+%dir /usr/lib/systemd/system/colord.service.d
+/usr/lib/systemd/system/colord.service.d/90-satsuma-userns.conf
+%dir /usr/lib/systemd/system/fstrim.service.d
+/usr/lib/systemd/system/fstrim.service.d/90-satsuma-userns.conf
+%dir /usr/lib/systemd/system/nm-priv-helper.service.d
+/usr/lib/systemd/system/nm-priv-helper.service.d/90-satsuma-userns.conf
+%dir /usr/lib/systemd/system/pcscd.service.d
+/usr/lib/systemd/system/pcscd.service.d/90-satsuma-userns.conf
 /usr/lib/NetworkManager/conf.d/90-satsuma-dns.conf
 /usr/share/applications/satsuma-dashboard.desktop
 /etc/xdg/autostart/satsuma-notify.desktop

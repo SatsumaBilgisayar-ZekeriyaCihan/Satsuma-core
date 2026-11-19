@@ -51,8 +51,13 @@ MASKED_UNITS = ('ModemManager.service', 'tuned.service', 'tuned-ppd.service')
 PPP_MODULES = ('ppp_generic', 'ppp_async', 'ppp_synctty', 'ppp_deflate', 'ppp_mppe', 'bsd_comp',
                'pppoe', 'pppox', 'pptp', 'l2tp_ppp')
 MODPROBE_FILE = Path('/etc/modprobe.d/satsuma-no-ppp.conf')
+# 2.2.54 (field 2026-11-19): with /bin/false a module listed in modules-load.d made
+# systemd-modules-load.service fail at every boot. /bin/true keeps the module out just
+# the same (modprobe runs the command instead of loading it) without the boot failure.
+# 2.2.54: /bin/false her açılışta systemd-modules-load'u düşürüyordu; /bin/true modülü
+# yine yüklemez, yalnızca hata vermez.
 MODPROBE_TEXT = ('# Satsuma: PPP is not allowed on this computer (user decision 2026-10-27).\n'
-                 + ''.join(f'install {m} /bin/false\n' for m in PPP_MODULES))
+                 + ''.join(f'install {m} /bin/true\n' for m in PPP_MODULES))
 SYSTEMD_ETC = Path('/etc/systemd/system')
 REPORT_FILE = Path('/var/lib/satsuma-core/boot-lockdown.json')
 

@@ -773,7 +773,12 @@ class SmartRuleEngine:
         self.load_errors = [item for item in self.load_errors if not str(item.get('error', '')).startswith('runtime ')]
         findings: list[dict[str, Any]] = []
         starved: list[str] = []
-        self._regex_deadline = time.monotonic() + REGEX_BUDGET_SECONDS
+        # 2.2.54 (field 2026-11-19): measured in this thread's CPU time, not wall-clock.
+        # On a busy machine "ps --no-header -p N o pid" ran out of a wall-clock budget
+        # and every remaining rule was skipped for that event; an attacker could load
+        # the machine to blind detection. A regex that really burns CPU still stops.
+        # Süre, duvar saatiyle değil bu iş parçacığının işlemci süresiyle ölçülür.
+        self._regex_deadline = time.thread_time() + REGEX_BUDGET_SECONDS
         self._ext_memo = None
         view = self._view(event)
         for rule, compiled in self._candidates(view):
@@ -1099,17 +1104,34 @@ class SmartRuleEngine:
 
     def _search(self, pattern: str, text: str, flags: int) -> bool:
         deadline = self._regex_deadline
-        if deadline is not None and time.monotonic() > deadline:
+        if deadline is not None and time.thread_time() > deadline:
             raise _RegexBudgetExceeded(pattern)
         return re.search(pattern, _regex_text(text), flags=flags) is not None
 
-    @staticmethod
-    def _path_match(path: str, pattern: str) -> bool:
+    # 2.2.54 (field 2026-11-19): on Fedora Atomic /home, /root and /usr/local are links
+    # to /var/home, /var/roothome and /var/usrlocal, and audit reports the real path.
+    # Rules written for /home/*/.ssh/authorized_keys never matched /var/home/u/.ssh/...
+    # A path is also tried under its conventional name. Atomic'te gerçek yollar /var
+    # altındadır; kurallar her iki adla da eşleşir.
+    PATH_ALIASES = (("/var/home/", "/home/"), ("/var/roothome/", "/root/"), ("/var/usrlocal/", "/usr/local/"))
+
+    @classmethod
+    def _path_forms(cls, path: str) -> tuple:
+        forms = [path]
+        for real, usual in cls.PATH_ALIASES:
+            if path.startswith(real):
+                forms.append(usual + path[len(real):])
+            elif path == real.rstrip("/"):
+                forms.append(usual.rstrip("/"))
+        return tuple(forms)
+
+    @classmethod
+    def _path_match(cls, path: str, pattern: str) -> bool:
         # ~ sadece current user'a göre expand edilmez; audit path için "*/.ssh/..."
         # şekline çevrilir ki root servisin HOME'u sonucu etkilemesin.
         if pattern.startswith("~/"):
             pattern = "*/" + pattern[2:]
-        return fnmatch.fnmatchcase(path, pattern)
+        return any(fnmatch.fnmatchcase(form, pattern) for form in cls._path_forms(path))
 
     # ------------------------------------------------------------------
     # Skor

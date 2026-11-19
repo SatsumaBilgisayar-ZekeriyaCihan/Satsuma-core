@@ -56,7 +56,7 @@ def test_ppp_modules_cannot_load_and_loaded_ones_are_removed(tmp_path):
     report = bl.block_ppp(tmp_path / 'satsuma-no-ppp.conf', modules, host.runner)
     text = (tmp_path / 'satsuma-no-ppp.conf').read_text()
     for module in ('ppp_generic', 'ppp_async', 'pppoe', 'pptp', 'l2tp_ppp'):
-        assert f'install {module} /bin/false\n' in text
+        assert f'install {module} /bin/true\n' in text
     assert report['modules_unloaded'] == ['pppox', 'pppoe', 'ppp_generic']
     assert bl.block_ppp(tmp_path / 'satsuma-no-ppp.conf', tmp_path / 'none', host.runner)['modprobe_file_repaired'] is False
 

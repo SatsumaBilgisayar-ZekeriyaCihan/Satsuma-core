@@ -386,9 +386,21 @@ def _recordable(finding):
         # 2.2.38: an account file write is always shown with what it changed,
         # at the severity that change deserves (satsuma.account_change).
         return True
+    classification = str(finding.get('classification', '')).lower()
     if finding.get('log_only'):
-        return enforcement.eligible(finding) and str(finding.get('classification', '')).lower() != 'indicator'
-    return str(finding.get('classification', '')).lower() in ('suspicious', 'likely', 'confirmed') or enforcement.eligible(finding)
+        if enforcement.eligible(finding) and classification != 'indicator':
+            return True
+    elif classification in ('suspicious', 'likely', 'confirmed') or enforcement.eligible(finding):
+        return True
+    # 2.2.54 (owner, 2026-11-19: "daha sıkı"): a high or critical rule that only reports
+    # was never written down at all (106 rules silent, e.g. SSH private key read, kernel
+    # module load, passwordless sudo). It is now recorded as a trace: shown and kept as
+    # evidence, never a stop (enforcement.eligible refuses trace_only).
+    # Yalnızca rapor eden yüksek/kritik kural artık iz olarak kaydedilir; durdurmaz.
+    if str(finding.get('severity', '')).lower() in ('high', 'critical'):
+        finding['trace_only'] = True
+        return True
+    return False
 
 
 def _flow_tick(store, config, pipeline, engine, flow, receiver, limit=5000, short_window=None, deep_lane=None):

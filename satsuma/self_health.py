@@ -33,7 +33,7 @@ CHECK_LABELS={'services':'Servisler','services_after_repair':'Onarım sonrası s
         'worker_heartbeats':'Takım çalışma kayıtları','packet_drop':'Paket engelleme testi',
         'production_incoming_rules':'Gelen trafik kuralları','app_control':'Uygulama internet filtresi',
         'nfqueue_consumers':'Ağ kuyruğu servisleri','dns_filter':'DNS filtresi',
-        'dns_policy':'DNS yapılandırması','dns_resolver_alignment':'Sistem DNS sunucusu','competing_ips':'Çakışan Suricata servisi','subnet_protection':'Alt ağ engelleyici','integrity_monitor':'Bütünlük izleyici','core_state':'Core durumuna erişim'}
+        'dns_policy':'DNS yapılandırması','dns_resolver_alignment':'Sistem DNS sunucusu','competing_ips':'Çakışan Suricata servisi','onaccess':'Anlık dosya koruması (ClamAV)','ostree_cleanup':'Sistem güncellemesi temizliği','subnet_protection':'Alt ağ engelleyici','integrity_monitor':'Bütünlük izleyici','core_state':'Core durumuna erişim'}
 
 
 def notice_text(result):
@@ -147,6 +147,37 @@ def competing_ips(state):
                     +'Kapatmak için: sudo systemctl disable --now suricata.service'}
 
 
+def onaccess_check(state):
+    """ClamAV on-access prevention is running (2.2.54).
+
+    Field 2026-11-19: satsuma-clamonacc failed at every start for days and no health
+    check said so. Anlık koruma günlerce çalışmadı ve hiçbir kontrol bunu söylemedi.
+    """
+    if state.get('LoadState')!='loaded':
+        return {'ok':False,'state':'NOT_INSTALLED','error':'satsuma-clamonacc.service bulunamadı'}
+    if state.get('ActiveState')=='active':
+        return {'ok':True,'state':'ACTIVE'}
+    return {'ok':False,'state':state.get('ActiveState') or 'UNKNOWN','result':state.get('Result'),
+            'error':'Anlık dosya koruması çalışmıyor; ayrıntı: journalctl -u satsuma-clamonacc -b'}
+
+
+def ostree_cleanup_check(state,ostree_booted):
+    """ostree removed old deployments at the last shutdown (2.2.54).
+
+    Field 2026-11-19: an immutable file (chattr +i) in an old deployment stopped every
+    cleanup; 26 old deployments piled up and only ostree-boot-complete.service failed,
+    which nothing reported. Eski sistem kopyalarının temizliği başarısızsa bildirilir.
+    """
+    if not ostree_booted:
+        return {'ok':True,'state':'NOT_OSTREE'}
+    if state.get('ActiveState')=='failed':
+        return {'ok':False,'state':'CLEANUP_FAILED',
+                'error':'Eski sistem kopyaları temizlenemedi (ostree-boot-complete başarısız). Neden: '
+                        'journalctl -b -u ostree-boot-complete; kilitli dosya için: '
+                        'sudo lsattr -d /ostree/deploy/*/deploy/*/etc/* | grep -- "-i-"'}
+    return {'ok':True,'state':state.get('ActiveState') or 'UNKNOWN'}
+
+
 def repair_allowed(unit,state,history,now):
     return unit in UNITS and state in ('failed','inactive','unhealthy') and len([t for t in history.get(unit,[]) if 0<=now-t<1800])<3
 
@@ -221,6 +252,13 @@ def run():
             text=command(['/usr/bin/systemctl','show','suricata.service','--property=LoadState,ActiveState,UnitFileState'])
             checks['competing_ips']=competing_ips(dict(line.split('=',1) for line in text.splitlines() if '=' in line))
         except Exception as exc:checks['competing_ips']={'ok':False,'error':str(exc)[:250]}
+        for name,unit,check in (('onaccess','satsuma-clamonacc.service',onaccess_check),
+                                ('ostree_cleanup','ostree-boot-complete.service',
+                                 lambda s:ostree_cleanup_check(s,Path('/run/ostree-booted').exists()))):
+            try:
+                text=command(['/usr/bin/systemctl','show',unit,'--property=LoadState,ActiveState,Result'])
+                checks[name]=check(dict(line.split('=',1) for line in text.splitlines() if '=' in line))
+            except Exception as exc:checks[name]={'ok':False,'error':str(exc)[:250]}
         # Confirm current signed application state without replacing its baseline.
         from .self_guard import verify
         try:verify();checks['integrity']={'ok':True}
