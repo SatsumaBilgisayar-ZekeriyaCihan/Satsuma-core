@@ -1,0 +1,15 @@
+// Satsuma Core (2.2.58, owner decision 2026-11-19): package and deployment changes need
+// the administrator password every time. Fedora Atomic's own rule
+// (org.projectatomic.rpmostree1.rules) lets a wheel user install/uninstall packages,
+// roll back and clean up deployments, and any local user upgrade, without a password:
+// a program running as the user could remove Satsuma or return to an older deployment.
+// This file is read before it (name order) and decides first. root (automatic updates,
+// rpm-ostreed itself) is unaffected; refreshing the repository metadata stays free.
+//
+// Paket ve dağıtım değişiklikleri her seferinde yönetici parolası ister.
+polkit.addRule(function(action, subject) {
+    if (action.id.indexOf("org.projectatomic.rpmostree1.") !== 0) return undefined;
+    if (subject.user == "root") return polkit.Result.YES;
+    if (action.id == "org.projectatomic.rpmostree1.repo-refresh") return undefined;
+    return polkit.Result.AUTH_ADMIN;
+});

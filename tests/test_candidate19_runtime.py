@@ -108,7 +108,7 @@ def test_original_223_rules_are_preserved_byte_for_byte():
     assert set(old['ids']) <= {r['_id'] for r in engine.rules}
     for name,digest in old['file_sha256'].items():
         assert hashlib.sha256((root/name).read_bytes()).hexdigest()==digest
-    assert len(engine.rules)==304  # 2.2.56: +2; 2.2.38: RAM-106/107 retired with the RAM ClamAV engine
+    assert len(engine.rules)==306  # 2.2.58: +2 (GAP-074, 075); 2.2.56: +2; 2.2.38: RAM-106/107 retired with the RAM ClamAV engine
 
 
 def test_udev_context_is_observation_not_automatic_response():

@@ -1017,6 +1017,7 @@ class SmartRuleEngine:
         'SATSUMA-GAP-070': ('cp', 'cat', 'find', 'sqlite3', 'tar', 'zip', '7z', '7za', 'rsync', 'scp', 'base64', 'strings', 'dd', '*'),
         'SATSUMA-GAP-071': ('rm', 'cp', 'mv', 'shred', 'truncate', 'tar', '*'),
         'SATSUMA-GAP-073': ('insmod', 'modprobe', 'kmod', '*'),
+        'SATSUMA-GAP-075': ('rpm-ostree', '*'),
     }
 
     @staticmethod

@@ -16,7 +16,7 @@ def test_rules_expose_actual_central_candidates_without_fabricating_results(tmp_
     monkeypatch.setattr(api,'RULES_DIR',Path(__file__).parents[1]/'rules')
     try:
         report=api.m_rules();rows={r['rule_id']:r for r in report['rules']}
-        assert report['active_total']==304 and report['direct_stop_total']==0
+        assert report['active_total']==306 and report['direct_stop_total']==0
         assert report['central_policy_candidate_total']>0
         for rid in ('SATSUMA-EXEC-001','SATSUMA-EXEC-007','SATSUMA-EXEC-009','SATSUMA-EXEC-011','SATSUMA-EXFIL-006'):
             row=rows[rid]

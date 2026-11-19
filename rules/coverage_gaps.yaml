@@ -1179,3 +1179,39 @@
   implementation_status: CURRENT_TELEMETRY
   proof_level: KERNEL_EXPLOIT
   requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-074
+  name: polkit kuralı yazma (parolasız yetki verme)
+  mitre: {tactic: Privilege Escalation, technique: T1548}
+  severity: critical
+  base_match:
+    source: audit
+    action: file_access
+    file_path: [/etc/polkit-1/rules.d/*, /etc/polkit-1/localauthority/*, /etc/polkit-1/localauthority.conf.d/*,
+                /var/lib/polkit-1/localauthority/*, /usr/share/polkit-1/rules.d/*, /usr/local/share/polkit-1/rules.d/*,
+                /var/usrlocal/share/polkit-1/rules.d/*]
+    operation: write
+    cmd_not_regex: ['\brpm\b|rpm-ostree|ostree|\bbootc\b|\bdnf5?\b']
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: DEFENSE_TAMPERING
+  requires: [audit.file_path]
+- id: SATSUMA-GAP-075
+  name: Satsuma ya da güvenlik paketini kaldırma, eski dağıtıma dönme
+  mitre: {tactic: Defense Evasion, technique: T1562.001}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?:\S*/)?rpm-ostree\s(?=(?>.*?(?<!\S)(?:uninstall|remove)(?!\S)))(?>.*?(?<!\S)(?:satsuma\S*|clamav\S*|clamd|suricata\S*|audit|aide|firewalld|nftables|selinux-policy\S*)(?!\S))'
+    - '^(?:\S*/)?rpm-ostree\s(?>.*?(?<!\S)(?:rollback|reset)(?!\S))'
+    - '^(?:\S*/)?rpm-ostree\s(?=(?>.*?(?<!\S)cleanup(?!\S)))(?>.*?(?<!\S)(?:--rollback|-[a-z]*r[a-z]*)(?!\S))'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: medium
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: DEFENSE_TAMPERING
+  requires: [sys_proc.cmd]

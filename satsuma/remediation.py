@@ -39,7 +39,7 @@ DEMOTE_RULES = frozenset({'SATSUMA-GAP-017'})
 FILE_RULES = frozenset({
     'SATSUMA-PERS-001', 'SATSUMA-PERS-002', 'SATSUMA-PERS-003', 'SATSUMA-PERS-004', 'SATSUMA-PERS-005',
     'SATSUMA-PERS-006', 'SATSUMA-PERS-007', 'SATSUMA-PERSIST-001', 'SATSUMA-SUDO-005', 'SATSUMA-GAP-010',
-    'SATSUMA-GAP-011', 'SATSUMA-GAP-013', 'SATSUMA-GAP-015', 'SATSUMA-GAP-053'})
+    'SATSUMA-GAP-011', 'SATSUMA-GAP-013', 'SATSUMA-GAP-015', 'SATSUMA-GAP-053', 'SATSUMA-GAP-074'})
 
 HOMES = ('/home/*', '/var/home/*', '/root', '/var/roothome')
 # Where a persistence file may be taken from. Fnmatch on the real path.
@@ -50,6 +50,7 @@ FILE_PATTERNS = (
     '/etc/profile.d/*', '/etc/xdg/autostart/*', '/etc/ld.so.preload', '/etc/udev/rules.d/*', '/etc/binfmt.d/*',
     '/etc/modules-load.d/*', '/etc/rc.d/rc.local', '/etc/rc.local', '/etc/sudoers.d/*',
     '/etc/pki/ca-trust/source/anchors/*',
+    '/etc/polkit-1/rules.d/*', '/etc/polkit-1/localauthority/*', '/etc/polkit-1/localauthority.conf.d/*',
     *(h + rel for h in HOMES for rel in (
         '/.ssh/authorized_keys', '/.ssh/authorized_keys2', '/.bashrc', '/.bash_profile', '/.bash_login', '/.profile',
         '/.zshrc', '/.pam_environment', '/.config/autostart/*', '/.config/systemd/user/*',

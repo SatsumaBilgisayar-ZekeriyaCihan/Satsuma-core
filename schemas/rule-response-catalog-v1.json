@@ -1,6 +1,6 @@
 {
   "catalog_version": 1,
-  "scope": "304 baseline rules; proposals only, no policy activation",
+  "scope": "306 baseline rules; proposals only, no policy activation",
   "rules": [
     {
       "schema_version": 1,
@@ -20725,6 +20725,154 @@
           "^(?:\\S*/)?insmod\\s+(?:-\\S+\\s+)*\\S*\\.ko(?:\\.xz|\\.zst|\\.gz)?(?:\\s|$)",
           "^(?:\\S*/)?modprobe\\b.*?\\s(?:-f|--force|--force-modversion|--force-vermagic)(?:\\s|$)",
           "^(?:\\S*/)?modprobe\\b.*?\\s/\\S+\\.ko(?:\\.xz|\\.zst|\\.gz)?(?:\\s|$)"
+        ]
+      },
+      "current_actions": [
+        "record",
+        "evidence",
+        "ticket",
+        "correlation_request"
+      ],
+      "current_automatic_eligibility": {
+        "enforcement_eligible": true,
+        "automatic_allowed": true,
+        "conditional_on_existing_policy": true,
+        "requires_real_target_checks": true
+      },
+      "logging": {
+        "enabled": true,
+        "required_actions": [
+          "record",
+          "evidence"
+        ],
+        "existing_actions_preserved": true
+      },
+      "proposed_response": {
+        "requested_action": "process_kill_evaluation",
+        "additional_network_or_file_action": "not proposed without independently verified target evidence",
+        "minimum_sources": 2,
+        "freshness_seconds": 60,
+        "identity": "same PID + kernel starttime jiffies + executable",
+        "requirements": [
+          "operator-controlled action policy",
+          "fresh original target identity",
+          "protected process/target exemptions",
+          "pause/replay guards",
+          "pre-action identity revalidation"
+        ],
+        "required_source_families": [
+          "process",
+          "audit",
+          "memory"
+        ],
+        "selection_basis": "Detection match does not by itself prove attack intent; propose independent same-target evidence, not severity/name-derived execution.",
+        "applied": false,
+        "review_state": "per_rule_operator_review_required"
+      },
+      "false_positive_risks": [
+        "Legitimate administration/development can satisfy a data matcher; investigate context."
+      ],
+      "capability_gaps": [
+        "Live Fedora identity/evidence availability has not been measured."
+      ],
+      "rollback": {
+        "process": "Termination is irreversible; restart/recovery must be planned before authorization.",
+        "network": "Existing authenticated unblock workflow; not executed here.",
+        "file": "Existing quarantine rollback workflow; protected OS paths remain exempt.",
+        "policy": "Restore only this rule’s prior requirement with authenticated operator approval."
+      }
+    },
+    {
+      "schema_version": 1,
+      "rule_id": "SATSUMA-GAP-074",
+      "name": "polkit kuralı yazma (parolasız yetki verme)",
+      "detection_sha256": "e2a1fef445a7b0557370d97c0011f2f51c0d5d99722c2a43faff07396c7e4aa1",
+      "source": "audit",
+      "match": {
+        "source": "audit",
+        "action": "file_access",
+        "file_path": [
+          "/etc/polkit-1/rules.d/*",
+          "/etc/polkit-1/localauthority/*",
+          "/etc/polkit-1/localauthority.conf.d/*",
+          "/var/lib/polkit-1/localauthority/*",
+          "/usr/share/polkit-1/rules.d/*",
+          "/usr/local/share/polkit-1/rules.d/*",
+          "/var/usrlocal/share/polkit-1/rules.d/*"
+        ],
+        "operation": "write",
+        "cmd_not_regex": [
+          "\\brpm\\b|rpm-ostree|ostree|\\bbootc\\b|\\bdnf5?\\b"
+        ]
+      },
+      "current_actions": [
+        "record",
+        "evidence",
+        "ticket",
+        "correlation_request"
+      ],
+      "current_automatic_eligibility": {
+        "enforcement_eligible": true,
+        "automatic_allowed": true,
+        "conditional_on_existing_policy": true,
+        "requires_real_target_checks": true
+      },
+      "logging": {
+        "enabled": true,
+        "required_actions": [
+          "record",
+          "evidence"
+        ],
+        "existing_actions_preserved": true
+      },
+      "proposed_response": {
+        "requested_action": "process_kill_evaluation",
+        "additional_network_or_file_action": "not proposed without independently verified target evidence",
+        "minimum_sources": 2,
+        "freshness_seconds": 60,
+        "identity": "same PID + kernel starttime jiffies + executable",
+        "requirements": [
+          "operator-controlled action policy",
+          "fresh original target identity",
+          "protected process/target exemptions",
+          "pause/replay guards",
+          "pre-action identity revalidation"
+        ],
+        "required_source_families": [
+          "process",
+          "audit",
+          "memory"
+        ],
+        "selection_basis": "Detection match does not by itself prove attack intent; propose independent same-target evidence, not severity/name-derived execution.",
+        "applied": false,
+        "review_state": "per_rule_operator_review_required"
+      },
+      "false_positive_risks": [
+        "Legitimate administration/development can satisfy a data matcher; investigate context."
+      ],
+      "capability_gaps": [
+        "Live Fedora identity/evidence availability has not been measured.",
+        "Audit event must contain the original process starttime; PID/exe alone cannot satisfy multi-source identity."
+      ],
+      "rollback": {
+        "process": "Termination is irreversible; restart/recovery must be planned before authorization.",
+        "network": "Existing authenticated unblock workflow; not executed here.",
+        "file": "Existing quarantine rollback workflow; protected OS paths remain exempt.",
+        "policy": "Restore only this rule’s prior requirement with authenticated operator approval."
+      }
+    },
+    {
+      "schema_version": 1,
+      "rule_id": "SATSUMA-GAP-075",
+      "name": "Satsuma ya da güvenlik paketini kaldırma, eski dağıtıma dönme",
+      "detection_sha256": "8b689081f6bf45807818b12bb9a0dce8cbac41b2715ffdc8a60fcb4730f178d8",
+      "source": "sys_proc",
+      "match": {
+        "source": "sys_proc",
+        "cmd_regex": [
+          "^(?:\\S*/)?rpm-ostree\\s(?=(?>.*?(?<!\\S)(?:uninstall|remove)(?!\\S)))(?>.*?(?<!\\S)(?:satsuma\\S*|clamav\\S*|clamd|suricata\\S*|audit|aide|firewalld|nftables|selinux-policy\\S*)(?!\\S))",
+          "^(?:\\S*/)?rpm-ostree\\s(?>.*?(?<!\\S)(?:rollback|reset)(?!\\S))",
+          "^(?:\\S*/)?rpm-ostree\\s(?=(?>.*?(?<!\\S)cleanup(?!\\S)))(?>.*?(?<!\\S)(?:--rollback|-[a-z]*r[a-z]*)(?!\\S))"
         ]
       },
       "current_actions": [

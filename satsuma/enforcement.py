@@ -123,7 +123,9 @@ def automatic_allowed(finding, sudo_enabled=True):
 # Kritik alarm verir, süreci durdurmaz: sahibi bunları bilerek de çalıştırır.
 # GAP-025 (chattr +i): the owner locks files by hand to harden the machine (2026-11-19);
 # an attacker locks his persistence the same way. Alarm, never a stop.
-ALARM_ONLY = frozenset({'SATSUMA-GAP-025', 'SATSUMA-GAP-036', 'SATSUMA-GAP-037', 'SATSUMA-GAP-052'})
+# GAP-075 (2.2.58): removing Satsuma/security packages or rolling back now needs the admin
+# password (10-satsuma-package-auth.rules); the owner's own act raises the alarm, it is not stopped.
+ALARM_ONLY = frozenset({'SATSUMA-GAP-025', 'SATSUMA-GAP-036', 'SATSUMA-GAP-037', 'SATSUMA-GAP-052', 'SATSUMA-GAP-075'})
 
 
 def eligible(finding, sudo_enabled=True):
