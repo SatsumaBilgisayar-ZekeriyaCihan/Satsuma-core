@@ -67,7 +67,7 @@ def main(out):
                 pump(0.4)
                 panel = window.current_panel()
                 if panel.table.rowCount():
-                    panel.table.selectRow(2 if page == 'scanners' else 0)
+                    panel.table.selectRow(3 if page == 'scanners' else 0)
                 pump(0.3)
                 window.grab().save(str(out / f'secili-{page}.png'))
             # The activity page with a row chosen and the lock open.

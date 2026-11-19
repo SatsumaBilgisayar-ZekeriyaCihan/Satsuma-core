@@ -93,7 +93,12 @@ def _scanners():
     rk = {'_id': 32, 'timestamp': NOW - 3860, 'completed_at': NOW - 3700, 'tool': 'rkhunter', 'status': 'WARNING', 'findings': 2, 'exit_code': 1}
     chk = {'_id': 33, 'timestamp': NOW - 3690, 'completed_at': NOW - 3690, 'tool': 'chkrootkit', 'status': 'UNAVAILABLE', 'findings': 0,
            'error': 'chkrootkit komutu bulunamadı'}
-    return {'items': [chk, rk, clam, old], 'data_state': 'OK', 'scope': 'Bu bilgisayarda yerel dosya ve sistem taraması',
+    hide = {'_id': 34, 'timestamp': NOW - 3600, 'completed_at': NOW - 3500, 'tool': 'unhide', 'status': 'FINDINGS', 'findings': 1,
+            'hidden': [{'kind': 'hidden_pid', 'pid': 31337, 'executable': '/usr/lib/.x/kworker', 'verdict': 'hidden'}],
+            'recheck': {'checked': 41, 'still_hidden': [31337], 'dismissed': {'thread': 38, 'transient': 2}}}
+    return {'items': [chk, hide, rk, clam, old], 'data_state': 'OK',
+            'hidden': {'open': [{'pid': 31337, 'executable': '/usr/lib/.x/kworker', 'timestamp': NOW - 3600}],
+                       'closed': {'thread': 38, 'transient': 2}}, 'scope': 'Bu bilgisayarda yerel dosya ve sistem taraması',
             'engines': {'clamav': {'installed': True, 'last_result': clam}, 'rkhunter': {'installed': True, 'last_result': rk},
                         'chkrootkit': {'installed': False, 'last_result': chk}},
             'quarantine': [{'quarantine_id': 'q1', 'path': '/home/kullanici/İndirilenler/fatura.pdf.exe'}]}
