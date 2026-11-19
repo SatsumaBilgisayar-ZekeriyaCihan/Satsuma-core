@@ -18,26 +18,18 @@ class RulesPanel(ReadOnlyModulePanel):
     PANEL_ICON = '📜'
     PANEL_ORDER = 8
     PANEL_GROUP = 'system'
-    PANEL_SUBTITLE = 'Etkin tespit kuralları; hangisinin programı durdurabildiği ve gereken kanıt ayrı sütunlarda.'
+    PANEL_SUBTITLE = ('Bir kural eşleşince ne olur: programı durdurur ya da yalnızca bildirir. Durdurma, program hâlâ '
+                      'çalışıyorsa yapılabilir; milisaniyede biten bir komut sinyal gitmeden biter ve kayıtlara öyle yazılır. '
+                      'Teknik ayrıntılar (kanıt şartları, imza, ilke kararı) seçili kuralın teknik görünümündedir.')
     METHOD = 'rules'
     KEY = 'rules'
     COLUMNS = (
-        ('Rule ID', 'rule_id'),
-        ('Ad', 'name'),
-        ('Sınıflama', 'classification'),
-        ('Önem', 'severity'),
-        ('Kaynak/Kategori', 'category'),
-        ('İstenen davranış', 'behavior'),
-        ('YAML durdurma tanımlı', 'direct_stop_defined'),
-        ('Merkezi politika adayı (yetki değil)', 'central_policy_candidate'),
-        ('Tespit', 'detection_state'),
-        ('Gerekli kanıt', 'required_evidence_count'),
-        ('Doğrulanmış kanıt', 'verified_evidence_count'),
-        ('Eksik koşullar', 'missing_conditions'),
-        ('Politika kararı', 'policy_decision'),
-        ('İmza', 'signature_state'),
-        ('Aktivasyon', 'activation_state'),
-        ('Gerçek müdahale', 'intervention_result'),
+        ('Kural', 'name'),
+        ('Ne yapar', 'what_happens'),
+        ('Önem', 'severity_label'),
+        ('Tür', 'classification_label'),
+        ('Son müdahale', 'last_intervention'),
+        ('Kimlik', 'rule_id'),
     )
 
     def _build(self):
@@ -49,11 +41,8 @@ class RulesPanel(ReadOnlyModulePanel):
 
     def refresh(self, *args):
         super().refresh(*args)
-        try:
-            data = self.backend.call('rules')
-            self.status.setText(
-                f"{data.get('active_total')} etkin kural · {data.get('direct_stop_total')} tanesi programı doğrudan durdurabilir · "
-                f"{data.get('without_direct_stop_total')} tanesi yalnızca bildirir · {data.get('future_total')} tanesi henüz etkin değil (gelecek telemetri). "
-                f"Merkezi politika adayı: {data.get('central_policy_candidate_total')} (yetki değildir).")
-        except Exception as exc:
-            self.status.setText('Kurallar okunamadı: '+str(exc)[:200])
+        data = self._last_render[1] if self._last_render else {}
+        if isinstance(data, dict) and data.get('summary_text'):
+            self.status.setText(data['summary_text'])
+        elif isinstance(data, dict) and data.get('error'):
+            self.status.setText('Kurallar okunamadı: ' + str(data['error'])[:200])

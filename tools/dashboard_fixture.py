@@ -169,7 +169,20 @@ class FakeReader:
             return {'admin_credential': {'configured': True}, 'data_state': 'OK'}
         if method == 'ping':
             return 'pong'
-        if method in ('findings', 'dns', 'audit', 'suricata', 'response', 'network', 'services', 'rules', 'integrity'):
+        if method == 'rules':
+            from satsuma import rule_effect
+            rows = []
+            for rid, name, cls, sev in (('SATSUMA-C2-001', 'Ters shell', 'likely', 'critical'),
+                                        ('SATSUMA-CRED-001', '/etc/shadow okuma', 'suspicious', 'critical'),
+                                        ('SATSUMA-COLL-002', 'Ekran goruntusu', 'indicator', 'medium'),
+                                        ('SATSUMA-BPF-CLI-001', 'BPF utility invocation', 'indicator', 'low')):
+                rule = {'id': rid, 'name': name, 'classification': cls, 'severity': sev}
+                rows.append({**rule, 'rule_id': rid, **rule_effect.row(rule, True),
+                             'last_intervention': 'Durduruldu' if rid == 'SATSUMA-C2-001' else '—'})
+            counts = {'stopped': 3, 'gone': 12, 'denied': 1, 'failed': 0}
+            return {'rules': rows, 'data_state': 'OK', 'stop_outcomes_24h': counts,
+                    'summary_text': rule_effect.summary_text(251, 136, 115, True, counts, ai_total=20)}
+        if method in ('findings', 'dns', 'audit', 'suricata', 'response', 'network', 'services', 'integrity'):
             return {'items': [], 'data_state': 'OK'}
         return {}
 

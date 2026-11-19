@@ -1365,8 +1365,23 @@ def m_rules():
         except (OSError, ValueError, KeyError):
             catalog = {}
         policies, verdicts, outcomes, runtime = {}, {}, {}, {}
+        from . import rule_effect
+        from .enforcement import POLICY_KEY as _ENFORCEMENT_KEY
+        policy_enabled, stop_counts = True, None
         try:
             with _connect() as db:
+                stored_policy = _state(db, _ENFORCEMENT_KEY, None)
+                if isinstance(stored_policy, dict) and type(stored_policy.get('enabled')) is bool:
+                    policy_enabled = stored_policy['enabled']
+                # 2.2.49: what the automatic stops really did in the last 24 hours.
+                try:
+                    from .record_catalog import _window_start
+                    cutoff = time.time() - 86400
+                    rows = db.execute("SELECT body FROM records WHERE id>=? AND created>=? AND kind='actions' "
+                                      "ORDER BY id DESC LIMIT 20000", (_window_start(db, cutoff), cutoff)).fetchall()
+                    stop_counts = rule_effect.stop_summary(json.loads(body) for (body,) in rows)
+                except (sqlite3.Error, ValueError, TypeError):
+                    stop_counts = None
                 policies = _state(db, 'rule_response_requirements', {}) or {}
                 verdicts = _state(db, 'rule_response_verdicts', {}) or {}
                 outcomes = _state(db, 'rule_intervention_latest', {}) or {}
@@ -1385,6 +1400,8 @@ def m_rules():
             current = 0 <= time.time() - verdict.get('checked_at', 0) <= 60
             outcome = outcomes.get(rid)
             active.append({
+                **rule_effect.row(rule, policy_enabled),
+                'last_intervention': rule_effect.INTERVENTION_TEXT.get((outcome or {}).get('status', 'UNKNOWN'), (outcome or {}).get('status')),
                 'rule_id': rid,
                 'detection_state': 'loader_accepted',
                 'central_policy_candidate': bool(central_candidate),
@@ -1433,7 +1450,15 @@ def m_rules():
                     })
         except Exception:
             future = []
+        stop_total = sum(1 for row in active if row['stops'])
+        ai_total = sum(1 for row in active if row['signature_state'] == 'trusted_package_verified')
         return {
+            'enforcement_enabled': policy_enabled,
+            'stop_total': stop_total,
+            'report_total': len(active) - stop_total,
+            'stop_outcomes_24h': stop_counts,
+            'summary_text': rule_effect.summary_text(len(active), stop_total, len(active) - stop_total, policy_enabled,
+                                                     stop_counts, ai_total),
             'active_total': int(stats.get('total_rules') or 0),
             'direct_stop_total': sum(row['direct_stop_defined'] for row in active),
             'central_policy_candidate_total': sum(row['central_policy_candidate'] for row in active),
