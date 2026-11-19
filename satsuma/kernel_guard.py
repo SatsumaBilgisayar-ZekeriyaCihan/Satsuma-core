@@ -177,6 +177,18 @@ def _uptime(path='/proc/uptime'):
         return 0.0
 
 
+SELINUX_ENFORCE = '/sys/fs/selinux/enforce'
+SELINUX_CONFIG = '/etc/selinux/config'
+
+
+def selinux_required(config=SELINUX_CONFIG, cmdline='/proc/cmdline'):
+    """True when the machine is installed enforcing and not booted permissive on purpose (2.2.56)."""
+    text = _read(config) or ''
+    wanted = any(line.strip().replace(' ', '') == 'SELINUX=enforcing' for line in text.splitlines())
+    words = (_read(cmdline) or '').split()
+    return wanted and 'enforcing=0' not in words and 'selinux=0' not in words
+
+
 def unit_states(units, runner=subprocess.run):
     """unit -> {active, file, load}, read with one systemctl call."""
     result = runner(['/usr/bin/systemctl', 'show', '--no-pager', '--property=Id,LoadState,ActiveState,UnitFileState',
@@ -250,6 +262,9 @@ class Guard:
         self.account_paths = dict(account_paths or {})
         self.accounts = {'status': 'NOT_CHECKED'}
         self.last_ptrace_sweep = -PTRACE_EVERY
+        # 2.2.56: SELinux switched to permissive at run time (/sys/fs/selinux/enforce).
+        self.selinux_paths = {'enforce': SELINUX_ENFORCE, 'config': SELINUX_CONFIG, 'cmdline': '/proc/cmdline'}
+        self.selinux_wanted = None
         self.recent = {}            # (kind, key) -> last time written
         self.attempts = {}          # unit or 'mounts' -> last time started again
         self.events = []
@@ -325,6 +340,39 @@ class Guard:
                       expected=ptrace_guard.REQUIRED, reboot_needed=True)
             self.check_ptrace_sources()
         return read_settings(self.root, self.listdir)
+
+    def check_selinux(self):
+        """Put SELinux back to enforcing when something switched it off at run time.
+
+        Only when /etc/selinux/config says enforcing and the boot line does not ask for
+        permissive; a deliberate permissive boot is left alone (it raises the alarm once).
+        Çalışırken SELinux kapatılırsa (enforce=0) geri açılır ve alarm verilir.
+        """
+        paths = self.selinux_paths
+        actual = _read(paths['enforce'])
+        if actual is None:
+            return None
+        if self.selinux_wanted is None:
+            self.selinux_wanted = selinux_required(paths['config'], paths['cmdline'])
+        if actual == '1' or not self.selinux_wanted:
+            return actual
+        writing = self.can_write and not self.paused()
+        restored, error = False, None
+        if writing:
+            try:
+                fd = os.open(paths['enforce'], os.O_WRONLY | os.O_NOFOLLOW)
+                try:
+                    os.write(fd, b'1')
+                finally:
+                    os.close(fd)
+                restored = _read(paths['enforce']) == '1'
+            except OSError as exc:
+                error = exc.strerror or str(exc)
+        self.counts['settings_changed'] += 1
+        self.counts['settings_restored' if restored else 'restore_failed'] += 1
+        self.emit('selinux_permissive', 'selinux/enforce', expected='1', actual=actual, restored=restored,
+                  reason=None if restored else ('paused_or_not_root' if not writing else error))
+        return '1' if restored else actual
 
     def sweep_ptrace(self):
         """The minute check: value, sysctl files and the boot line of every installed kernel.
@@ -469,6 +517,7 @@ class Guard:
 
     def cycle(self):
         readings = self.check_settings()
+        self.check_selinux()
         self.check_accounts()
         if self.clock() - self.last_units >= UNITS_EVERY:
             self.last_units = self.clock()

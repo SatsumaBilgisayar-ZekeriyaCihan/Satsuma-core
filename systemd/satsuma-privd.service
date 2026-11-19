@@ -24,7 +24,10 @@ Restart=on-failure
 RestartSec=3
 UMask=0077
 NoNewPrivileges=yes
-ProtectHome=read-only
+# 2.2.56: remediation moves persistence files out of home folders (authorized_keys,
+# autostart, user systemd units, shell start files) into quarantine; only the fixed
+# locations in satsuma.remediation.FILE_PATTERNS are ever touched.
+ProtectHome=no
 PrivateTmp=yes
 
 [Install]

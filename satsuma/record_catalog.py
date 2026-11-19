@@ -184,7 +184,7 @@ def _target(item):
 
 ACTION_LABELS = {
     'process.terminate': 'Süreç durdurma', 'network.connection_kill': 'Bağlantı kesme',
-    'firewall.restore': 'Güvenlik duvarı tablosu geri kuruldu', 'network_range_allow': 'Aralığa izin verildi',
+    'firewall.restore': 'Güvenlik duvarı tablosu geri kuruldu', 'remediation.restore_firewall': 'Silinen güvenlik duvarı hemen geri yükleniyor', 'remediation.quarantine_file': 'Kalıcılık dosyası karantinaya alındı', 'remediation.lock_account': 'Şüpheli hesap kilitlendi', 'remediation.remove_from_group': 'Hesap yönetici grubundan çıkarıldı', 'network_range_allow': 'Aralığa izin verildi',
     'network_range_unallow': 'Aralığın izni kaldırıldı', 'network_range_block': 'Aralık engellendi',
     'network_range_unblock': 'Aralığın engeli kaldırıldı',
     'suricata.network_block': 'Ağ engeli', 'otx.indicator_block': 'OTX engeli', 'evidence': 'Kanıt',

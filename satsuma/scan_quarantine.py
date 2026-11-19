@@ -160,11 +160,13 @@ def _copy_then_unlink(fd,actual,name,parent,ident,destfd):
     os.unlink(name,dir_fd=parent)
 
 
-def quarantine_target(target, audit, *, directory=QUARANTINE, system_ok=False, pending=PENDING):
+def quarantine_target(target, audit, *, directory=QUARANTINE, system_ok=False, pending=PENDING, extra_roots=()):
     path=Path(target['path'])
     # System configuration and Satsuma's own payload need a repair workflow,
     # not a file-removal button; program directories only for confirmed malware.
-    roots=ALLOWED_ROOTS+(SYSTEM_ROOTS if system_ok else ())
+    # extra_roots: satsuma.remediation's persistence files (/etc...), already checked
+    # against its own allow and protect lists (2.2.56).
+    roots=ALLOWED_ROOTS+(SYSTEM_ROOTS if system_ok else ())+tuple(extra_roots)
     if not any(path.is_relative_to(root) for root in roots) or path.is_relative_to('/opt/satsuma-core') \
             or path.is_relative_to('/var/opt/satsuma-core'):
         raise PermissionError('System or unsupported target path requires manual repair')

@@ -59,6 +59,8 @@ def _parser() -> argparse.ArgumentParser:
     aide = sub.add_parser("aide", help="AIDE snapshot: status, check, take, undo a change (the command is the approval)")
     aide.add_argument("islem", choices=("durum", "kontrol", "ornek-al", "geri-al", "hepsini-geri-al"))
     aide.add_argument("hedef", nargs="?", help="path of a listed change for 'geri-al'")
+    undo = sub.add_parser("geri-alma", help="automatic undo of one-shot attacks: status, on, off (off asks for the admin password)")
+    undo.add_argument("islem", choices=("durum", "ac", "kapat"))
     check = sub.add_parser("tam-kontrol", help="switch every function on, check the whole product and repair what is safe")
     check.add_argument("--yalniz-kontrol", action="store_true", help="report only; do not switch anything on or repair")
     # 2.2.38 (owner, 2026-11-18): maintenance kit, also run by satsuma-maintenance.timer.
@@ -345,16 +347,54 @@ def _aide(args) -> int:
         store.close()
 
 
+def _remediation(args) -> int:
+    """2.2.56: switch automatic remediation; switching it off needs the admin password.
+
+    Otomatik geri almayı açar/kapatır; kapatmak yönetici parolası ister.
+    """
+    from .store import Store
+    store = Store()
+    try:
+        current = store.get('remediation_policy', None) or {}
+        enabled = current.get('enabled') is not False
+        if args.islem == 'durum':
+            rows = store.db.execute("SELECT body FROM records WHERE kind='actions' AND body LIKE '%remediation.%' "
+                                    "ORDER BY id DESC LIMIT 20").fetchall()
+            print('Otomatik geri alma: ' + ('AÇIK' if enabled else 'KAPALI')
+                  + ' (durdurma politikası açıkken çalışır)')
+            for (body,) in rows:
+                item = json.loads(body)
+                print('  ' + time.strftime('%d.%m %H:%M', time.localtime(item.get('timestamp') or 0)) + '  '
+                      + str(item.get('action')) + '  ' + str(item.get('target')) + '  ' + str(item.get('status'))
+                      + ('  geri almak için: ' + item['undo'] if item.get('undo') else '')
+                      + ('  karantina: ' + str(item.get('quarantine_id')) if item.get('quarantine_id') else ''))
+            return 0
+        if args.islem == 'kapat':
+            from .dashboard_auth import verify_admin_password
+            if not verify_admin_password(getpass.getpass('Satsuma yönetici parolası: ')):
+                print('Parola doğrulanamadı; geri alma açık kaldı.', file=sys.stderr)
+                return 1
+        store.set('remediation_policy', {'enabled': args.islem == 'ac', 'changed_at': time.time(), 'by': 'satsuma-admin'})
+        store.add('actions', {'action': 'remediation.policy', 'status': 'enabled' if args.islem == 'ac' else 'disabled',
+                              'timestamp': time.time()})
+        print('Otomatik geri alma ' + ('açıldı.' if args.islem == 'ac' else 'kapatıldı.'))
+        return 0
+    finally:
+        store.close()
+
+
 def main(argv=None) -> int:
     args = _parser().parse_args(argv)
     if args.command == 'cekirdek':
         return _kernel(args)
-    if args.command in ('modem', 'tam-kontrol', 'karantina', 'ssh', 'sertlestirme', 'aide', 'bakim'):
+    if args.command in ('modem', 'tam-kontrol', 'karantina', 'ssh', 'sertlestirme', 'aide', 'bakim', 'geri-alma'):
         if os.geteuid() != 0:
             print('Root yetkisi gerekli: sudo satsuma-admin ' + args.command, file=sys.stderr)
             return 1
         if args.command == 'karantina':
             return _quarantine(args)
+        if args.command == 'geri-alma':
+            return _remediation(args)
         if args.command == 'ssh':
             return _ssh(args)
         if args.command == 'sertlestirme':

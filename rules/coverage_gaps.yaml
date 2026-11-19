@@ -1147,3 +1147,35 @@
   implementation_status: CURRENT_TELEMETRY
   proof_level: PUBLIC_RESEARCH
   requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-072
+  name: Çekirdek iş parçacığı kılığında kullanıcı süreci (PF_KTHREAD yok)
+  mitre: {tactic: Defense Evasion, technique: T1036.004}
+  severity: critical
+  base_match:
+    source: memory
+    action: fake_kernel_thread
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [memory.action]
+  false_positives: [Kendine çekirdek iş parçacığı adı veren meşru program bilinmiyor.]
+- id: SATSUMA-GAP-073
+  name: Çekirdek modülünü dosyadan ya da zorla yükleme
+  mitre: {tactic: Persistence, technique: T1547.006}
+  severity: critical
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?:\S*/)?insmod\s+(?:-\S+\s+)*\S*\.ko(?:\.xz|\.zst|\.gz)?(?:\s|$)'
+    - '^(?:\S*/)?modprobe\b.*?\s(?:-f|--force|--force-modversion|--force-vermagic)(?:\s|$)'
+    - '^(?:\S*/)?modprobe\b.*?\s/\S+\.ko(?:\.xz|\.zst|\.gz)?(?:\s|$)'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: KERNEL_EXPLOIT
+  requires: [sys_proc.cmd]

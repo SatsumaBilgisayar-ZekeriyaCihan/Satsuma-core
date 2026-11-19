@@ -213,6 +213,41 @@ def _automatic_actions(store, config, findings):
     return processed, 0, duplicate
 
 
+REMEDIATION_KEY = 'remediation_policy'
+
+
+def _remediate(store, findings, request=None):
+    """Undo what one-shot attack commands left behind (satsuma.remediation, 2.2.56).
+
+    On while the stop policy is on and the owner has not switched remediation off
+    (store key remediation_policy {'enabled': False}). privd checks every action again.
+    """
+    from satsuma import enforcement, remediation
+    if not enforcement.policy(store).get('enabled'):
+        return 0
+    stored = store.get(REMEDIATION_KEY, None)
+    if isinstance(stored, dict) and stored.get('enabled') is False:
+        return 0
+    if request is None:
+        from satsuma.privd import delegate
+        request = lambda **params: delegate('remediate', **params)
+    done = 0
+    seen = set()
+    for finding in findings:
+        for action in remediation.plan(finding):
+            key = (action['action'], action.get('path') or action.get('user'), action.get('group'))
+            if key in seen:
+                continue
+            seen.add(key)
+            params = {k: v for k, v in action.items() if v is not None}
+            result = request(reason='Tek seferlik saldırının etkisi geri alınıyor: ' + str(action.get('rule_id')), **params)
+            if result is None:
+                store.add('actions', {**params, 'action': 'remediation.' + action['action'], 'status': 'privd_unavailable',
+                                      'timestamp': time.time()})
+            done += 1
+    return done
+
+
 def _dispatch_safe_actions(pipeline, findings):
     """Production non-destructive action dispatch.
 
@@ -449,6 +484,10 @@ def _flow_tick(store, config, pipeline, engine, flow, receiver, limit=5000, shor
     if fresh:
         _dispatch_safe_actions(pipeline, fresh)
         _automatic_actions(store, config, fresh)
+        try:
+            _remediate(store, fresh)
+        except Exception as exc:
+            store.add('errors', {'component': 'remediation', 'error': str(exc)[:300]})
         _sudo_autoblock(pipeline, fresh, config)
         _confirmed_actions(pipeline, fresh)
         if config.get('investigation_enabled', True):
@@ -552,6 +591,12 @@ def _run_once(store, config, pipeline, smart_engine, rule_stats, run_teams=True)
         store.add('errors', {'component': 'brain.smart_rules', 'error': str(exc)[:300]})
 
     all_findings = team_findings + engine_findings + smart_findings
+    try:
+        # 2.2.56: what satsuma-kernel-guard put back (/proc/sys, SELinux, boot line) is a finding.
+        from satsuma import kernel_guard_findings
+        kernel_guard_findings.collect(store)
+    except Exception as exc:
+        store.add('errors', {'component': 'kernel_guard_findings', 'error': str(exc)[:300]})
 
     # Field 2026-11-04: stopping decisions came after every finding had been
     # investigated; actions now run first, investigation afterwards.
@@ -559,6 +604,10 @@ def _run_once(store, config, pipeline, smart_engine, rule_stats, run_teams=True)
         safe_dispatch = _dispatch_safe_actions(pipeline, all_findings)
     with _timed(phases, 'automatic_actions'):
         auto_processed, auto_updated, auto_duplicates = _automatic_actions(store, config, all_findings)
+    try:
+        _remediate(store, smart_findings)
+    except Exception as exc:
+        store.add('errors', {'component': 'remediation', 'error': str(exc)[:300]})
     sudo_killed = _sudo_autoblock(pipeline, all_findings, config)
     with _timed(phases, 'confirmed_actions'):
         actions, notifications = _confirmed_actions(pipeline, all_findings)

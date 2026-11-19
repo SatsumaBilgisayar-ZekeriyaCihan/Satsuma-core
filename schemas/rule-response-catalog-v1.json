@@ -1,6 +1,6 @@
 {
   "catalog_version": 1,
-  "scope": "302 baseline rules; proposals only, no policy activation",
+  "scope": "304 baseline rules; proposals only, no policy activation",
   "rules": [
     {
       "schema_version": 1,
@@ -20587,6 +20587,141 @@
         "source": "sys_proc",
         "cmd_regex": [
           "^(?:\\S*/)?(?:rm|cp|mv|shred|truncate|tar)\\b.*?\\s/var/(?:spool/)?mail/"
+        ]
+      },
+      "current_actions": [
+        "record",
+        "evidence",
+        "ticket",
+        "correlation_request"
+      ],
+      "current_automatic_eligibility": {
+        "enforcement_eligible": true,
+        "automatic_allowed": true,
+        "conditional_on_existing_policy": true,
+        "requires_real_target_checks": true
+      },
+      "logging": {
+        "enabled": true,
+        "required_actions": [
+          "record",
+          "evidence"
+        ],
+        "existing_actions_preserved": true
+      },
+      "proposed_response": {
+        "requested_action": "process_kill_evaluation",
+        "additional_network_or_file_action": "not proposed without independently verified target evidence",
+        "minimum_sources": 2,
+        "freshness_seconds": 60,
+        "identity": "same PID + kernel starttime jiffies + executable",
+        "requirements": [
+          "operator-controlled action policy",
+          "fresh original target identity",
+          "protected process/target exemptions",
+          "pause/replay guards",
+          "pre-action identity revalidation"
+        ],
+        "required_source_families": [
+          "process",
+          "audit",
+          "memory"
+        ],
+        "selection_basis": "Detection match does not by itself prove attack intent; propose independent same-target evidence, not severity/name-derived execution.",
+        "applied": false,
+        "review_state": "per_rule_operator_review_required"
+      },
+      "false_positive_risks": [
+        "Legitimate administration/development can satisfy a data matcher; investigate context."
+      ],
+      "capability_gaps": [
+        "Live Fedora identity/evidence availability has not been measured."
+      ],
+      "rollback": {
+        "process": "Termination is irreversible; restart/recovery must be planned before authorization.",
+        "network": "Existing authenticated unblock workflow; not executed here.",
+        "file": "Existing quarantine rollback workflow; protected OS paths remain exempt.",
+        "policy": "Restore only this rule’s prior requirement with authenticated operator approval."
+      }
+    },
+    {
+      "schema_version": 1,
+      "rule_id": "SATSUMA-GAP-072",
+      "name": "Çekirdek iş parçacığı kılığında kullanıcı süreci (PF_KTHREAD yok)",
+      "detection_sha256": "5f26b4df42aba6f170a2c6898f61bd10dfdf3839407a8aadc0e0fd9d4026ef5e",
+      "source": "memory",
+      "match": {
+        "source": "memory",
+        "action": "fake_kernel_thread"
+      },
+      "current_actions": [
+        "record",
+        "evidence",
+        "ticket",
+        "correlation_request"
+      ],
+      "current_automatic_eligibility": {
+        "enforcement_eligible": true,
+        "automatic_allowed": true,
+        "conditional_on_existing_policy": true,
+        "requires_real_target_checks": true
+      },
+      "logging": {
+        "enabled": true,
+        "required_actions": [
+          "record",
+          "evidence"
+        ],
+        "existing_actions_preserved": true
+      },
+      "proposed_response": {
+        "requested_action": "process_kill_evaluation",
+        "additional_network_or_file_action": "not proposed without independently verified target evidence",
+        "minimum_sources": 2,
+        "freshness_seconds": 60,
+        "identity": "same PID + kernel starttime jiffies + executable",
+        "requirements": [
+          "operator-controlled action policy",
+          "fresh original target identity",
+          "protected process/target exemptions",
+          "pause/replay guards",
+          "pre-action identity revalidation"
+        ],
+        "required_source_families": [
+          "process",
+          "audit",
+          "memory"
+        ],
+        "selection_basis": "Detection match does not by itself prove attack intent; propose independent same-target evidence, not severity/name-derived execution.",
+        "applied": false,
+        "review_state": "per_rule_operator_review_required"
+      },
+      "false_positive_risks": [
+        "Kendine çekirdek iş parçacığı adı veren meşru program bilinmiyor."
+      ],
+      "capability_gaps": [
+        "Live Fedora identity/evidence availability has not been measured.",
+        "ACCESS_DENIED/partial/JIT/memfd observations are not clean results or automatic stop authority."
+      ],
+      "rollback": {
+        "process": "Termination is irreversible; restart/recovery must be planned before authorization.",
+        "network": "Existing authenticated unblock workflow; not executed here.",
+        "file": "Existing quarantine rollback workflow; protected OS paths remain exempt.",
+        "policy": "Restore only this rule’s prior requirement with authenticated operator approval."
+      }
+    },
+    {
+      "schema_version": 1,
+      "rule_id": "SATSUMA-GAP-073",
+      "name": "Çekirdek modülünü dosyadan ya da zorla yükleme",
+      "detection_sha256": "217e1488ca090b12f954b30273fc243139cb4fd1645caa1ed5f87bb352b13fa8",
+      "source": "sys_proc",
+      "match": {
+        "source": "sys_proc",
+        "cmd_regex": [
+          "^(?:\\S*/)?insmod\\s+(?:-\\S+\\s+)*\\S*\\.ko(?:\\.xz|\\.zst|\\.gz)?(?:\\s|$)",
+          "^(?:\\S*/)?modprobe\\b.*?\\s(?:-f|--force|--force-modversion|--force-vermagic)(?:\\s|$)",
+          "^(?:\\S*/)?modprobe\\b.*?\\s/\\S+\\.ko(?:\\.xz|\\.zst|\\.gz)?(?:\\s|$)"
         ]
       },
       "current_actions": [

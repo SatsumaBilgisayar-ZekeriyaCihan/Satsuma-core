@@ -51,6 +51,8 @@ STRICT = {
     'kernel/kexec_load_disabled': '1',
     'kernel/sysrq': '0',
     'kernel/unprivileged_bpf_disabled': '1',
+    # 2.2.56: io_uring bypasses syscall auditing (reads, writes, connects never reach auditd).
+    'kernel/io_uring_disabled': '2',
     'net/core/bpf_jit_harden': '2',
     'kernel/perf_event_paranoid': '3',
     'kernel/randomize_va_space': '2',
@@ -65,7 +67,7 @@ STRICT = {
     'net/ipv4/icmp_ignore_bogus_error_responses': '1',
 }
 # A larger number is stricter for these (unprivileged_bpf_disabled 2 is also off).
-AT_LEAST = {'kernel/unprivileged_bpf_disabled': 1, 'kernel/perf_event_paranoid': 3}
+AT_LEAST = {'kernel/unprivileged_bpf_disabled': 1, 'kernel/perf_event_paranoid': 3, 'kernel/io_uring_disabled': 2}
 # Applied after boot by satsuma-module-lock; one way until reboot.
 LATE = {'kernel/modules_disabled': '1'}
 MODULE_LOCK_UNIT = 'satsuma-module-lock.service'

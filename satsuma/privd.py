@@ -49,6 +49,8 @@ OPERATIONS = {
     'block_ip': ({'ip', 'reason'}, {'manual', 'raw_id', 'duration'}),
     'unblock_ip': ({'ip', 'reason'}, {'manual'}),
     'terminate': ({'pid', 'reason'}, {'evidence', 'context'}),
+    # 2.2.56: undo a one-shot attack (satsuma.remediation checks the action again here).
+    'remediate': ({'action', 'reason'}, {'path', 'user', 'group', 'rule_id', 'finding_id'}),
 }
 
 
@@ -128,6 +130,9 @@ def validate(message):
     for key in ('evidence', 'context'):
         if key in message and message[key] is not None and not isinstance(message[key], dict):
             raise ValueError(key + ' must be an object')
+    for key in ('action', 'path', 'user', 'group', 'rule_id', 'finding_id'):
+        if key in message and message[key] is not None and (not isinstance(message[key], str) or len(message[key]) > 4096):
+            raise ValueError('invalid ' + key)
     return message
 
 
@@ -144,6 +149,16 @@ def handle(message, identity, worker, audit):
                                      manual=bool(message.get('manual')), duration=message.get('duration', 0))
         elif op == 'unblock_ip':
             result = worker.unblock_ip(message['ip'], message['reason'], manual=bool(message.get('manual')))
+        elif op == 'remediate':
+            from . import remediation
+            store = getattr(worker, 'store', None)
+            def record_quarantine(row, store=store):
+                if store is not None:
+                    store.add('quarantine_actions', {**row, 'source_component': 'remediation', 'timestamp': time.time()})
+            result = remediation.execute({k: v for k, v in message.items() if k not in ('op', 'reason')},
+                                         store=store, audit=record_quarantine)
+            if store is not None:
+                store.add('actions', result)
         else:
             result = worker.terminate_process(message['pid'], message['reason'], evidence=message.get('evidence'),
                                               context=message.get('context'))

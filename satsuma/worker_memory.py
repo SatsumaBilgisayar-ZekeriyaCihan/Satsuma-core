@@ -28,7 +28,8 @@ from .memory_validation import validate_executable
 from .memory_scope import scan_executable_regions, access_model, CATEGORIES
 from .anonymous_exec import inventory as unverifiable_exec
 from .ram.proc import kernel_thread
-import os,time,hashlib
+import os
+import re,time,hashlib
 
 
 def _replaced_by_update(exe):
@@ -88,6 +89,29 @@ def tracer_pid(directory):
     return None
 
 
+# 2.2.56 (owner 2026-11-19): a user program that calls itself a kernel thread. Only real
+# kernel threads carry PF_KTHREAD (they are skipped before this point), so a process here
+# with a kernel thread's name, or a bracketed command line like "[kworker/0:1]", is a
+# disguise whatever folder its file is in and whenever it renamed itself.
+# Çekirdek iş parçacığı adı taşıyan ama PF_KTHREAD işareti olmayan süreç sahtedir.
+KTHREAD_NAME=re.compile(r'^(?:kworker/|ksoftirqd/|migration/|rcu_\w+|rcuo[sp]?/|cpuhp/|idle_inject/|watchdog/|irq/|'
+                        r'jbd2/|kswapd\d|kcompactd\d|scsi_eh_|scsi_tmf_|kthreadd$|khugepaged$|kauditd$|oom_reaper$|'
+                        r'kblockd$|kintegrityd$|kdevtmpfs$|writeback$|ksmd$|kstrp$|kthrotld$|ecryptfs-kthread$|'
+                        r'card\d+-crtc\d|nvme-|xfs-|btrfs-|dm_bufio_cache$|kcryptd/|zswap-)')
+
+
+def fake_kernel_thread(directory):
+    """True when a user process (not PF_KTHREAD) looks like a kernel thread."""
+    directory=Path(directory)
+    try:
+        comm=(directory/'comm').read_text(errors='replace').strip()
+        cmdline=(directory/'cmdline').read_bytes()[:256].split(b'\0',1)[0].decode('utf-8','replace').strip()
+    except OSError:
+        return False
+    bracketed=cmdline.startswith('[') and cmdline.endswith(']') and len(cmdline)>2
+    return bool(bracketed or KTHREAD_NAME.match(comm) or KTHREAD_NAME.match(cmdline.strip('[]')))
+
+
 def inspect_process(directory,replaced=_replaced_by_update):
     directory=Path(directory)
     exe=os.readlink(directory/'exe')
@@ -113,6 +137,8 @@ def inspect_process(directory,replaced=_replaced_by_update):
     # ptrace ile bağlanan başka bir süreç bu sürecin belleğini okuyup yazabilir.
     if tracer_pid(directory):
         indicators.append('process_traced')
+    if fake_kernel_thread(directory):
+        indicators.append('fake_kernel_thread')
     return sorted(set(indicators))
 
 
