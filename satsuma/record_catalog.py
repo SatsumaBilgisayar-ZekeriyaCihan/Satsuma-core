@@ -51,6 +51,11 @@ KINDS = {
     'deep_rule_review_events': _k('Derin motor kural incelemeleri', 'Onay bekleyen deneme kuralı bulguları',
         'Deneme kipinde derin motorun önerdiği ve sizin onayınızı bekleyen, onaylanan ya da iptal edilen kural bulguları.',
         'Deneme kuralları kendiliğinden işlem yapmaz; kararı siz verirsiniz.', group='protection'),
+    # 2.2.48: written by the engine bridge (run_satsuma_teams) but missing here.
+    'deep_engine_evidence': _k('Derin motor gözlemleri', 'Bulguları destekleyen motor notları',
+        'Derin motorun bir bulgu için kaydettiği gözlem: hangi kural, önemi, karar penceresinde kaç olay vardı. '
+        'Bu kayıt kendi başına hiçbir işlem yaptırmaz.',
+        'Bir bulgunun neden tetiklendiğini incelerken bakılır; aynı bulgu Bulgular listesinde de görünür.', group='protection'),
     'quarantine_actions': _k('Karantina', 'Karantinaya alınan dosyalar',
         'Karantinaya alınan, geri bırakılan ya da silinen dosyalar.',
         'Bir dosyanın neden ortadan kalktığını buradan görürsünüz.', group='protection'),
@@ -193,12 +198,74 @@ def _tone(text):
     return 'info'
 
 
+_RULE_TITLES = None
+
+
+def rule_title(rule_id):
+    """Turkish title of a deep-engine rule from its YAML files; '' when unknown (2.2.48)."""
+    global _RULE_TITLES
+    if _RULE_TITLES is None:
+        import re
+        from pathlib import Path
+        titles = {}
+        root = Path(__file__).resolve().parents[1]
+        # Production rules win over the test-mode copies of the same id.
+        paths = [*sorted((root / 'satsuma_engine' / 'rules_test').glob('*.yaml')),
+                 *sorted((root / 'rules').glob('*.yaml')), *sorted((root / 'satsuma_engine' / 'rules').glob('*.yaml'))]
+        for path in paths:
+            try:
+                text = path.read_text(encoding='utf-8')
+            except OSError:
+                continue
+            for match in re.finditer(r'^\s*-?\s*id:\s*([A-Z0-9-]+)\s*\n\s*(?:title|name):\s*(.+?)\s*$', text, re.M):
+                titles[match.group(1)] = match.group(2).strip('\'"')[:160]
+        _RULE_TITLES = titles
+    return _RULE_TITLES.get(str(rule_id or ''), '')
+
+
+REVIEW_STATES = {
+    'pending': ('Onayınızı bekliyor', 'warn'),
+    'operator_label_accepted': ('Doğru tespit olarak işaretlendi', 'ok'),
+    'operator_label_rejected': ('Yanlış alarm olarak işaretlendi', 'ok'),
+    'cancelled': ('İncelemeler iptal edildi', 'info'),
+    'expired': ('Süresi doldu, karar verilmedi', 'info'),
+}
+
+
+def _deep_review(item, stamp):
+    """A test-mode rule review: which rule, what it saw, and where the decision stands."""
+    evidence = item.get('review_evidence') if isinstance(item.get('review_evidence'), dict) else item
+    state, tone = REVIEW_STATES.get(str(item.get('status')), (_text(item.get('status')) or 'Durum yok', 'info'))
+    if item.get('status') == 'cancelled':
+        return {'text': f"{item.get('count', 0)} deneme kuralı incelemesi iptal edildi", 'detail': 'Deneme kipi kapatıldı',
+                'chip': state, 'tone': tone, 'time': stamp}
+    rule = _first(evidence, 'rule_title', 'title') or rule_title(evidence.get('rule_id')) or _text(evidence.get('rule_id')) or 'Deneme kuralı'
+    process = evidence.get('process') if isinstance(evidence.get('process'), dict) else {}
+    detail = ' · '.join(x for x in (_text(evidence.get('rule_id')), _first(process, 'exe', 'cmd', 'name'),
+                                     SEVERITY_LABELS.get(str(evidence.get('severity')), '')) if x)
+    return {'text': rule + ': ' + state.lower(), 'detail': detail, 'chip': state, 'tone': tone, 'time': stamp}
+
+
 def render(kind, body, created=None):
     """One record as {'text', 'detail', 'chip', 'tone', 'time'}; secrets are masked first."""
     item = redact(body) if isinstance(body, (dict, list, str)) else body
     if not isinstance(item, dict):
         return {'text': _text(item) or 'Okunamayan kayıt', 'detail': '', 'chip': '', 'tone': 'info', 'time': created}
-    stamp = item.get('timestamp') or created
+    stamp = item.get('timestamp')
+    # Some writers keep an ISO text here; the list needs a number (2.2.48).
+    stamp = stamp if isinstance(stamp, (int, float)) and not isinstance(stamp, bool) else created
+    if kind == 'deep_rule_review_events':
+        return _deep_review(item, stamp)
+    if kind == 'deep_engine_evidence':
+        severity = SEVERITY_LABELS.get(str(item.get('severity')), _text(item.get('severity')))
+        process = item.get('process') if isinstance(item.get('process'), dict) else {}
+        window = item.get('window_events')
+        detail = ' · '.join(x for x in (_text(item.get('rule_id')), _first(process, 'exe', 'cmd', 'name'),
+                                         f'{window} olaylık pencere' if isinstance(window, int) else '') if x)
+        return {'text': (_first(item, 'rule_title', 'title') or rule_title(item.get('rule_id')) or _text(item.get('rule_id'))
+                         or 'Kural') + ' · derin motor gözlemi',
+                'detail': detail, 'chip': severity, 'tone': 'warn' if item.get('severity') in ('critical', 'high') else 'info',
+                'time': stamp}
     if kind == 'actions':
         label = ACTION_LABELS.get(item.get('action'), _text(item.get('action')) or 'İşlem')
         outcome = action_outcome(item) or _first(item, 'status')

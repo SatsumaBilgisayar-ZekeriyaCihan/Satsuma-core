@@ -109,3 +109,20 @@ def test_every_finding_names_the_triggering_process_as_the_one_to_stop():
     assert 'tanımlı rol bulunamadı' not in result['warning'] and '155153' in result['warning']
     logged = investigate(None, {**finding, 'log_only': True})
     assert 'yalnızca kayıt' in logged['roles_played'][0]['role'] and not logged['roles_played'][0]['critical']
+
+
+def test_deep_engine_records_read_as_sentences():
+    """2.2.48 field report: 'pending' was the whole sentence and deep_engine_evidence was an undefined kind."""
+    from satsuma import record_catalog as catalog
+    assert catalog.describe('deep_engine_evidence')['known']
+    line = catalog.render('deep_engine_evidence', {'rule_id': 'SATSUMA-IMPACT-001', 'severity': 'critical', 'window_events': 48,
+                                                   'authorization': 'none'}, 10.0)
+    assert line['text'] == 'Yıkıcı dosya silme komutu · derin motor gözlemi' and '48 olaylık pencere' in line['detail']
+    assert line['chip'] == 'Kritik'
+    review = catalog.render('deep_rule_review_events', {'status': 'pending', 'rule_id': 'SATSUMA-DISC-001',
+                                                        'timestamp': '2026-11-18T10:00:00', 'process': {'exe': '/usr/bin/uname'}}, 20.0)
+    assert review['text'] == 'Sistem bilgisi toplama: onayınızı bekliyor' and review['time'] == 20.0
+    assert '/usr/bin/uname' in review['detail']
+    rejected = catalog.render('deep_rule_review_events', {'status': 'operator_label_rejected',
+                                                          'review_evidence': {'rule_id': 'SATSUMA-DISC-001'}}, 1.0)
+    assert rejected['chip'] == 'Yanlış alarm olarak işaretlendi'

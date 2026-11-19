@@ -67,6 +67,24 @@ def describe(method, params, result):
         if action in ('enable', 'disable'):
             return 'ok', 'Uygulama izinleri açıldı.' if action == 'enable' else 'Uygulama izinleri kapatıldı.'
         return 'ok', 'Uygulama kuralı güncellendi.'
+    if method == 'unhide_terminate':
+        pid = result.get('pid')
+        if result.get('status') == 'terminated':
+            return 'ok', f'Gizli süreç {pid} sonlandırıldı.'
+        if result.get('status') == 'killed':
+            return 'ok', f'Gizli süreç {pid} kapanmayı reddetti; zorla sonlandırıldı.'
+        if result.get('status') == 'not_hidden':
+            from .unhide_scan import VERDICT_TEXT
+            return 'warn', f'Süreç {pid} sonlandırılmadı: ' + VERDICT_TEXT.get(result.get('verdict'), 'artık gizli değil.') + ' Bulgu kapatıldı.'
+        return 'warn', f'Süreç {pid} sonlandırılamadı ({result.get("status")}).'
+    if method == 'unhide_recheck':
+        dismissed = result.get('dismissed') or {}
+        parts = [f'{n} {name}' for key, name in (('thread', 'iş parçacığı'), ('transient', 'artık yok'), ('visible', 'artık görünür'))
+                 if (n := dismissed.get(key))]
+        still = len(result.get('still_hidden') or [])
+        return ('warn' if still else 'ok'), (f'{result.get("checked", 0)} bulgu yeniden doğrulandı. '
+                                            + ('Kapatılan: ' + ', '.join(parts) + '. ' if parts else '')
+                                            + (f'Hâlâ gizli: {still}.' if still else 'Gizli süreç kalmadı.'))
     if method == 'service':
         return ('ok' if result.get('ok', True) else 'warn'), 'Servis işlemi tamamlandı: ' + str(params.get('name') or '')
     if method == 'wireguard':

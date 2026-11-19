@@ -32,8 +32,11 @@ unhide-linux'a bakar; iki paketle de çalışır.
 import errno
 import os
 import re
+import select
+import signal
 import socket
 import subprocess
+import time
 
 # Newer packages ship the program as "unhide"; older ones as "unhide-linux".
 # Yeni paketler programı "unhide", eskiler "unhide-linux" adıyla verir.
@@ -98,13 +101,42 @@ def _alive(pid):
         return True
 
 
-def confirm_pid(pid, listed=_proc_pids, alive=_alive):
+def _status(pid):
+    """Tgid, PPid, Uid and Name from /proc/PID/status; None when it cannot be read.
+
+    A thread is not listed in /proc but /proc/TID/status is readable and names
+    its thread group (Tgid).
+    """
+    try:
+        with open(f'/proc/{int(pid)}/status') as handle:
+            fields = dict(line.split(':', 1) for line in handle if ':' in line)
+    except (OSError, ValueError):
+        return None
+    try:
+        return {'name': fields.get('Name', '').strip()[:64], 'tgid': int(fields['Tgid']), 'ppid': int(fields['PPid']),
+                'uid': int(fields.get('Uid', '-1').split()[0])}
+    except (KeyError, ValueError, IndexError):
+        return None
+
+
+def confirm_pid(pid, listed=_proc_pids, alive=_alive, status=_status):
+    """hidden, visible, thread, transient or invalid.
+
+    2.2.48 field report: "unhide finds many hidden processes". A thread answers
+    kill(TID, 0) but is not listed in /proc, so every thread of every program
+    looked hidden. A TID whose thread group is listed is a thread, not hidden.
+    2.2.48: iş parçacıkları gizli süreç sanılıyordu; Tgid'i görünen TID gizli değildir.
+    """
     if pid <= 1:
         return 'invalid'
     if not alive(pid):
         return 'transient'
-    if pid in listed():
+    names = listed()
+    if pid in names:
         return 'visible'
+    info = status(pid)
+    if info and info.get('tgid') not in (None, pid) and info['tgid'] in names:
+        return 'thread'
     if not alive(pid):
         return 'transient'
     return 'hidden'
@@ -171,3 +203,142 @@ def run(runner=subprocess.run, confirm_pid=confirm_pid, confirm_port=confirm_por
             (findings if keep else discarded).append({**item, 'verdict': verdict})
     return {'findings': findings, 'discarded': discarded, 'errors': errors,
             'available': os.path.exists(linux) and os.path.exists(UNHIDE_TCP)}
+
+
+# 2.2.48: ending a hidden process the user chose (Antivirüs → Taramalar).
+# Only a PID that verifies as hidden at that moment is signalled, through a
+# pidfd so a reused PID can never be hit; kernel threads and Satsuma refused.
+# Kullanıcının seçtiği gizli süreci sonlandırma; yalnızca o anda gizli
+# doğrulanan süreç, pidfd üzerinden; çekirdek iş parçacıkları reddedilir.
+def _identity(pid):
+    def read(name, limit=500):
+        try:
+            with open(f'/proc/{pid}/{name}', 'rb') as handle:
+                return handle.read(limit).replace(b'\0', b' ').decode('utf-8', 'replace').strip()
+        except OSError:
+            return ''
+    try:
+        exe = os.readlink(f'/proc/{pid}/exe')
+    except OSError:
+        exe = ''
+    return {'exe': exe[:500], 'cmdline': read('cmdline'), 'comm': read('comm', 64)}
+
+
+def _gone(fd, seconds):
+    poller = select.poll()
+    poller.register(fd, select.POLLIN)
+    return bool(poller.poll(int(seconds * 1000)))
+
+
+def terminate(pid, *, confirm=None, status=_status, own_pid=os.getpid, pidfd_open=None, send=None, gone=_gone,
+              wait=3.0, identity=_identity):
+    """End one hidden process: SIGTERM, then SIGKILL; the result says what happened."""
+    if type(pid) is not int or pid <= 2:
+        raise ValueError('Geçerli bir süreç numarası gerekli')
+    confirm = confirm or confirm_pid
+    pidfd_open = pidfd_open or os.pidfd_open
+    send = send or signal.pidfd_send_signal
+    verdict = confirm(pid)
+    base = {'pid': pid, 'verdict': verdict}
+    if verdict != 'hidden':
+        return {**base, 'status': 'not_hidden'}
+    info = status(pid) or {}
+    if pid == own_pid() or info.get('ppid') == 2 or info.get('tgid') == 2:
+        return {**base, 'status': 'refused', 'reason': 'kernel_or_satsuma'}
+    try:
+        fd = pidfd_open(pid)
+    except ProcessLookupError:
+        return {**base, 'status': 'not_hidden', 'verdict': 'transient'}
+    except OSError as exc:
+        # EINVAL: a thread, not a process (no pidfd for a non-leader TID).
+        return {**base, 'status': 'refused', 'reason': 'no_pidfd:' + (errno.errorcode.get(exc.errno) or str(exc.errno))}
+    try:
+        # The pidfd pins this exact process; check again that it is the hidden one.
+        again = confirm(pid)
+        if again != 'hidden':
+            return {**base, 'status': 'not_hidden', 'verdict': again}
+        evidence = {**identity(pid), **{k: info.get(k) for k in ('name', 'ppid', 'uid')}}
+        started = time.time()
+        send(fd, signal.SIGTERM)
+        if gone(fd, wait):
+            return {**base, 'status': 'terminated', 'signal': 'SIGTERM', 'evidence': evidence,
+                    'seconds': round(time.time() - started, 2)}
+        send(fd, signal.SIGKILL)
+        ended = gone(fd, 2.0)
+        return {**base, 'status': 'killed' if ended else 'survived', 'signal': 'SIGKILL', 'evidence': evidence,
+                'seconds': round(time.time() - started, 2)}
+    finally:
+        os.close(fd)
+
+
+VERDICT_TEXT = {
+    'thread': 'Görünen bir programın iş parçacığı; gizli süreç değil.',
+    'transient': 'Süreç artık yok.',
+    'visible': 'Süreç artık normal biçimde görünüyor.',
+    'invalid': 'Geçersiz süreç numarası.',
+}
+
+
+def _review_findings(host):
+    import json
+    for finding_id, body in host.db.execute(
+            "SELECT finding_id, body FROM findings WHERE finding_id LIKE 'unhide:hidden_pid:%'").fetchall():
+        try:
+            item = json.loads(body)
+        except (TypeError, ValueError):
+            continue
+        if item.get('status') == 'REVIEW':
+            yield finding_id, item
+
+
+def _close(host, finding_id, item, status, resolution, **extra):
+    import json
+    item.update(status=status, resolution=resolution, resolution_text=VERDICT_TEXT.get(resolution, resolution),
+                resolved_at=time.time(), **extra)
+    host.db.execute('UPDATE findings SET body=?, last_seen=? WHERE finding_id=?',
+                    (json.dumps(item, ensure_ascii=False), time.time(), finding_id))
+
+
+def recheck(host, confirm=None, status=_status):
+    """Verify every open hidden-process finding again; close the ones that are not hidden.
+
+    2.2.48: findings written before threads were recognised are closed with
+    the reason (for a thread, the program it belongs to).
+    """
+    confirm = confirm or confirm_pid
+    counts, still = {}, []
+    for finding_id, item in list(_review_findings(host)):
+        pid = (item.get('item') or {}).get('pid')
+        if type(pid) is not int:
+            continue
+        verdict = confirm(pid)
+        if verdict == 'hidden':
+            still.append(pid)
+            continue
+        extra = {}
+        if verdict == 'thread':
+            info = status(pid) or {}
+            owner = status(info.get('tgid')) if info.get('tgid') else None
+            extra = {'thread_of': info.get('tgid'), 'thread_of_name': (owner or {}).get('name', '')}
+        _close(host, finding_id, item, 'DISMISSED', verdict, **extra)
+        counts[verdict] = counts.get(verdict, 0) + 1
+    host.db.commit()
+    return {'checked': len(still) + sum(counts.values()), 'still_hidden': still, 'dismissed': counts}
+
+
+def end(host, pid, record, **kwargs):
+    """Terminate a process the last unhide scan reported and that is still hidden; never any other PID."""
+    finding_id = f'unhide:hidden_pid:{pid}'
+    item = dict(_review_findings(host)).get(finding_id)
+    if item is None:
+        raise ValueError('Bu süreç son unhide taramasının açık bulguları arasında değil; yeniden tarayın')
+    result = terminate(pid, **kwargs)
+    if result['status'] in ('terminated', 'killed'):
+        _close(host, finding_id, item, 'RESOLVED', 'terminated', termination=result)
+    elif result['status'] == 'not_hidden':
+        _close(host, finding_id, item, 'DISMISSED', result['verdict'])
+    host.db.commit()
+    record({'action': 'process.terminate', 'source': 'unhide', 'pid': pid, 'status': result['status'],
+            'exit_verified': result['status'] in ('terminated', 'killed'), 'finding_id': finding_id,
+            'reason': 'Gizli süreç; kullanıcı sonlandırdı', **{k: v for k, v in result.items() if k not in ('pid', 'status')}})
+    return result

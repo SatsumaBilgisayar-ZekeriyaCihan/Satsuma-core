@@ -1990,6 +1990,20 @@ def m_security_scanners():
             result['ssh_pending']=ssh.get('pending',[])
             result['sshd_open']=ssh.get('sshd_open')
             result['mitm_watch']=_state(db,'mitm_watch',{}) or {}
+            # 2.2.48: hidden-process findings, open and closed, for the antivirus page.
+            hidden={'open':[],'closed':{}}
+            for (body,) in db.execute("SELECT body FROM findings WHERE finding_id LIKE 'unhide:hidden_pid:%' "
+                                      "ORDER BY last_seen DESC LIMIT 500"):
+                try:finding=json.loads(body)
+                except (TypeError,ValueError):continue
+                obj=finding.get('item') or {}
+                if finding.get('status')=='REVIEW':
+                    hidden['open'].append({'pid':obj.get('pid'),'executable':obj.get('executable'),
+                                           'cmdline':obj.get('cmdline'),'timestamp':finding.get('timestamp')})
+                else:
+                    key=finding.get('resolution') or finding.get('status')
+                    hidden['closed'][key]=hidden['closed'].get(key,0)+1
+            result['hidden']=hidden
         from .scan_quarantine import list_quarantine
         try:result['quarantine']=list_quarantine()
         except OSError:result['quarantine']=[]

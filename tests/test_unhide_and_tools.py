@@ -50,14 +50,14 @@ def test_parsers():
     ([True], {42}, 'visible'), ([True, False], {1}, 'transient')])
 def test_hidden_pid_is_verified_again(alive, listed, verdict):
     answers = iter(alive)
-    assert unhide.confirm_pid(42, listed=lambda: listed, alive=lambda pid: next(answers)) == verdict
+    assert unhide.confirm_pid(42, listed=lambda: listed, alive=lambda pid: next(answers), status=lambda pid: None) == verdict
 
 
 def test_fake_and_port_verification():
     assert unhide.confirm_fake(7, listed=lambda: {7}, alive=lambda p: False) == 'fake'
     assert unhide.confirm_fake(7, listed=lambda: {7}, alive=lambda p: True) == 'real'
     assert unhide.confirm_fake(7, listed=set, alive=lambda p: False) == 'transient'
-    assert unhide.confirm_pid(1, listed=set, alive=lambda p: True) == 'invalid'
+    assert unhide.confirm_pid(1, listed=set, alive=lambda p: True, status=lambda p: None) == 'invalid'
     assert unhide.confirm_port('tcp', 1, in_use=lambda *a: True, listed=lambda p: set()) == 'hidden'
     assert unhide.confirm_port('tcp', 1, in_use=lambda *a: True, listed=lambda p: {1}) == 'visible'
     assert unhide.confirm_port('tcp', 1, in_use=lambda *a: False, listed=lambda p: set()) == 'transient'

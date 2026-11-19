@@ -228,6 +228,24 @@ class OperatorController:
                     else:
                         result={'ok':True,**scan_quarantine.quarantine_target(scan_quarantine.inspect_target(item['path']),audit)}
                 finally:host.close()
+        elif method in ('unhide_recheck', 'unhide_terminate'):
+            # 2.2.48: hidden processes from unhide: verify again, or end one the user chose.
+            from . import unhide_scan
+            from .host_store import HostStore
+            host=HostStore()
+            try:
+                if method == 'unhide_recheck':
+                    result={'ok':True,**unhide_scan.recheck(host)}
+                else:
+                    if params.get('confirmed') is not True:
+                        raise ValueError('Süreci sonlandırmak için açık onay gerekli')
+                    pid=params.get('pid')
+                    if type(pid) is not int:
+                        raise ValueError('Geçerli bir süreç numarası gerekli')
+                    record=lambda r:self.store.add('actions',{**r,'operator_uid':uid,'timestamp':time.time()})
+                    outcome=unhide_scan.end(host,pid,record)
+                    result={'ok':outcome['status'] in ('terminated','killed','not_hidden'),**outcome}
+            finally:host.close()
         elif method == 'device_decision':
             ident=params.get('device_id')
             choice=params.get('decision')

@@ -254,6 +254,12 @@ def run_once(store=None, runner=bounded_run, which=shutil.which, now=time.time, 
                 store.db.execute('INSERT OR IGNORE INTO findings(finding_id,last_seen,body) VALUES(?,?,?)',
                                  (finding['finding_id'],time.time(),json.dumps(finding,ensure_ascii=False)))
             store.db.commit()
+            # 2.2.48: open findings of earlier scans are verified again (threads were reported as hidden).
+            try:
+                from .unhide_scan import recheck
+                item['recheck']=recheck(store)
+            except Exception as exc:
+                item['recheck']={'error':str(exc)[:200]}
             results.append(item)
         # System programs against the RPM database, daily or on a manual scan.
         clam_paths=[f['path'] for x in results if x.get('tool')=='clamav' for f in x.get('files',[])]

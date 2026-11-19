@@ -38,6 +38,21 @@ def engine_text(name, engine):
     return '\n'.join(lines)
 
 
+CLOSED_NAMES={'thread':'iş parçacığı','transient':'artık yok','visible':'artık görünür','terminated':'sonlandırıldı'}
+
+
+def hidden_text(hidden):
+    """Open and closed hidden-process findings in one or two lines."""
+    if not isinstance(hidden,dict) or ('open' not in hidden and 'closed' not in hidden):
+        return 'Veri alınamadı'
+    open_=hidden.get('open') or []
+    lines=[f'Açık: {len(open_)} gizli süreç' if open_ else 'Açık gizli süreç bulgusu yok']
+    closed=hidden.get('closed') or {}
+    if closed:
+        lines.append('Kapatılan: '+', '.join(f'{n} {CLOSED_NAMES.get(k,k)}' for k,n in sorted(closed.items(),key=lambda x:-x[1])))
+    return '\n'.join(lines)
+
+
 @register
 class ScannersPanel(ReadOnlyModulePanel):
     PANEL_ID='scanners'
@@ -59,6 +74,16 @@ class ScannersPanel(ReadOnlyModulePanel):
             title=QLabel(ENGINE_NAMES[name]);title.setObjectName('fieldLabel');box.addWidget(title)
             text=QLabel('Veri bekleniyor');text.setWordWrap(True);text.setObjectName('body');box.addWidget(text);box.addStretch()
             self.cards[name]=text;row.addWidget(card,2 if name=='clamav' else 1)
+        # 2.2.48: hidden processes (unhide) with their own actions.
+        card=QFrame();card.setObjectName('summaryCard');box=QVBoxLayout(card);box.setContentsMargins(16,12,16,12);box.setSpacing(4)
+        title=QLabel('unhide · gizli süreçler');title.setObjectName('fieldLabel');box.addWidget(title)
+        self.hidden_text=QLabel('Veri bekleniyor');self.hidden_text.setWordWrap(True);self.hidden_text.setObjectName('body');box.addWidget(self.hidden_text)
+        buttons=QHBoxLayout();buttons.setSpacing(6)
+        self.hidden_end=QPushButton('Sonlandır…');self.hidden_end.setObjectName('quiet');self.hidden_end.clicked.connect(self.end_hidden)
+        recheck=QPushButton('Yeniden doğrula');recheck.setObjectName('quiet')
+        recheck.clicked.connect(lambda:operator_request(self,'unhide_recheck',{}))
+        buttons.addWidget(recheck);buttons.addWidget(self.hidden_end);buttons.addStretch();box.addLayout(buttons);box.addStretch()
+        row.addWidget(card,1)
         self._layout.insertWidget(2,cards)
         self.engines=QLabel('');self.engines.setWordWrap(True);self.engines.setObjectName('secondary')
         self._layout.insertWidget(3,self.engines)
@@ -113,6 +138,14 @@ class ScannersPanel(ReadOnlyModulePanel):
             if summary.get(key) is not None:extra.append((caption,str(summary[key])))
         found=files_text(item)
         if found:extra.append(('Bulunan dosyalar','\n'.join(found)))
+        hidden=[h for h in item.get('hidden') or [] if isinstance(h,dict)][:20]
+        if hidden:
+            extra.append(('Bulunanlar (tarama anında)','\n'.join(
+                f"{h.get('kind')} · {h.get('pid') or str(h.get('proto'))+'/'+str(h.get('port'))} · {h.get('executable') or h.get('command') or ''}"
+                for h in hidden)))
+        recheck=item.get('recheck') or {}
+        if recheck.get('dismissed'):
+            extra.append(('Yeniden doğrulamada kapatılan',', '.join(f'{n} {CLOSED_NAMES.get(k,k)}' for k,n in recheck['dismissed'].items())))
         lines=[str(x) for x in (item.get('finding_lines') or [])][:12]
         if lines:extra.append(('Uyarı satırları','\n'.join(lines)))
         if extra:
@@ -214,9 +247,31 @@ class ScannersPanel(ReadOnlyModulePanel):
         if QMessageBox.question(self,'Dosya karantinası',item['path']+' özgün konumundan kaldırılıp korumalı alana taşınsın mı?')!=yes:return
         operator_request(self,'quarantine_scan_file',{'scan_id':scan['_id'],'file_index':index,'confirmed':True})
 
+    def end_hidden(self):
+        """Pick one open hidden process, confirm, and let the operator end it (2.2.48)."""
+        data=self._last_render[1] if self._last_render else {}
+        found=[h for h in (data.get('hidden') or {}).get('open') or [] if type(h.get('pid')) is int]
+        if not found:
+            self.status.setText('Açık gizli süreç bulgusu yok.');return
+        try:from PyQt6.QtWidgets import QInputDialog,QMessageBox
+        except ImportError:from PyQt5.QtWidgets import QInputDialog,QMessageBox
+        labels=[f"PID {h['pid']} · {h.get('executable') or h.get('cmdline') or 'program bilinmiyor'}" for h in found]
+        selection,ok=QInputDialog.getItem(self,'Gizli süreç','Sonlandırılacak süreç:',labels,0,False)
+        if not ok:return
+        chosen=found[labels.index(selection)]
+        yes=QMessageBox.StandardButton.Yes if hasattr(QMessageBox,'StandardButton') else QMessageBox.Yes
+        text=(f"PID {chosen['pid']} sonlandırılsın mı?\n\nSatsuma önce yeniden doğrular: süreç hâlâ gizliyse önce kapanması "
+              'istenir (SIGTERM), kapanmazsa zorla sonlandırılır (SIGKILL). Artık gizli değilse ya da bir programın iş '
+              'parçacığıysa hiçbir şey sonlandırılmaz, bulgu kapatılır.')
+        if QMessageBox.question(self,'Gizli süreci sonlandır',text)!=yes:return
+        operator_request(self,'unhide_terminate',{'pid':chosen['pid'],'confirmed':True})
+
     def refresh(self,*args):
         super().refresh(*args)
         self._offer_manual_quarantine()
+        hidden=(self._last_render[1] if self._last_render else {}).get('hidden') or {}
+        self.hidden_text.setText(hidden_text(hidden))
+        self.hidden_end.setEnabled(bool(hidden.get('open')))
         data=self._last_render[1] if self._last_render else {}
         engines=data.get('engines') or {}
         for name,widget in self.cards.items():
