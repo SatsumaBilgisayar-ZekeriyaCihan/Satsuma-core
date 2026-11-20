@@ -135,7 +135,13 @@ def test_dnsmasq_config_rejects_injection(name):
 
 def test_dnsmasq_keeps_unblocked_names_on_upstream_and_allows_exceptions():
     config = render({'upstream': '1.1.1.1'}, ['bad.example', 'safe.bad.example'], ['safe.bad.example'])
-    assert config == 'address=/bad.example/#\nlocal=/bad.example/\nserver=/example.com/1.1.1.1\nserver=/safe.bad.example/1.1.1.1\n'  # probe name always forwarded
+    lines = config.splitlines()
+    assert 'address=/bad.example/#' in lines and 'local=/bad.example/' in lines
+    assert 'server=/example.com/1.1.1.1' in lines and 'server=/safe.bad.example/1.1.1.1' in lines  # probe name always forwarded
+    assert 'address=/safe.bad.example/#' not in lines
+    # 2.2.63: encrypted-DNS servers are blocked and Firefox's canary answers NXDOMAIN.
+    assert 'address=/doh.opendns.com/#' in lines and 'address=/dns.google/#' in lines
+    assert 'address=/use-application-dns.net/' in lines
     assert parse('# metadata\nBAD.EXAMPLE\nbad.example\ninternal.local\n') == ['bad.example']
 
 
@@ -261,3 +267,19 @@ def test_key_setup_enables_queries_blocker_and_worker_without_logging_secret(tmp
         assert commands[-1]==['/usr/bin/systemctl','restart','satsuma-core-otx.service']
         assert 'fixture-secret' not in str(store.db.execute('SELECT body FROM records').fetchall())
     finally: store.close()
+
+
+def test_hot_add_from_a_service_without_kill_rights_goes_through_systemd():
+    """2.2.63 (field 2026-11-20): core-otx could not signal dnsmasq ("could not re-read the added names")."""
+    from types import SimpleNamespace
+    from satsuma.dnsmasq_control import reload_hosts
+    calls = []
+
+    def runner(cmd, **kw):
+        calls.append(cmd)
+        return SimpleNamespace(returncode=0, stdout='1932\n', stderr='')
+
+    def denied(*a):
+        raise PermissionError('no CAP_SYS_PTRACE')
+    assert reload_hosts(runner, kill=lambda *a: None, readlink=denied)
+    assert calls[-1] == ['/usr/bin/systemctl', 'reload', 'satsuma-core-dns.service']

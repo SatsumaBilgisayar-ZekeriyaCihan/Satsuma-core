@@ -17,6 +17,8 @@ User=satsuma-dns
 Group=satsuma-dns
 ExecStartPre=+/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/dns_preflight.py
 ExecStart=/usr/sbin/dnsmasq --keep-in-foreground --conf-file=/etc/satsuma-core/dns/dnsmasq.conf --pid-file=
+# 2.2.63: re-read added.hosts (SIGHUP) for callers that cannot signal dnsmasq themselves.
+ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 RestartSec=3
 # 2.2.44 (owner's decision 2026-11-13): dnsmasq runs in its own network

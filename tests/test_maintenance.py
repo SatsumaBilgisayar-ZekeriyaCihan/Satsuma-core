@@ -127,15 +127,19 @@ def test_a_finished_oneshot_is_not_started(env):
     assert not systemd.acted('start', 'satsuma-boot-lockdown.service')
 
 
-def test_repairs_are_bounded_to_three_per_half_hour(env):
+def test_unit_starts_are_never_capped(env, monkeypatch):
+    # 2.2.62 (owner: "ürün zayıflıyor"): a cap let a killer keep a unit down; the shared ledger
+    # spaces repeats out instead (its timing has its own test, test_repair_budget).
+    from satsuma import repair_budget
+    monkeypatch.setattr(repair_budget, 'SETTLE', 0)
     systemd = Systemd({'satsuma-teams.service': {'ActiveState': 'failed'}})
     systemd.broken.add('satsuma-teams.service')
     for _ in range(4):
         kit(env, systemd, ['satsuma-teams.service']).check()
     starts = [c for c in systemd.calls if c[:2] == [maintenance.SYSTEMCTL, 'start'] and c[-1] == 'satsuma-teams.service']
-    assert len(starts) == 3
+    assert len(starts) == 4
     history = json.loads((env[0] / 'state/history.json').read_text())
-    assert len(history['start:satsuma-teams.service']) == 3
+    assert len(history['start:satsuma-teams.service']) == 4
 
 
 def test_report_only_mode_changes_nothing(env):

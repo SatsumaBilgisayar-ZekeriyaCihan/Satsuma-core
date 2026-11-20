@@ -45,6 +45,24 @@ def upstream_servers(upstream):
     return [first] + [server for server in OPENDNS if first in OPENDNS and server != first]
 
 
+# 2.2.63 (field 2026-11-20: dns.google and doh.opendns.com resolved): encrypted DNS (DoH) servers.
+# A browser that reaches one sends its queries past this filter; Chromium-based browsers (Brave,
+# Opera) switch to the OpenDNS DoH server on their own because the system resolver is OpenDNS.
+# Blocked here, a browser falls back to the system resolver, i.e. to this filter. Built into the
+# product (not a downloaded list, owner decision 2026-11-13).
+# Şifreli DNS sunucuları engellenir; tarayıcı sistem çözümleyicisine, yani bu filtreye döner.
+DOH_DOMAINS = (
+    'doh.opendns.com', 'doh.familyshield.opendns.com', 'doh.umbrella.com', 'dns.umbrella.com',
+    'dns.google', 'dns64.dns.google', 'cloudflare-dns.com', 'one.one.one.one', 'cloudflare-gateway.com',
+    'dns.quad9.net', 'dns9.quad9.net', 'dns10.quad9.net', 'dns11.quad9.net', 'dns12.quad9.net',
+    'dns.nextdns.io', 'doh.cleanbrowsing.org', 'dns.adguard-dns.com', 'dns.adguard.com',
+    'dns.mullvad.net', 'doh.mullvad.net', 'dns.sb', 'doh.dns.sb', 'ordns.he.net', 'dns.alidns.com',
+    'doh.pub', 'dns.controld.com', 'freedns.controld.com', 'doh.libredns.gr', 'dns.switch.ch',
+    'chrome.cloudflare-dns.com', 'mozilla.cloudflare-dns.com', 'doh.xfinity.com', 'dns.twnic.tw')
+# Firefox turns its own DoH off when this name does not resolve (NXDOMAIN).
+DOH_CANARY = 'use-application-dns.net'
+
+
 def render(policy, blocked, allowed):
     resolver = ipaddress.ip_address(policy['upstream'])
     if resolver.is_loopback or resolver.is_multicast or resolver.is_unspecified:
@@ -57,9 +75,10 @@ def render(policy, blocked, allowed):
     # Hazırlık testi bu ayrılmış adı sorar; onu engelleyen bir liste her testi
     # düşürüyor, filtre hiç devreye girmiyordu (saha kaydı 2026-11-04).
     allowed = {domain(name) for name in allowed} | {PROBE_NAME}
-    domains = {domain(name) for name in blocked}
+    domains = {domain(name) for name in blocked} | {domain(name) for name in DOH_DOMAINS}
     domains = {name for name in domains if not any(name == item or name.endswith('.' + item) for item in allowed)}
     rules = ''.join('address=/' + name + '/#\nlocal=/' + name + '/\n' for name in sorted(domains))
+    rules += 'address=/' + DOH_CANARY + '/\n'      # NXDOMAIN: Firefox keeps using the system resolver
     # dnsmasq uses the most-specific suffix; exceptions under blocked parents
     # explicitly use the configured upstream instead of the null address.
     rules += ''.join('server=/' + name + '/' + str(resolver) + '\n' for name in sorted(allowed))
@@ -163,6 +182,12 @@ def reload_hosts(runner, kill=None, readlink=None):
         if readlink(f'/proc/{pid}/exe') != '/usr/sbin/dnsmasq':
             return False
         kill(pid, signal.SIGHUP)
+    except PermissionError:
+        # 2.2.63 (field 2026-11-20, "dnsmasq could not re-read the added names"): core-otx has
+        # neither CAP_KILL nor CAP_SYS_PTRACE for dnsmasq (another user); systemd sends the SIGHUP
+        # through the unit's ExecReload. core-otx yetkisizse yeniden okumayı systemd yaptırır.
+        done = runner(['/usr/bin/systemctl', 'reload', SERVICE], capture_output=True, text=True, timeout=30)
+        return done.returncode == 0
     except OSError:
         return False
     return True

@@ -40,3 +40,10 @@ def _trusted_runtime_for_response_tests(request, monkeypatch):
     monkeypatch.setattr(intervention_guard, 'evaluate', lambda store, verdict_reader=None: {
         'allowed': True, 'status': 'READY', 'reasons': [], 'runtime_status': 'HEALTHY',
         'verdict_state': 'FULL_CHECKED', 'observation_policy_unchanged': True})
+
+
+@pytest.fixture(autouse=True)
+def _private_repair_ledger(tmp_path, monkeypatch):
+    """2.2.62: every test gets its own repair ledger (never the host's /var/lib/satsuma-core)."""
+    from satsuma import repair_budget
+    monkeypatch.setattr(repair_budget, 'LEDGER', tmp_path / 'repair-ledger.json')

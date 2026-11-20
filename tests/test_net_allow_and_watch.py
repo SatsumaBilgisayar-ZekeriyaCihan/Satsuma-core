@@ -146,7 +146,8 @@ def test_a_service_stopped_on_purpose_is_left_alone(tmp_path):
     assert report['missing'] == {} and not any(c[1] == 'restart' for c in system.calls)
 
 
-def test_three_repairs_in_thirty_minutes_then_only_reports(tmp_path):
+def test_a_deleted_table_is_always_restored_again_only_spaced_out(tmp_path):
+    """2.2.62 (owner: "ürün zayıflıyor"): no 3-per-30-minutes cap; repeats are spaced out."""
     state, clock = tmp_path / 'w.json', [1000.0]
     system = System({'firewalld'}, {'satsuma-dns-netns.service'}, rebuild=False)
     statuses = []
@@ -154,7 +155,7 @@ def test_three_repairs_in_thirty_minutes_then_only_reports(tmp_path):
         system.tables = {'firewalld'}
         report = watch.check(runner=system, record=lambda r: statuses.append(r['status']), state=state, clock=lambda: clock[0])
         clock[0] += 60
-    assert statuses == ['restore_failed'] * 3 + ['budget_exhausted'] * 2
+    assert statuses == ['restore_failed'] * 3 + ['shared_budget', 'restore_failed']
     clock[0] += watch.WINDOW
     watch.check(runner=system, record=lambda r: statuses.append(r['status']), state=state, clock=lambda: clock[0])
     assert statuses[-1] == 'restore_failed'

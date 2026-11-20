@@ -81,9 +81,12 @@ def check(runner=subprocess.run, record=None, state=STATE, clock=time.time):
             continue
         report['missing'][group] = missing
         recent = [t for t in history.get(group, []) if now - t < WINDOW]
-        if len(recent) >= BUDGET:
+        from .repair_budget import claim
+        # 2.2.62: no cap (a deleted table always comes back); the shared ledger spaces repeats out.
+        granted, why = claim(units, 'firewall-watch', now=now)
+        if not granted:
             report['reported'].append(group)
-            outcome = {'status': 'budget_exhausted'}
+            outcome = {'status': 'shared_budget', 'reason': why}
         else:
             # The budget is written before acting, so a crash mid-repair still counts.
             history[group] = recent + [now]

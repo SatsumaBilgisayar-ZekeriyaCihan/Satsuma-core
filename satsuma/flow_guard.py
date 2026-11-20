@@ -57,6 +57,11 @@ class FlowGuard:
         now = self.clock()
         if now - self.last_restart < RESTART_GAP:
             return False
+        from .repair_budget import claim
+        granted, why = claim(['satsuma-teams.service'], 'flow-guard', ledger=getattr(self, 'ledger', None))
+        if not granted:
+            self.store.add('flow_guard', {'timestamp': now, 'code': 'engine_restart_deferred', 'detail': why})
+            return False
         self.last_restart = now
         result = self.runner(['/usr/bin/systemctl', 'restart', 'satsuma-teams.service'],
                              capture_output=True, text=True, timeout=60)

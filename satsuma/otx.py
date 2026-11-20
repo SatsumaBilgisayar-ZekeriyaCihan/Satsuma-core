@@ -65,6 +65,19 @@ MIN_BLOCK_PULSES = 2
 REMOTE_SUPPORT_DOMAINS = ('teamviewer.com', 'anydesk.com')
 
 
+# 2.2.63 (field 2026-11-20): an OTX pulse put fedoraproject.org on the block list; at the next full
+# reload Fedora updates (rpm-ostree, mirrors) would have stopped, and an unpatched system is the
+# weaker one. Automatic (OTX) blocking never takes the update servers of what is installed here.
+# Lists the owner adds can still block them. Exact registrable domains only (not fedorapeople.org,
+# which hosts anyone's files). Güncelleme sunucularını OTX otomatik engellemez.
+UPDATE_INFRA_DOMAINS = ('fedoraproject.org', 'getfedora.org', 'flathub.org', 'snapcraft.io', 'snapcraftcontent.com')
+
+
+def update_infra_domain(name):
+    name = (name or '').lower().rstrip('.')
+    return any(name == root or name.endswith('.' + root) for root in UPDATE_INFRA_DOMAINS)
+
+
 def remote_support_domain(name):
     name = (name or '').lower().rstrip('.')
     return any(name == root or name.endswith('.' + root) for root in REMOTE_SUPPORT_DOMAINS)
@@ -456,7 +469,7 @@ def run_domains(store, cfg, core_cfg):
         try:
             item = json.loads(body)
             name = domain(item.get('query', ''))
-            if name and not name.endswith('.arpa') and not remote_support_domain(name):
+            if name and not name.endswith('.arpa') and not remote_support_domain(name) and not update_infra_domain(name):
                 candidates.add(name)
         except (ValueError, TypeError):
             continue
@@ -486,7 +499,8 @@ def run_domains(store, cfg, core_cfg):
     store.set('otx_domain_cache', cache)
     before = {name for name, item in (store.get('dns_blocked_domains', {}) or {}).items() if item.get('expires_at', 0) > now}
     kept = {name: item for name, item in blocked.items()
-            if item.get('expires_at', 0) > now and not remote_support_domain(name)}
+            if item.get('expires_at', 0) > now and not remote_support_domain(name)
+            and not (item.get('source') == 'otx' and update_infra_domain(name))}
     store.set('dns_blocked_domains', kept)
     if refresh_due(store, before, set(kept), now):
         from .dnsmasq_control import refresh

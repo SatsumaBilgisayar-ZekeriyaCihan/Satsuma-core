@@ -124,7 +124,9 @@ class Kit:
             return False
         now = self.clock()
         recent = [t for t in self.history.get(key, []) if 0 <= now - t < WINDOW]
-        if len(recent) >= BUDGET:
+        # 2.2.62: no cap for unit starts; satsuma.repair_budget spaces them out (a cap let a killer
+        # keep a protection service down). Other repairs keep three per 30 minutes.
+        if len(recent) >= BUDGET and not key.startswith('start:'):
             return False
         self.history[key] = recent + [now]
         self._write('history.json', self.history)
@@ -223,6 +225,10 @@ class Kit:
         key = 'start:' + unit
         if not self.allowed(key):
             return row('Birim ' + unit, False, (reason or active or 'çalışmıyor') + '; ' + self.why_not(key))
+        from .repair_budget import claim
+        granted, why = claim([unit], 'maintenance', now=self.clock())
+        if not granted:
+            return row('Birim ' + unit, False, (reason or active or 'çalışmıyor') + '; ' + why)
         self.run([SYSTEMCTL, 'reset-failed', unit])
         verb = 'restart' if active == 'active' else 'start'
         code, _, err = self.run([SYSTEMCTL, verb, unit], timeout=120)

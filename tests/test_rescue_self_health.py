@@ -124,7 +124,8 @@ def test_repair_budget_and_masking_no_unbounded_restarts():
     assert h.repair_allowed(unit,'failed',{},now)
     assert not h.repair_allowed(unit,'active',{},now)
     assert not h.repair_allowed('arbitrary.service','failed',{},now)
-    assert not h.repair_allowed(unit,'failed',{unit:[now-1,now-20,now-30]},now)
+    # 2.2.62: no cap (satsuma.repair_budget spaces repeated restarts out instead).
+    assert h.repair_allowed(unit,'failed',{unit:[now-1,now-20,now-30]},now)
     assert h.repair_allowed(unit,'failed',{unit:[now-1801]},now)
 
 

@@ -67,6 +67,8 @@ def _parser() -> argparse.ArgumentParser:
     ai = sub.add_parser("deepseek-kural", help="DeepSeek rules: list; report only / disable (admin password) / back to normal")
     ai.add_argument("islem", choices=("liste", "yalniz-bildir", "devre-disi", "normal"))
     ai.add_argument("kural", nargs="?", help="SATSUMA-AI-... rule id")
+    hp = sub.add_parser("hidepid", help="users see only their own processes: status, on, off (off asks for the admin password); reboot to apply")
+    hp.add_argument("islem", choices=("durum", "ac", "kapat"))
     pol = sub.add_parser("politika", help="signed policy: status, create the signing key, sign policy.json (admin password)")
     pol.add_argument("islem", choices=("durum", "anahtar-olustur", "imzala"))
     pol.add_argument("--yenile", action="store_true", help="replace an existing signing key")
@@ -458,6 +460,39 @@ def _policy_changes(new, old):
     return sorted([(k, a.get(k, '(yok)'), b.get(k, '(silindi)')) for k in set(a) | set(b) if a.get(k) != b.get(k)])
 
 
+def _hidepid(args) -> int:
+    """2.2.62: permanent hidepid (satsuma.hidepid); applies at the next reboot."""
+    from . import hidepid
+    if args.islem == 'durum':
+        print('Şu an: ' + ('AÇIK' if hidepid.active() else 'KAPALI') + '; kalıcı ayar: '
+              + ('VAR (açılışta açılır)' if hidepid.configured() else 'YOK'))
+        return 0
+    if args.islem == 'kapat':
+        from .dashboard_auth import verify_admin_password
+        if not verify_admin_password(getpass.getpass('Satsuma yönetici parolası: ')):
+            print('Parola doğrulanamadı; hidepid ayarı kaldı.', file=sys.stderr)
+            return 1
+        hidepid.disable()
+        print('Kalıcı hidepid kaldırıldı; yeniden başlattıktan sonra herkes bütün süreçleri görür.')
+    else:
+        out = hidepid.enable()
+        print(f"Kalıcı hidepid yazıldı (muaf grup satsuma-proc, gid {out['gid']}): " + ', '.join(out['units']))
+        print('Yeniden başlattıktan sonra geçerli olur. Bir şey bozulursa: sudo satsuma-admin hidepid kapat')
+    import subprocess
+    subprocess.run(['/usr/bin/systemctl', 'daemon-reload'], check=False)
+    store_record(args.islem)
+    return 0
+
+
+def store_record(action):
+    from .store import Store
+    store = Store()
+    try:
+        store.add('actions', {'action': 'hidepid.' + action, 'status': 'done', 'timestamp': time.time()})
+    finally:
+        store.close()
+
+
 def _policy(args) -> int:
     """2.2.62 (faz 2): policy.json is used only when signed with the owner's key."""
     import hashlib, json
@@ -573,7 +608,7 @@ def main(argv=None) -> int:
     if args.command == 'cekirdek':
         return _kernel(args)
     if args.command in ('modem', 'tam-kontrol', 'karantina', 'ssh', 'sertlestirme', 'aide', 'bakim', 'geri-alma',
-                        'deepseek-kural', 'en-siki-mod', 'oz-test', 'politika'):
+                        'deepseek-kural', 'en-siki-mod', 'oz-test', 'politika', 'hidepid'):
         if os.geteuid() != 0:
             print('Root yetkisi gerekli: sudo satsuma-admin ' + args.command, file=sys.stderr)
             return 1
@@ -587,6 +622,8 @@ def main(argv=None) -> int:
             return _strict(args)
         if args.command == 'politika':
             return _policy(args)
+        if args.command == 'hidepid':
+            return _hidepid(args)
         if args.command == 'oz-test':
             return _self_test(args)
         if args.command == 'ssh':

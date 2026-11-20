@@ -96,3 +96,15 @@ def test_one_stop_per_process():
     finally:
         ap.authorize_destructive, ap.event_time_evidence = real, real_time
     assert sent == [4242] and second['status'] == 'already_decided'
+
+
+def test_child_of_an_own_control_process_is_own():
+    """2.2.63 (field 2026-11-20): nft from dns-netns' ExecStop (not the main PID) was stopped as GAP-023."""
+    c, _ = classifier()
+    control = {**event(pid='45116'), 'cmd': 'python3 -m satsuma.dns_netns teardown'}
+    assert c.is_own(control)                                  # judged own (here via the systemd record)
+    nft = {**event(pid='45200', ppid='45116', ts=1795109300.0), 'exe': '/usr/sbin/nft',
+           'cmd': '/usr/sbin/nft delete table inet satsuma_dns_ns'}
+    assert c.is_own(nft)                                      # its parent was judged own a moment ago
+    assert not c.is_own({**nft, 'exe': '/usr/bin/bash'})      # never a shell
+    assert not c.is_own({**nft, 'ppid': '777'})               # an unknown parent vouches for nothing

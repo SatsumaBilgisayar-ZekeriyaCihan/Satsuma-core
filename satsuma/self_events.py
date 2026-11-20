@@ -76,6 +76,8 @@ _TRUST_SECONDS = 60.0
 NEVER_OWN = frozenset({'sh', 'bash', 'dash', 'zsh', 'ksh', 'fish', 'busybox', 'curl', 'wget', 'nc', 'ncat',
                        'socat', 'telnet', 'ssh', 'scp', 'sftp', 'perl', 'ruby', 'php', 'node', 'lua'})
 INTERPRETERS = ('python', 'python3')
+OWN_PARENT_SECONDS = 120     # a remembered own process vouches for its direct children this long
+FORCED_EVERY = 2             # extra systemd poll for a run that ended before it was judged
 OWN_CODE = '/opt/satsuma-core/'
 
 
@@ -99,11 +101,21 @@ class SelfClassifier:
         self._systemd = {}          # unit -> {'packaged': bool, ...}
         self._mains = {}            # pid -> (unit, start, end) of runs systemd started
         self._systemd_at = -SYSTEMD_EVERY
+        # 2.2.63 (field 2026-11-20): a program started by a unit's ExecStop/ExecStartPre process
+        # (nft from dns-netns teardown) ended before it was judged; its parent is not the unit's
+        # main PID, so it was taken for an attacker and stopped. Processes already judged as
+        # Satsuma's own are remembered briefly; their direct children count as the same unit.
+        self._own_recent = {}       # pid -> (unit, clock) of processes judged as Satsuma's own
 
-    def _systemd_units(self):
-        """Satsuma units as systemd knows them, at most every SYSTEMD_EVERY seconds."""
+    def _systemd_units(self, force=False):
+        """Satsuma units as systemd knows them, at most every SYSTEMD_EVERY seconds.
+
+        ``force`` (2.2.63): a short run that already ended may be missing from the last poll;
+        one extra poll is allowed every FORCED_EVERY seconds.
+        """
         now = self.clock()
-        if now - self._systemd_at < SYSTEMD_EVERY:
+        limit = FORCED_EVERY if force else SYSTEMD_EVERY
+        if now - self._systemd_at < limit:
             return self._systemd
         self._systemd_at = now
         try:
@@ -145,15 +157,20 @@ class SelfClassifier:
         except (TypeError, ValueError):
             return ''
         parent = str(_field(raw, 'ppid') or '')
-        self._systemd_units()
-        if parent in ('1', ''):
-            hit = self._mains.get(pid)
-        else:
+
+        def lookup():
+            if parent in ('1', ''):
+                return self._mains.get(pid)
             # A program the unit's main process started (nft, ip...); shells stay excluded in is_own.
             try:
-                hit = self._mains.get(int(parent))
+                return self._mains.get(int(parent))
             except ValueError:
-                hit = None
+                return None
+        self._systemd_units()
+        hit = lookup()
+        if not hit:
+            self._systemd_units(force=True)
+            hit = lookup()
         if not hit:
             return ''
         unit, start, end = hit
@@ -196,12 +213,34 @@ class SelfClassifier:
             return named
         return self._unit(_field(raw, 'pid')) or self._unit(_field(raw, 'ppid'))
 
+    def _own_parent(self, raw):
+        try:
+            parent = int(_field(raw, 'ppid'))
+        except (TypeError, ValueError):
+            return ''
+        hit = self._own_recent.get(parent)
+        if hit and self.clock() - hit[1] < OWN_PARENT_SECONDS:
+            return hit[0]
+        return ''
+
+    def _remember_own(self, raw, unit):
+        try:
+            pid = int(_field(raw, 'pid'))
+        except (TypeError, ValueError):
+            return
+        now = self.clock()
+        if len(self._own_recent) > 4096:
+            self._own_recent = {p: v for p, v in self._own_recent.items() if now - v[1] < OWN_PARENT_SECONDS}
+        self._own_recent[pid] = (unit, now)
+
     def is_own(self, raw):
         if not isinstance(raw, dict):
             return False
         unit = self.unit_of(raw)
         if not unit:
             unit = self._ended_main(raw)
+        if not unit:
+            unit = self._own_parent(raw)
         exe = str(_field(raw, 'exe') or '')
         name = exe.rsplit('/', 1)[-1].removesuffix(' (deleted)')
         interpreter = name.startswith(INTERPRETERS)
@@ -212,6 +251,7 @@ class SelfClassifier:
                                                   and self._systemd_units().get(unit, {}).get('packaged')))
         own = bool(unit.startswith('satsuma') and exe.startswith('/') and allowed and self._trusted(exe))
         if own:
+            self._remember_own(raw, unit)
             self.own += 1
         else:
             self.other += 1

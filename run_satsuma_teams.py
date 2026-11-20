@@ -298,6 +298,39 @@ def _policy_signature(store, meta=None, now=None):
     return finding['rule_id']
 
 
+RESTART_STORM_EVERY = 3600
+
+
+def _restart_storms(store, now=None, storms=None):
+    """A critical finding for each Satsuma unit that keeps falling (more than 3 restarts in 30 min).
+
+    2.2.62: restarts never stop; this shows that something keeps stopping the unit.
+    Tekrar tekrar düşen Satsuma birimi kritik bulgu olur.
+    """
+    from satsuma import repair_budget
+    from satsuma.finding_store import record_finding
+    now = time.time() if now is None else now
+    storms = repair_budget.storms(now) if storms is None else storms
+    alarmed = store.get('restart_storm_alarms', None) or {}
+    raised = []
+    for unit, info in sorted(storms.items()):
+        if unit in alarmed and now - float(alarmed[unit]) < RESTART_STORM_EVERY:
+            continue
+        alarmed[unit] = now
+        record_finding(store, {
+            'finding_id': f'SATSUMA-HEALTH-RESTART-001:{unit}:{int(now)}', 'rule_id': 'SATSUMA-HEALTH-RESTART-001',
+            'severity': 'critical', 'classification': 'indicator', 'source': 'self_health', 'timestamp': now,
+            'title': f'Satsuma birimi tekrar tekrar duruyor: {unit}',
+            'summary': f"Son 30 dakikada {info.get('count')} kez yeniden başlatıldı (son: {info.get('actor')}). "
+                       'Yeniden başlatma sürüyor; aralık en fazla 10 dakikaya çıkar.',
+            'advice': f'journalctl -u {unit} -n 100; bu birimi durduran süreci Bulgular ve Olanlar sayfasında arayın.',
+            'enforcement_eligible': False}, 'self_health')
+        raised.append(unit)
+    if raised:
+        store.set('restart_storm_alarms', alarmed)
+    return raised
+
+
 def _remediate(store, findings, request=None):
     """Undo what one-shot attack commands left behind (satsuma.remediation, 2.2.56).
 
@@ -637,6 +670,7 @@ def _run_once(store, config, pipeline, smart_engine, rule_stats, run_teams=True)
         smart_engine.strict_mode = strict_mode.enabled(store)
         _privd_probe(store)
         _policy_signature(store)
+        _restart_storms(store)
         for rule_id in smart_engine.ai_runtime.take_alarms():
             store.add('findings', ai_guard.suspended_finding(rule_id))
     except Exception as exc:

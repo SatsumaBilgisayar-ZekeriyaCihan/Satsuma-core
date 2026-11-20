@@ -179,7 +179,9 @@ def ostree_cleanup_check(state,ostree_booted):
 
 
 def repair_allowed(unit,state,history,now):
-    return unit in UNITS and state in ('failed','inactive','unhealthy') and len([t for t in history.get(unit,[]) if 0<=now-t<1800])<3
+    # 2.2.62: no "3 per 30 minutes" cap (a killer could keep a unit down); the shared ledger
+    # (satsuma.repair_budget) spaces repeated restarts out instead. Sınır yok, aralık büyür.
+    return unit in UNITS and state in ('failed','inactive','unhealthy')
 
 
 def command(argv,timeout=8):
@@ -321,6 +323,10 @@ def run():
                 if item.get('UnitFileState') in ('masked','masked-runtime'):
                     repairs.append({'unit':unit,'status':'MASKED_REQUIRES_OPERATOR'});continue
                 if repair_allowed(unit,item.get('ActiveState'),history,time.time()):
+                    from .repair_budget import claim
+                    granted,why=claim([unit],'self-health')
+                    if not granted:
+                        repairs.append({'unit':unit,'status':'SHARED_BUDGET','reason':why});continue
                     now=time.time();history[unit]=[t for t in history.get(unit,[]) if 0<=now-t<1800]+[now]
                     # Persist budget BEFORE acting, including on crash/restart.
                     report({**base,'updated_at':now,'repair_history':history,'repairs':repairs})
