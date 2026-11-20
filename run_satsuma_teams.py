@@ -332,8 +332,6 @@ def _previous_boot_was_off(store, runner=None, boot_id_path='/proc/sys/kernel/ra
     return 'SATSUMA-OFF-001'
 
 
-BANNED_PACKAGES = ('firefox', 'systemd-resolved', 'avahi', 'gssproxy', 'brltty', 'ipp-usb', 'python3-cups',
-                   'ibus-panel', 'python3-ibus', 'ibus-anthy-python', 'python3-langtable', 's-nail')
 BANNED_EVERY = 3600
 
 
@@ -349,12 +347,22 @@ def _banned_packages(store, now=None, runner=None):
         return []
     store.set('banned_packages_check', now)
     runner = runner or subprocess.run
+    # 2.2.66 (field 2026-11-20): the list is what the owner removed from the image himself
+    # (rpm-ostree RemovedBasePackages of the booted deployment); s-nail is part of the base image
+    # and was never removed, so a fixed list of mine raised a false critical alarm every hour.
+    import json as _json
     try:
-        out = runner(['/usr/bin/rpm', '-q', '--qf', '%{NAME}\\n', *BANNED_PACKAGES],
+        status = _json.loads(runner(['/usr/bin/rpm-ostree', 'status', '--booted', '--json'],
+                                    capture_output=True, text=True, timeout=60).stdout or '{}')
+        booted = next((d for d in status.get('deployments', []) if d.get('booted')), {})
+        removed = sorted({str(n) for n in booted.get('requested-base-removals', []) if n})
+        if not removed:
+            return []
+        out = runner(['/usr/bin/rpm', '-q', '--qf', '%{NAME}\\n', *removed],
                      capture_output=True, text=True, timeout=60).stdout
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, ValueError, subprocess.SubprocessError):
         return []
-    back = sorted({line.strip() for line in out.splitlines()} & set(BANNED_PACKAGES))
+    back = sorted({line.strip() for line in out.splitlines()} & set(removed))
     if back:
         record_finding(store, {
             'finding_id': f'SATSUMA-BANNED-PKG-001:{int(now)}', 'rule_id': 'SATSUMA-BANNED-PKG-001',

@@ -65,7 +65,11 @@ def cron_off(paths=CRON_OFF):
         except FileNotFoundError:
             continue
         if mode & 0o111:
-            os.chmod(path, mode & ~0o111)
+            try:
+                os.chmod(path, mode & ~0o111)
+            except OSError as exc:
+                # 2.2.66 (field 2026-11-20): this step failed and took the whole unit down with it.
+                return {'cron_jobs_switched_off': changed, 'cron_error': f'{path}: {exc}'[:300]}
             changed.append(str(path))
     return {'cron_jobs_switched_off': changed}
 PPP_MODULES = ('ppp_generic', 'ppp_async', 'ppp_synctty', 'ppp_deflate', 'ppp_mppe', 'bsd_comp',

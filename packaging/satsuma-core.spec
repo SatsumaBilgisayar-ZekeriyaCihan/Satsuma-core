@@ -2,7 +2,7 @@
 %global debug_package %{nil}
 %global _build_id_links none
 Name: satsuma-core
-Version: 2.2.65
+Version: 2.2.66
 Release: 1%{?dist}
 Summary: Satsuma Core security monitoring and response
 License: LicenseRef-Proprietary AND GPL-3.0-only AND Unlicense
@@ -422,6 +422,11 @@ if [ -d /run/systemd/system ]; then
  /usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/main.py --hash-blacklist || echo 'Hash blacklist not installed into ClamAV' >&2
  # USBGuard from early boot; never fails the install (see /var/lib/satsuma-core/usbguard.json).
  /usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/main.py --usbguard-setup || echo 'USBGuard setup incomplete; see /var/lib/satsuma-core/usbguard.json' >&2
+ # 2.2.66 (field 2026-11-20): browser policies written by Satsuma are refreshed on every update (the
+ # Firefox language pack ban was missing); a policy file the owner wrote himself is left alone.
+ if grep -qs 'armut-bildirici@satsuma.local' /etc/firefox/policies/policies.json; then
+  (cd /opt/satsuma-core && /usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -E -s -B -m satsuma.browser_policy) >/dev/null || echo 'Browser policies not refreshed' >&2
+ fi
  systemctl disable --now satsuma-ram-clamd.service >/dev/null 2>&1 || :
  systemctl enable satsuma-image.service satsuma-memory-hardening.service satsuma-early-guard.service satsuma-app-control.service satsuma-integrity-check.timer satsuma-self-health.timer satsuma-boot-inventory.timer satsuma-quarantine-rollback.service satsuma-quarantine-confirm.timer satsuma-mitm-watch.timer || exit 1
  systemctl start satsuma-image.service || exit 1
@@ -501,7 +506,7 @@ if [ -d /run/systemd/system ]; then systemctl daemon-reload >/dev/null 2>&1 || :
 %files
 %defattr(-,root,root,-)
 %license LICENSE
-%doc docs/RELEASE-2.2.38.md docs/RELEASE-2.2.39.md docs/RELEASE-2.2.40.md docs/RELEASE-2.2.41.md docs/RELEASE-2.2.42.md docs/RELEASE-2.2.43.md docs/RELEASE-2.2.44.md docs/RELEASE-2.2.45.md docs/RELEASE-2.2.46.md docs/RELEASE-2.2.47.md docs/RELEASE-2.2.48.md docs/RELEASE-2.2.49.md docs/RELEASE-2.2.50.md docs/RELEASE-2.2.51.md docs/RELEASE-2.2.52.md docs/RELEASE-2.2.53.md docs/RELEASE-2.2.54.md docs/RELEASE-2.2.55.md docs/RELEASE-2.2.56.md docs/RELEASE-2.2.57.md docs/RELEASE-2.2.58.md docs/RELEASE-2.2.59.md docs/RELEASE-2.2.60.md docs/RELEASE-2.2.61.md docs/RELEASE-2.2.62.md docs/RELEASE-2.2.63.md docs/RELEASE-2.2.64.md docs/RELEASE-2.2.65.md
+%doc docs/RELEASE-2.2.38.md docs/RELEASE-2.2.39.md docs/RELEASE-2.2.40.md docs/RELEASE-2.2.41.md docs/RELEASE-2.2.42.md docs/RELEASE-2.2.43.md docs/RELEASE-2.2.44.md docs/RELEASE-2.2.45.md docs/RELEASE-2.2.46.md docs/RELEASE-2.2.47.md docs/RELEASE-2.2.48.md docs/RELEASE-2.2.49.md docs/RELEASE-2.2.50.md docs/RELEASE-2.2.51.md docs/RELEASE-2.2.52.md docs/RELEASE-2.2.53.md docs/RELEASE-2.2.54.md docs/RELEASE-2.2.55.md docs/RELEASE-2.2.56.md docs/RELEASE-2.2.57.md docs/RELEASE-2.2.58.md docs/RELEASE-2.2.59.md docs/RELEASE-2.2.60.md docs/RELEASE-2.2.61.md docs/RELEASE-2.2.62.md docs/RELEASE-2.2.63.md docs/RELEASE-2.2.64.md docs/RELEASE-2.2.65.md docs/RELEASE-2.2.66.md
 %doc DEVICE-AND-SYSTEMD-RESEARCH.md VERSION NETWORK-IPS.md
 %{_docdir}/%{name}/examples
 %{_docdir}/%{name}/SELF-REPAIR-GUIDE.md
