@@ -1,4 +1,7 @@
 [Unit]
+# 2.2.64: emergency off switch. Type satsuma.off on the kernel line in the boot menu and no
+# Satsuma unit starts in that boot (the owner can always remove Satsuma). Acil kapatma anahtarı.
+ConditionKernelCommandLine=!satsuma.off
 Description=Satsuma DNS filter network namespace (satsuma-dns, 169.254.53.2)
 Documentation=file:///usr/share/doc/satsuma-core/docs/RELEASE-2.2.44.md
 Requires=satsuma-image.service

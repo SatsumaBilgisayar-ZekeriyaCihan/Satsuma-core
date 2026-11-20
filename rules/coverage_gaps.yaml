@@ -1215,3 +1215,34 @@
   implementation_status: CURRENT_TELEMETRY
   proof_level: DEFENSE_TAMPERING
   requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-076
+  name: Posta gönderme programı çalıştı (sahibin yasağı, s-nail)
+  mitre: {tactic: Exfiltration, technique: T1048.003}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?:\S*/)?(?:s-nail|mailx|nail|mail|sendmail|mutt|msmtp)(?:\s|$)'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: PUBLIC_RESEARCH
+  requires: [sys_proc.cmd]
+- id: SATSUMA-GAP-077
+  name: Sahibin imajdan çıkardığı paketin programı çalıştı
+  mitre: {tactic: Defense Evasion, technique: T1562.001}
+  severity: high
+  base_match:
+    source: sys_proc
+    cmd_regex:
+    - '^(?:\S*/)?(?:avahi-daemon|avahi-autoipd|brltty|ipp-usb|gssproxy|systemd-resolved|ibus-ui-gtk3|ibus-extension-gtk3|ibus-engine-anthy)(?:\s|$)'
+    - '^/usr/lib64/firefox/firefox(?:\s|$)'
+  actions: [record, evidence, ticket, correlation_request]
+  classification: suspicious
+  confidence: high
+  schema_version: 1
+  implementation_status: CURRENT_TELEMETRY
+  proof_level: DEFENSE_TAMPERING
+  requires: [sys_proc.cmd]

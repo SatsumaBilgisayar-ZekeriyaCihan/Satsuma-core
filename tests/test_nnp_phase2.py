@@ -16,13 +16,10 @@ def test_firstboot_exception_is_written_down():
     assert 'NoNewPrivileges=yes' not in text and 'No NoNewPrivileges on purpose' in text
 
 
-def test_reader_runs_as_its_own_user_with_read_only_capability():
+def test_reader_runs_as_root_again_until_verified_in_the_field():
+    """2.2.64: as satsuma-reader the panel read nothing on the owner's computer (2026-11-20)."""
     unit = (ROOT / 'systemd/satsuma-reader.service').read_text()
-    assert 'User=satsuma-reader' in unit and 'User=root' not in unit
-    assert 'CapabilityBoundingSet=CAP_DAC_READ_SEARCH\n' in unit and 'AmbientCapabilities=CAP_DAC_READ_SEARCH\n' in unit
-    sysusers = (ROOT / 'packaging/root/usr/lib/sysusers.d/satsuma-core.conf').read_text()
-    assert 'u satsuma-reader -:satsuma-reader' in sysusers
-    assert 'u satsuma-reader -:satsuma-reader' in (ROOT / 'packaging/satsuma-core.spec').read_text()
+    assert 'User=root' in unit and 'User=satsuma-reader' not in unit and 'AmbientCapabilities' not in unit
 
 
 def test_reader_sees_suricata_through_the_unit_not_proc(monkeypatch):

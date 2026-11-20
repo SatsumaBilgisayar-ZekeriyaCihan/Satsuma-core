@@ -1,4 +1,7 @@
 [Unit]
+# 2.2.64: emergency off switch. Type satsuma.off on the kernel line in the boot menu and no
+# Satsuma unit starts in that boot (the owner can always remove Satsuma). Acil kapatma anahtarı.
+ConditionKernelCommandLine=!satsuma.off
 Description=Satsuma AIDE guard: compare the machine with the snapshot taken after setup
 # Lists every change with how it can be undone; nothing is undone here.
 # Undoing needs the root command: satsuma-admin aide geri-al <yol>.

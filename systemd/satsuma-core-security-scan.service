@@ -1,4 +1,7 @@
 [Unit]
+# 2.2.64: emergency off switch. Type satsuma.off on the kernel line in the boot menu and no
+# Satsuma unit starts in that boot (the owner can always remove Satsuma). Acil kapatma anahtarı.
+ConditionKernelCommandLine=!satsuma.off
 # The timer starts this every minute and each start exits at once unless the
 # hourly scan is due; a 3-starts-in-5-minutes limit made every 4th and 5th
 # start "failed" (field log 2026-10-26). No start limit for this unit.

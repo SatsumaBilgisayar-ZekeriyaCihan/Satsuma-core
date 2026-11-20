@@ -2,7 +2,7 @@
 %global debug_package %{nil}
 %global _build_id_links none
 Name: satsuma-core
-Version: 2.2.63
+Version: 2.2.64
 Release: 1%{?dist}
 Summary: Satsuma Core security monitoring and response
 License: LicenseRef-Proprietary AND GPL-3.0-only AND Unlicense
@@ -414,6 +414,7 @@ if [ -d /run/systemd/system ]; then
  /usr/bin/python3 -I -B /usr/libexec/satsuma-image legacy-check || exit 1
  /usr/bin/python3 -I -B /usr/libexec/satsuma-image activate || exit 1
  systemctl daemon-reload || exit 1
+ systemd-tmpfiles --create /usr/lib/tmpfiles.d/satsuma-core.conf || :
  # 2.2.11: nftables.service loads Satsuma's firewall at boot (90-satsuma.conf).
  systemctl enable nftables.service >/dev/null 2>&1 || echo 'nftables.service could not be enabled' >&2
  /usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -I -B /opt/satsuma-core/installer/service_setup.py || exit 1
@@ -500,7 +501,7 @@ if [ -d /run/systemd/system ]; then systemctl daemon-reload >/dev/null 2>&1 || :
 %files
 %defattr(-,root,root,-)
 %license LICENSE
-%doc docs/RELEASE-2.2.38.md docs/RELEASE-2.2.39.md docs/RELEASE-2.2.40.md docs/RELEASE-2.2.41.md docs/RELEASE-2.2.42.md docs/RELEASE-2.2.43.md docs/RELEASE-2.2.44.md docs/RELEASE-2.2.45.md docs/RELEASE-2.2.46.md docs/RELEASE-2.2.47.md docs/RELEASE-2.2.48.md docs/RELEASE-2.2.49.md docs/RELEASE-2.2.50.md docs/RELEASE-2.2.51.md docs/RELEASE-2.2.52.md docs/RELEASE-2.2.53.md docs/RELEASE-2.2.54.md docs/RELEASE-2.2.55.md docs/RELEASE-2.2.56.md docs/RELEASE-2.2.57.md docs/RELEASE-2.2.58.md docs/RELEASE-2.2.59.md docs/RELEASE-2.2.60.md docs/RELEASE-2.2.61.md docs/RELEASE-2.2.62.md docs/RELEASE-2.2.63.md
+%doc docs/RELEASE-2.2.38.md docs/RELEASE-2.2.39.md docs/RELEASE-2.2.40.md docs/RELEASE-2.2.41.md docs/RELEASE-2.2.42.md docs/RELEASE-2.2.43.md docs/RELEASE-2.2.44.md docs/RELEASE-2.2.45.md docs/RELEASE-2.2.46.md docs/RELEASE-2.2.47.md docs/RELEASE-2.2.48.md docs/RELEASE-2.2.49.md docs/RELEASE-2.2.50.md docs/RELEASE-2.2.51.md docs/RELEASE-2.2.52.md docs/RELEASE-2.2.53.md docs/RELEASE-2.2.54.md docs/RELEASE-2.2.55.md docs/RELEASE-2.2.56.md docs/RELEASE-2.2.57.md docs/RELEASE-2.2.58.md docs/RELEASE-2.2.59.md docs/RELEASE-2.2.60.md docs/RELEASE-2.2.61.md docs/RELEASE-2.2.62.md docs/RELEASE-2.2.63.md docs/RELEASE-2.2.64.md
 %doc DEVICE-AND-SYSTEMD-RESEARCH.md VERSION NETWORK-IPS.md
 %{_docdir}/%{name}/examples
 %{_docdir}/%{name}/SELF-REPAIR-GUIDE.md
@@ -531,6 +532,7 @@ if [ -d /run/systemd/system ]; then systemctl daemon-reload >/dev/null 2>&1 || :
 /usr/lib/systemd/system/nm-priv-helper.service.d/90-satsuma-userns.conf
 %dir /usr/lib/systemd/system/pcscd.service.d
 /usr/lib/systemd/system/pcscd.service.d/90-satsuma-userns.conf
+/usr/lib/tmpfiles.d/satsuma-core.conf
 /usr/lib/NetworkManager/conf.d/90-satsuma-dns.conf
 /usr/share/polkit-1/rules.d/10-satsuma-package-auth.rules
 /usr/share/applications/satsuma-dashboard.desktop

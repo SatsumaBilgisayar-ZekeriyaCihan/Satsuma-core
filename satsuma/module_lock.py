@@ -68,11 +68,8 @@ def run(store=None):
                 result['allowlist']=record_allowlist()
             except Exception as exc:
                 result['allowlist']={'status':'ERROR','error':str(exc)[:300]}
-            try:
-                from .boot_lockdown import sync_initramfs
-                result['initramfs']=sync_initramfs()
-            except Exception as exc:
-                result['initramfs']={'initramfs':'error','error':str(exc)[:300]}
+            # 2.2.64 (field 2026-11-20): no automatic rpm-ostree transaction; while it ran the owner's
+            # own rpm-ostree commands were refused. The owner runs: satsuma-admin initramfs esitle.
         store.add('module_lock',result);store.set('module_lock_health',result)
         if result['status']!='LOCKED':raise RuntimeError(result['error'])
         return result

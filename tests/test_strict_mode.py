@@ -26,8 +26,7 @@ def test_every_report_only_rule_is_decided():
 
 
 @pytest.mark.parametrize('cmd,rule', [('scrot /tmp/a.png', 'SATSUMA-COLL-002'), ('xclip -o', 'SATSUMA-COLL-004'),
-                                      ('find / -perm -4000', 'SATSUMA-SUID-001'), ('shred -u x', 'SATSUMA-EVAS-020'),
-                                      ('rpm-ostree uninstall satsuma-core', 'SATSUMA-GAP-036')])
+                                      ('find / -perm -4000', 'SATSUMA-SUID-001'), ('shred -u x', 'SATSUMA-EVAS-020')])
 def test_strict_rules_stop(cmd, rule):
     assert rule in stops(cmd)
 

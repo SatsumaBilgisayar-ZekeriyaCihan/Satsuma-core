@@ -48,6 +48,26 @@ RFKILL_OP_CHANGE_ALL = 3
 RFKILL_EVENT = struct.Struct('=IBBBB')
 
 MASKED_UNITS = ('ModemManager.service', 'tuned.service', 'tuned-ppd.service')
+# Owner 2026-11-20 ("kalıcı yasak"): packages removed from the image stay banned; if an update brings
+# one back its service never starts (teams also raises SATSUMA-BANNED-PKG-001, GAP-077 stops it).
+BANNED_UNITS = ('avahi-daemon.service', 'avahi-daemon.socket', 'brltty.service', 'ipp-usb.service',
+                'gssproxy.service', 'systemd-resolved.service')
+# rkhunter's own daily cron mailed its report through s-nail (owner: "s-nail mail atmış"). Satsuma runs
+# rkhunter itself; the package's cron job is switched off (not executable, run-parts skips it).
+CRON_OFF = (Path('/etc/cron.daily/rkhunter'),)
+
+
+def cron_off(paths=CRON_OFF):
+    changed = []
+    for path in paths:
+        try:
+            mode = path.stat().st_mode
+        except FileNotFoundError:
+            continue
+        if mode & 0o111:
+            os.chmod(path, mode & ~0o111)
+            changed.append(str(path))
+    return {'cron_jobs_switched_off': changed}
 PPP_MODULES = ('ppp_generic', 'ppp_async', 'ppp_synctty', 'ppp_deflate', 'ppp_mppe', 'bsd_comp',
                'pppoe', 'pppox', 'pptp', 'l2tp_ppp')
 MODPROBE_FILE = Path('/etc/modprobe.d/satsuma-no-ppp.conf')
@@ -336,7 +356,8 @@ def block_unused(path=UNUSED_FILE, modules_file=Path('/proc/modules'), runner=su
 
 def apply(runner=subprocess.run, device=RFKILL_DEV, saved=RFKILL_SAVED, etc=SYSTEMD_ETC,
           modprobe=MODPROBE_FILE, modules_file=Path('/proc/modules'), unused=UNUSED_FILE,
-          modules_load_etc=MODULES_LOAD_ETC, allowlist=ALLOWLIST_FILE, allowlist_record=ALLOWLIST_RECORD):
+          modules_load_etc=MODULES_LOAD_ETC, allowlist=ALLOWLIST_FILE, allowlist_record=ALLOWLIST_RECORD,
+          cron_paths=CRON_OFF):
     report = {'updated_at': time.time()}
     report.update(block_radios(device, saved))
     report['units_found_unmasked'] = mask_units(MASKED_UNITS, etc, runner)
@@ -344,6 +365,8 @@ def apply(runner=subprocess.run, device=RFKILL_DEV, saved=RFKILL_SAVED, etc=SYST
     report.update(block_unused(unused, modules_file, runner))
     report.update(void_boot_loads(modules_load_etc))
     report['open_vm_tools_found_unmasked'] = mask_units(OPEN_VM_TOOLS_UNITS, etc, runner)
+    report['banned_found_unmasked'] = mask_units(BANNED_UNITS, etc, runner)
+    report.update(cron_off(cron_paths))
     report.update(allow_only(allowlist, allowlist_record))
     report['status'] = 'APPLIED' if report['radios'] == 'blocked' else 'RADIOS_NOT_BLOCKED'
     return report

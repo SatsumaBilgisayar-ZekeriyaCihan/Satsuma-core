@@ -45,6 +45,11 @@ CHROMIUM_PATHS = ('etc/opt/chrome/policies/managed/satsuma-security.json',
 POLICY_FILES = (FIREFOX_PATH,) + CHROMIUM_PATHS
 
 
+LANGPACK_CODES = ('tr', 'en-GB', 'en-US', 'en-CA', 'de', 'fr', 'es-ES', 'es-MX', 'it', 'nl', 'pt-BR', 'pt-PT', 'ru',
+                  'ar', 'fa', 'az', 'ku', 'el', 'pl', 'uk', 'ja', 'ko', 'zh-CN', 'zh-TW', 'sv-SE', 'da', 'fi', 'nb-NO',
+                  'cs', 'hu', 'ro', 'bg', 'he', 'hi-IN', 'id', 'vi', 'th')
+
+
 def firefox_policy(addon_id=ALLOWED_FIREFOX_EXTENSION_ID):
     if not addon_id or len(addon_id) > 255 or not re.fullmatch(r'[A-Za-z0-9{}@._+\-]+', addon_id):
         raise ValueError('İzinli Firefox eklentisinin kimliği geçersiz')
@@ -57,6 +62,9 @@ def firefox_policy(addon_id=ALLOWED_FIREFOX_EXTENSION_ID):
             '*': {'installation_mode': 'blocked', 'blocked_permissions': ['nativeMessaging']},
             addon_id: {'installation_mode': 'allowed', 'blocked_permissions': ['nativeMessaging']},
             'chrome-gnome-shell@gnome.org': {'installation_mode': 'blocked'},
+            # Owner 2026-11-20: Firefox language packs banned (the snap ships them in the app scope,
+            # which "*" does not reach). Firefox dil eklentileri yasak.
+            **{f'langpack-{code}@firefox.mozilla.org': {'installation_mode': 'blocked'} for code in LANGPACK_CODES},
         },
         'DisableSecurityBypass': {'InvalidCertificate': True, 'SafeBrowsing': True},
         'EnableTrackingProtection': {'Value': True, 'Locked': True, 'Cryptomining': True, 'Fingerprinting': True},

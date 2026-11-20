@@ -1,4 +1,7 @@
 [Unit]
+# 2.2.64: emergency off switch. Type satsuma.off on the kernel line in the boot menu and no
+# Satsuma unit starts in that boot (the owner can always remove Satsuma). Acil kapatma anahtarı.
+ConditionKernelCommandLine=!satsuma.off
 Description=Satsuma exec guard: the kernel asks before a program runs; build tools are refused
 # Owner's decision 2026-11-11: compilers, assemblers, linkers and packers do not
 # run unless the package manager runs (satsuma.exec_guard, satsuma.build_tools).

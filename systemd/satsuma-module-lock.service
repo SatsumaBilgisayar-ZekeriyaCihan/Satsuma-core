@@ -1,4 +1,7 @@
 [Unit]
+# 2.2.64: emergency off switch. Type satsuma.off on the kernel line in the boot menu and no
+# Satsuma unit starts in that boot (the owner can always remove Satsuma). Acil kapatma anahtarı.
+ConditionKernelCommandLine=!satsuma.off
 Requires=satsuma-image.service
 After=satsuma-image.service multi-user.target
 Description=Satsuma kernel module loading lock (one-way until reboot)
@@ -17,5 +20,4 @@ ProtectHome=yes
 PrivateTmp=yes
 ReadWritePaths=/var/lib/satsuma-core
 CapabilityBoundingSet=CAP_SYS_MODULE CAP_DAC_OVERRIDE
-# 2.2.62: after locking, rpm-ostree initramfs-etc may build a deployment (minutes).
-TimeoutStartSec=900
+TimeoutStartSec=120

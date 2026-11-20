@@ -1,4 +1,7 @@
 [Unit]
+# 2.2.64: emergency off switch. Type satsuma.off on the kernel line in the boot menu and no
+# Satsuma unit starts in that boot (the owner can always remove Satsuma). Acil kapatma anahtarı.
+ConditionKernelCommandLine=!satsuma.off
 StartLimitIntervalSec=300
 StartLimitBurst=3
 Requires=satsuma-image.service
@@ -11,13 +14,10 @@ After=satsuma-core.service
 Environment=PATH=/usr/sbin:/usr/bin
 RestartPreventExitStatus=78
 Type=simple
-# 2.2.62 (faz 2): its own unprivileged user. It only reads (databases, reports, /etc settings)
-# so the one capability it keeps is reading past file permissions; it can write nothing.
-# Faz 2: kendi kullanıcısı; yalnız okuma yetkisi (CAP_DAC_READ_SEARCH) kalır.
-User=satsuma-reader
+# 2.2.64: back to root as in 2.2.61; as its own user the panel could read nothing on the owner's
+# computer (field 2026-11-20). Not moved again until it is verified there.
+User=root
 Group=satsuma-reader
-CapabilityBoundingSet=CAP_DAC_READ_SEARCH
-AmbientCapabilities=CAP_DAC_READ_SEARCH
 RuntimeDirectory=satsuma-reader
 RuntimeDirectoryMode=0750
 UMask=0007

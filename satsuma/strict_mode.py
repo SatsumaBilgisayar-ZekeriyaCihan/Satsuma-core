@@ -20,7 +20,7 @@ STRICT_STOP = frozenset({
     'SATSUMA-COLL-001', 'SATSUMA-COLL-002', 'SATSUMA-COLL-003', 'SATSUMA-COLL-004', 'SATSUMA-COLL-009',
     'SATSUMA-COLL-010', 'SATSUMA-COLL-011', 'SATSUMA-COLL-012', 'SATSUMA-COLL-013', 'SATSUMA-COLL-014',
     'SATSUMA-C2-004',
-    'SATSUMA-GAP-036', 'SATSUMA-GAP-037', 'SATSUMA-GAP-052', 'SATSUMA-GAP-075',
+    'SATSUMA-GAP-037', 'SATSUMA-GAP-052',
     'SATSUMA-SUDO-004', 'SATSUMA-PRIV-024', 'SATSUMA-PRIV-003',
     'SATSUMA-SUID-001', 'SATSUMA-SUID-002', 'SATSUMA-SUID-004', 'SATSUMA-PRIV-004', 'SATSUMA-PRIV-008',
     'SATSUMA-PRIV-009', 'SATSUMA-PRIV-010', 'SATSUMA-PRIV-015',
@@ -78,6 +78,13 @@ def module_change_stops(event, sys_module='/sys/module'):
 
 # Kept as reports: what each would stop is the machine or the owner, not an attacker.
 EXCLUDED = {
+    # 2.2.64 (field 2026-11-20): stopping these locked the owner out of his own computer: removing
+    # or updating Satsuma, "rpm-ostree rollback", "override reset" and "reset" were all stopped,
+    # and the panel was down too. The owner's way out never closes; the gate is the polkit password
+    # rpm-ostree asks for (2.2.58), and Satsuma raises a critical alarm.
+    # Sahibin kaldırma/güncelleme/geri dönüş yolu asla kapanmaz; kapı polkit parolasıdır, alarm verilir.
+    'SATSUMA-GAP-036': 'Satsuma\'yı kaldırma ya da güncelleme: sahibin çıkış yolu kapanmaz (polkit parolası sorar)',
+    'SATSUMA-GAP-075': 'rpm-ostree kaldırma, rollback, reset: sahibin geri dönüş yolu kapanmaz (polkit parolası sorar)',
     'SATSUMA-ROOT-003': 'Her program /dev/null ve terminaline yazar; her şey durdurulurdu.',
     'SATSUMA-COLL-015': 'Her oturum açma, ls ve sudo /etc/passwd okur.',
     'SATSUMA-SUDO-HARD-003': 'sudo her çalışmada /etc/sudoers okur; sudo durdurulurdu.',

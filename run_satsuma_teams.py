@@ -298,6 +298,74 @@ def _policy_signature(store, meta=None, now=None):
     return finding['rule_id']
 
 
+def _previous_boot_was_off(store, runner=None, boot_id_path='/proc/sys/kernel/random/boot_id'):
+    """Once per boot: a finding when the previous boot ran with the satsuma.off switch (2.2.64).
+
+    That boot had no Satsuma at all; whoever had the boot menu could do anything in it.
+    Önceki açılış satsuma.off ile yapıldıysa bulgu açılır.
+    """
+    import subprocess
+    from satsuma.finding_store import record_finding
+    try:
+        boot = Path(boot_id_path).read_text().strip()
+    except OSError:
+        return None
+    if store.get('satsuma_off_checked_boot', None) == boot:
+        return None
+    store.set('satsuma_off_checked_boot', boot)
+    runner = runner or subprocess.run
+    try:
+        out = runner(['/usr/bin/journalctl', '-b', '-1', '-k', '-o', 'cat', '--no-pager', '--grep', 'Command line'],
+                     capture_output=True, text=True, timeout=20).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if not any(word == 'satsuma.off' for line in out.splitlines() for word in line.split()):
+        return None
+    now = time.time()
+    record_finding(store, {
+        'finding_id': f'SATSUMA-OFF-001:{int(now)}', 'rule_id': 'SATSUMA-OFF-001', 'severity': 'high',
+        'classification': 'indicator', 'source': 'self_health', 'timestamp': now, 'enforcement_eligible': False,
+        'title': 'Önceki açılış Satsuma kapalıyken yapıldı (satsuma.off)',
+        'summary': 'Açılış menüsünde satsuma.off yazılmış; o açılışta hiçbir Satsuma servisi çalışmadı.',
+        'advice': 'Bunu siz yaptıysanız sorun yok. Siz yapmadıysanız açılış menüsüne erişen biri var: '
+                  'journalctl -b -1 ile o açılışta ne yapıldığına bakın.'}, 'self_health')
+    return 'SATSUMA-OFF-001'
+
+
+BANNED_PACKAGES = ('firefox', 'systemd-resolved', 'avahi', 'gssproxy', 'brltty', 'ipp-usb', 'python3-cups',
+                   'ibus-panel', 'python3-ibus', 'ibus-anthy-python', 'python3-langtable', 's-nail')
+BANNED_EVERY = 3600
+
+
+def _banned_packages(store, now=None, runner=None):
+    """Hourly: a critical finding when a package the owner removed is installed again (2.2.64).
+
+    Sahibin imajdan çıkardığı paket geri gelirse kritik bulgu.
+    """
+    import subprocess
+    from satsuma.finding_store import record_finding
+    now = time.time() if now is None else now
+    if now - float(store.get('banned_packages_check', None) or 0) < BANNED_EVERY:
+        return []
+    store.set('banned_packages_check', now)
+    runner = runner or subprocess.run
+    try:
+        out = runner(['/usr/bin/rpm', '-q', '--qf', '%{NAME}\\n', *BANNED_PACKAGES],
+                     capture_output=True, text=True, timeout=60).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    back = sorted({line.strip() for line in out.splitlines()} & set(BANNED_PACKAGES))
+    if back:
+        record_finding(store, {
+            'finding_id': f'SATSUMA-BANNED-PKG-001:{int(now)}', 'rule_id': 'SATSUMA-BANNED-PKG-001',
+            'severity': 'critical', 'classification': 'indicator', 'source': 'self_health', 'timestamp': now,
+            'enforcement_eligible': False,
+            'title': 'Yasaklı paket imaja geri geldi: ' + ', '.join(back),
+            'summary': 'Bu paketleri imajdan siz çıkarmıştınız; servisleri maskeli, programları çalışırsa durdurulur.',
+            'advice': 'sudo rpm-ostree override remove ' + ' '.join(back)}, 'self_health')
+    return back
+
+
 RESTART_STORM_EVERY = 3600
 
 
@@ -671,6 +739,8 @@ def _run_once(store, config, pipeline, smart_engine, rule_stats, run_teams=True)
         _privd_probe(store)
         _policy_signature(store)
         _restart_storms(store)
+        _previous_boot_was_off(store)
+        _banned_packages(store)
         for rule_id in smart_engine.ai_runtime.take_alarms():
             store.add('findings', ai_guard.suspended_finding(rule_id))
     except Exception as exc:

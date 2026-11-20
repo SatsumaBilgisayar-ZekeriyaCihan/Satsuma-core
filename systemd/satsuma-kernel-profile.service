@@ -1,4 +1,7 @@
 [Unit]
+# 2.2.64: emergency off switch. Type satsuma.off on the kernel line in the boot menu and no
+# Satsuma unit starts in that boot (the owner can always remove Satsuma). Acil kapatma anahtarı.
+ConditionKernelCommandLine=!satsuma.off
 Description=Satsuma strictest kernel profile: put the boot command line back on every installed kernel
 # Started by satsuma-kernel-guard when a boot entry lost a profile word (a new
 # kernel package, an edited entry). Only satsuma.kernel_profile.CMDLINE is

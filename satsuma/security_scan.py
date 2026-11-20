@@ -176,6 +176,25 @@ def _result(tool, command, runner=bounded_run, now=time.time, archive=None):
 
 
 
+CLAMD_UNIT='clamd@scan.service'
+
+
+def _retry_clamd(command,item,*,runner,now,control=subprocess.run):
+    try:
+        control(['/usr/bin/systemctl','start',CLAMD_UNIT],capture_output=True,text=True,timeout=180)
+        control([command[0],'--ping','60:2'],capture_output=True,text=True,timeout=150)
+    except (OSError,subprocess.SubprocessError):
+        return item
+    again=_result('clamav',command,runner=runner,now=now)
+    if again['status'] not in ('ERROR','WARNING'):
+        return {**again,'retried_after':item.get('error') or 'clamdscan exit '+str(item.get('exit_code'))}
+    streamed=[part if part!='--fdpass' else '--stream' for part in command]
+    third=_result('clamav',streamed,runner=runner,now=now)
+    if third['status'] not in ('ERROR','WARNING'):
+        return {**third,'retried_after':again.get('error') or 'clamdscan exit '+str(again.get('exit_code')),'mode':'stream'}
+    return again
+
+
 def clamscan_command(which=shutil.which):
     clamscan=which('clamscan')
     return [clamscan,'--recursive=yes','--infected','--cross-fs=yes',*SCAN_TARGETS] if clamscan else None
@@ -209,6 +228,11 @@ def run_once(store=None, runner=bounded_run, which=shutil.which, now=time.time, 
             else:
                 item=_result(tool,command,runner=runner,now=now)
                 fallback=clamscan_command(which) if tool=='clamav' and command[0].endswith('clamdscan') else None
+                if fallback and item['status'] in ('ERROR','WARNING'):
+                    # 2.2.64 (field 2026-11-20: "Communication error", then clamscan ran out of its 900 s):
+                    # wake clamd and ask it again, then over the socket stream instead of passing the
+                    # descriptor; clamscan (loads every signature itself) only if clamd still fails.
+                    item=_retry_clamd(command,item,runner=runner,now=now)
                 if fallback and item['status'] in ('ERROR','WARNING'):
                     # clamd not answering: scan with clamscan instead of giving up.
                     first=item.get('error') or 'clamdscan exit '+str(item.get('exit_code'))

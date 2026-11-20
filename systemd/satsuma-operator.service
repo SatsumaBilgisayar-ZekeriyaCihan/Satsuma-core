@@ -1,4 +1,7 @@
 [Unit]
+# 2.2.64: emergency off switch. Type satsuma.off on the kernel line in the boot menu and no
+# Satsuma unit starts in that boot (the owner can always remove Satsuma). Acil kapatma anahtarı.
+ConditionKernelCommandLine=!satsuma.off
 StartLimitIntervalSec=300
 StartLimitBurst=3
 Requires=satsuma-image.service
@@ -15,6 +18,7 @@ User=root
 Group=satsuma-reader
 RuntimeDirectory=satsuma
 RuntimeDirectoryMode=0750
+RuntimeDirectoryPreserve=yes
 WorkingDirectory=/opt/satsuma-core
 Environment=PYTHONDONTWRITEBYTECODE=1
 ExecStart=/usr/bin/python3 -X pycache_prefix=/run/satsuma-python-cache -E -s -B -m satsuma.operator_service

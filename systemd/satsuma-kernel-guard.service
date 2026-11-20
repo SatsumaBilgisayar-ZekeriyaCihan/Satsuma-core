@@ -1,4 +1,7 @@
 [Unit]
+# 2.2.64: emergency off switch. Type satsuma.off on the kernel line in the boot menu and no
+# Satsuma unit starts in that boot (the owner can always remove Satsuma). Acil kapatma anahtarı.
+ConditionKernelCommandLine=!satsuma.off
 Description=Satsuma kernel guard: read the security settings of the kernel and write back what was changed
 # Reads a fixed table every second and writes back only what was weakened
 # (satsuma.kernel_guard). It starts after systemd-sysctl so it never races the

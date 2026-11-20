@@ -67,7 +67,7 @@ def test_reader_counts_real_stops_and_follows_the_switch(tmp_path, monkeypatch):
     monkeypatch.setattr(dashboard_api, '_connect', connect)
     monkeypatch.setattr(dashboard_api, '_state', lambda conn, key, default=None: states.get(key, default))
     report = dashboard_api.m_rules()
-    assert report['enforcement_enabled'] is True and report['stop_total'] == 206  # 2.2.54: +47, 2.2.55: +20, 2.2.56: +2, 2.2.58: +1 (GAP-074) coverage_gaps rules that stop
+    assert report['enforcement_enabled'] is True and report['stop_total'] == 208  # 2.2.64: +2 (GAP-076, 077); 2.2.54: +47, 2.2.55: +20, 2.2.56: +2, 2.2.58: +1 (GAP-074) coverage_gaps rules that stop
     assert report['stop_outcomes_24h'] == {'stopped': 1, 'gone': 1, 'denied': 0, 'failed': 0}
     assert '1 program durduruldu, 1 eşleşmede program sinyal gitmeden zaten kapanmıştı' in report['summary_text']
     row = next(r for r in report['rules'] if r['rule_id'] == 'SATSUMA-C2-001')

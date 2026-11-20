@@ -1,4 +1,7 @@
 [Unit]
+# 2.2.64: emergency off switch. Type satsuma.off on the kernel line in the boot menu and no
+# Satsuma unit starts in that boot (the owner can always remove Satsuma). Acil kapatma anahtarı.
+ConditionKernelCommandLine=!satsuma.off
 Description=Satsuma boot lockdown: radios off, USB modem, PPP and tuned masked
 # Every boot, before the network and before any radio or modem service can
 # start; the system is not trusted, so what was undone is repaired each time.

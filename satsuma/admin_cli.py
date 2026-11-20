@@ -67,6 +67,8 @@ def _parser() -> argparse.ArgumentParser:
     ai = sub.add_parser("deepseek-kural", help="DeepSeek rules: list; report only / disable (admin password) / back to normal")
     ai.add_argument("islem", choices=("liste", "yalniz-bildir", "devre-disi", "normal"))
     ai.add_argument("kural", nargs="?", help="SATSUMA-AI-... rule id")
+    ird = sub.add_parser("initramfs", help="carry Satsuma's module rules into the initramfs (one rpm-ostree transaction, effective next boot)")
+    ird.add_argument("islem", choices=("durum", "esitle"))
     hp = sub.add_parser("hidepid", help="users see only their own processes: status, on, off (off asks for the admin password); reboot to apply")
     hp.add_argument("islem", choices=("durum", "ac", "kapat"))
     pol = sub.add_parser("politika", help="signed policy: status, create the signing key, sign policy.json (admin password)")
@@ -460,6 +462,19 @@ def _policy_changes(new, old):
     return sorted([(k, a.get(k, '(yok)'), b.get(k, '(silindi)')) for k in set(a) | set(b) if a.get(k) != b.get(k)])
 
 
+def _initramfs(args) -> int:
+    """2.2.64: the initramfs sync runs only when the owner asks (it holds rpm-ostree while it runs)."""
+    from . import boot_lockdown as bl
+    files = bl.initramfs_files()
+    if args.islem == 'durum':
+        print('İlk açılış görüntüsüne taşınacak dosyalar: ' + (', '.join(str(f) for f in files) or 'yok'))
+        return 0
+    print('rpm-ostree işlemi başlıyor (birkaç dakika); bitene kadar başka rpm-ostree komutu çalışmaz.')
+    out = bl.sync_initramfs(files=files)
+    print(out)
+    return 0 if out.get('initramfs') in ('in_sync', 'synced_takes_effect_next_boot') else 1
+
+
 def _hidepid(args) -> int:
     """2.2.62: permanent hidepid (satsuma.hidepid); applies at the next reboot."""
     from . import hidepid
@@ -608,7 +623,7 @@ def main(argv=None) -> int:
     if args.command == 'cekirdek':
         return _kernel(args)
     if args.command in ('modem', 'tam-kontrol', 'karantina', 'ssh', 'sertlestirme', 'aide', 'bakim', 'geri-alma',
-                        'deepseek-kural', 'en-siki-mod', 'oz-test', 'politika', 'hidepid'):
+                        'deepseek-kural', 'en-siki-mod', 'oz-test', 'politika', 'hidepid', 'initramfs'):
         if os.geteuid() != 0:
             print('Root yetkisi gerekli: sudo satsuma-admin ' + args.command, file=sys.stderr)
             return 1
@@ -624,6 +639,8 @@ def main(argv=None) -> int:
             return _policy(args)
         if args.command == 'hidepid':
             return _hidepid(args)
+        if args.command == 'initramfs':
+            return _initramfs(args)
         if args.command == 'oz-test':
             return _self_test(args)
         if args.command == 'ssh':
