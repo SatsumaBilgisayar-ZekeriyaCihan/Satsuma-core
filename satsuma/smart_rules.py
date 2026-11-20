@@ -896,6 +896,11 @@ class SmartRuleEngine:
             result = account_change.TRACKER.check() if self.account_tracker is None else self.account_tracker.check()
             for finding in findings:
                 account_change.apply(finding, result)
+        if any(f.get('rule_id') == 'SATSUMA-FILELESS-002' for f in findings):
+            # 2.2.65: bootc running its own temporary copy (content checked, satsuma.system_reexec).
+            from .system_reexec import is_tool_copy
+            if is_tool_copy(event):
+                findings = [f for f in findings if f.get('rule_id') != 'SATSUMA-FILELESS-002']
         result = self._deduplicate(findings)
         if self.strict_mode:
             # 2.2.61 (owner, 2026-11-20): report-only rules that may stop (satsuma.strict_mode).
@@ -1055,6 +1060,10 @@ class SmartRuleEngine:
         'SATSUMA-GAP-071': ('rm', 'cp', 'mv', 'shred', 'truncate', 'tar', '*'),
         'SATSUMA-GAP-073': ('insmod', 'modprobe', 'kmod', '*'),
         'SATSUMA-GAP-075': ('rpm-ostree', '*'),
+        # 2.2.65: the owner's bans are tried only for their own programs (speed budget).
+        'SATSUMA-GAP-076': ('s-nail', 'mailx', 'nail', 'mail', 'sendmail', 'mutt', 'msmtp'),
+        'SATSUMA-GAP-077': ('avahi-daemon', 'avahi-autoipd', 'brltty', 'ipp-usb', 'gssproxy', 'systemd-resolved',
+                            'ibus-ui-gtk3', 'ibus-extension-gtk3', 'ibus-engine-anthy', 'firefox'),
     }
 
     @staticmethod
